@@ -10,7 +10,7 @@ it reads telemetry and schedules commands
 so that the spacecraft accumulates a target delta-v without violating thermal, power, or momentum limits.
 
 The package provides the strategy API, a small parameterized reference simulator,
-reference scenarios, per-run evaluation metrics, and a command-line runner.
+the challenge problem with its public scenarios, per-run evaluation metrics, and a command-line runner.
 The spacecraft model is a generic toy model and does not represent any particular spacecraft or mission.
 The distribution name is `spacecraft-operations-challenge-core` and the import package is `spacecraft_ops`.
 
@@ -33,7 +33,7 @@ uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
 
 ## Quick Start
 
-List the reference scenarios and run an example strategy from the repository root:
+List the challenge scenarios and run an example strategy from the repository root:
 
 ```sh
 uv run spacecraft-ops scenarios
@@ -87,7 +87,7 @@ with a constructor that takes no arguments.
 For a file, its directory is put first on the import path, so a strategy can be split across several modules.
 For a module, the current directory is put on the import path.
 
-`--scenario` selects a reference scenario (default `nominal`), `--seed` overrides the scenario seed,
+`--scenario` selects a challenge scenario (default `nominal`), `--seed` overrides the scenario seed,
 and `--json` prints the metrics as JSON.
 `python -m spacecraft_ops` is equivalent to `spacecraft-ops`.
 
@@ -102,8 +102,8 @@ and `--json` prints the metrics as JSON.
 - [Writing a Strategy](docs/strategy.md): strategy lifecycle, mission brief, and commander
 - [Commands and Timeline](docs/timeline.md): command types and timeline ordering rules
 - [Spacecraft Model](docs/spacecraft-model.md): state, dynamics, telemetry, and modifiers
-- [Simulation](docs/simulation.md): scenarios, order of events, termination, and run results
-- [Reference Scenarios](docs/reference-scenarios.md): the built-in scenarios
+- [Simulation](docs/simulation.md): problems, scenarios, order of events, termination, and run results
+- [Challenge Problem](docs/challenge.md): the challenge problem and its public scenarios
 - [Evaluation](docs/evaluation.md): per-run metrics and the reference score
 
 ## Development

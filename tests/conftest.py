@@ -1,9 +1,11 @@
 from collections.abc import Callable
+from dataclasses import fields
 
 import pytest
 
 from spacecraft_ops.commands import PropulsionMode
 from spacecraft_ops.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
+from spacecraft_ops.problem import Problem
 from spacecraft_ops.scenario import Scenario
 
 
@@ -57,21 +59,27 @@ def limits() -> SafetyLimits:
     )
 
 
+PROBLEM_FIELDS = frozenset(field.name for field in fields(Problem))
+
+
 @pytest.fixture
 def make_scenario(parameters, limits, make_state) -> Callable[..., Scenario]:
-    """Factory for small test scenarios: 1 s integration step, 60 s decision period, 600 s time limit."""
+    """Factory for small test scenarios: 60 s decision period and 600 s time limit.
+
+    Keyword arguments named like `Problem` fields override the problem; the rest override the scenario.
+    """
 
     def factory(**overrides: object) -> Scenario:
-        values: dict[str, object] = {
-            "name": "test",
+        problem_values: dict[str, object] = {
             "parameters": parameters,
             "initial_state": make_state(),
             "limits": limits,
             "target_delta_v_mps": 1.0,
             "time_limit_s": 600.0,
-            "integration_step_s": 1.0,
             "decision_period_s": 60.0,
         }
-        return Scenario(**(values | overrides))
+        problem_values |= {key: value for key, value in overrides.items() if key in PROBLEM_FIELDS}
+        scenario_values = {"name": "test"} | {k: v for k, v in overrides.items() if k not in PROBLEM_FIELDS}
+        return Scenario(problem=Problem(**problem_values), **scenario_values)
 
     return factory

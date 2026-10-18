@@ -1,6 +1,6 @@
 # Examples
 
-Two example strategies for the reference scenarios in `spacecraft_ops.reference`.
+Two example strategies for the challenge scenarios in `spacecraft_ops.challenge`.
 Both import only from the top-level `spacecraft_ops` package and see nothing but the mission brief and telemetry.
 
 ## `fixed_sequence.py`
@@ -46,14 +46,14 @@ To run one from Python, load it by path, for example from the repository root:
 ```python
 import importlib.util
 
-from spacecraft_ops.reference import reference_scenario
+from spacecraft_ops.challenge import scenario
 from spacecraft_ops.simulation import run
 
 spec = importlib.util.spec_from_file_location("reactive", "examples/reactive.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
-result = run(module.ReactiveStrategy(), reference_scenario("thruster-degradation"))
+result = run(module.ReactiveStrategy(), scenario("thruster-degradation"))
 print(result.termination.reason, result.termination.time_s, result.final_state.delta_v_mps)
 ```
 

@@ -155,7 +155,7 @@ def test_usage_errors_exit_with_usage_status(idle_strategy_file, capsys):
     assert "error:" in capsys.readouterr().err
 
 
-def test_scenarios_lists_reference_scenarios(capsys):
+def test_scenarios_lists_challenge_scenarios(capsys):
     assert main(["scenarios"]) == EXIT_OK
     assert "nominal" in capsys.readouterr().out
 

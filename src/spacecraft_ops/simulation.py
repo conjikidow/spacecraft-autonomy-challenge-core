@@ -23,6 +23,7 @@ from dataclasses import replace
 from functools import partial
 
 from spacecraft_ops.commands import CommandError, CompleteMission, SetHeater, SetPropulsionMode
+from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.model import SafetyLimits, SpacecraftState, integrate
 from spacecraft_ops.modifiers import effective_parameters, effective_rates, observe
 from spacecraft_ops.results import RunResult, SafetyViolation, Termination, TerminationReason
@@ -67,11 +68,13 @@ def check_safety(state: SpacecraftState, limits: SafetyLimits) -> tuple[SafetyVi
 class Simulation:
     """One run of a scenario. Owns the true state, the timeline, and the run record."""
 
-    def __init__(self, scenario: Scenario, *, seed: int | None = None) -> None:
+    def __init__(self, scenario: Scenario, *, config: SimulationConfig | None = None, seed: int | None = None) -> None:
         self.scenario = scenario
+        self.config = SimulationConfig() if config is None else config
         self.seed = scenario.seed if seed is None else seed
+        self._problem = scenario.problem
         self._rng = random.Random(self.seed)
-        self._state = scenario.initial_state
+        self._state = self._problem.initial_state
         self._timeline = Timeline()
         self._trajectory = [self._state]
         self._telemetry: list[Telemetry] = []
@@ -135,7 +138,7 @@ class Simulation:
             raise RuntimeError("advance requires a started simulation and no open decision window")
         self._execute_due()
         while not self.done:
-            if self.time_s >= self.scenario.time_limit_s:
+            if self.time_s >= self._problem.time_limit_s:
                 self._terminate(TerminationReason.TIME_LIMIT)
                 break
             next_time_s, is_decision = self._next_event()
@@ -157,6 +160,7 @@ class Simulation:
             raise RuntimeError("the run has not terminated yet")
         return RunResult(
             scenario=self.scenario,
+            config=self.config,
             seed=self.seed,
             termination=self._termination,
             safety_violations=tuple(self._violations),
@@ -167,9 +171,9 @@ class Simulation:
         )
 
     def _next_event(self) -> tuple[float, bool]:
-        next_grid_s = (self._grid_steps + 1) * self.scenario.integration_step_s
-        next_decision_s = (self._decisions + 1) * self.scenario.decision_period_s
-        candidates = [next_grid_s, next_decision_s, self.scenario.time_limit_s]
+        next_grid_s = (self._grid_steps + 1) * self.config.integration_step_s
+        next_decision_s = (self._decisions + 1) * self._problem.decision_period_s
+        candidates = [next_grid_s, next_decision_s, self._problem.time_limit_s]
         next_command_s = self._timeline.next_time_s()
         if next_command_s is not None:
             candidates.append(next_command_s)
@@ -179,20 +183,20 @@ class Simulation:
         is_decision = _same_time(next_decision_s, next_time_s)
         if is_decision:
             self._decisions += 1
-        if _same_time(self.scenario.time_limit_s, next_time_s):
-            next_time_s = self.scenario.time_limit_s
+        if _same_time(self._problem.time_limit_s, next_time_s):
+            next_time_s = self._problem.time_limit_s
         return next_time_s, is_decision
 
     def _integrate_to(self, time_s: float) -> None:
         state = self._state
-        parameters = effective_parameters(self.scenario.parameters, state, self.scenario.modifiers, self._rng)
+        parameters = effective_parameters(self._problem.parameters, state, self.scenario.modifiers, self._rng)
         rates = effective_rates(state, parameters, self.scenario.modifiers, self._rng)
         state = integrate(state, rates, time_s - state.time_s, parameters)
         self._state = replace(state, time_s=time_s)
         self._trajectory.append(self._state)
 
     def _check_safety(self) -> None:
-        violations = check_safety(self._state, self.scenario.limits)
+        violations = check_safety(self._state, self._problem.limits)
         if violations:
             self._violations.extend(violations)
             self._terminate(violations[0].reason, violations[0].message)
@@ -222,9 +226,15 @@ def _same_time(a_s: float, b_s: float) -> bool:
     return math.isclose(a_s, b_s, rel_tol=1e-12, abs_tol=1e-9)
 
 
-def run(strategy: Strategy, scenario: Scenario, *, seed: int | None = None) -> RunResult:
+def run(
+    strategy: Strategy,
+    scenario: Scenario,
+    *,
+    config: SimulationConfig | None = None,
+    seed: int | None = None,
+) -> RunResult:
     """Run `strategy` on `scenario` and return the result. An `Exception` from the strategy ends the run."""
-    simulation = Simulation(scenario, seed=seed)
+    simulation = Simulation(scenario, config=config, seed=seed)
     telemetry = simulation.start()
     if telemetry is not None:
         _decide(simulation, partial(strategy.initialize, simulation.brief, telemetry))

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from spacecraft_ops.reference import reference_scenario
+from spacecraft_ops.challenge import scenario as reference_scenario
 from spacecraft_ops.results import TerminationReason
 from spacecraft_ops.simulation import Simulation, run
 from spacecraft_ops.strategy import Strategy
@@ -28,7 +28,7 @@ def reactive():
 
 
 def delta_v_error(result):
-    return abs(result.final_state.delta_v_mps - result.scenario.target_delta_v_mps)
+    return abs(result.final_state.delta_v_mps - result.scenario.problem.target_delta_v_mps)
 
 
 @pytest.mark.parametrize("make_strategy", [fixed_sequence, reactive])
@@ -38,7 +38,7 @@ def test_examples_complete_nominal_safely(make_strategy):
     assert result.termination.reason is TerminationReason.MISSION_COMPLETE
     assert not result.safety_violations
     assert delta_v_error(result) < SMALL_ERROR_MPS
-    assert result.termination.time_s < 0.75 * scenario.time_limit_s
+    assert result.termination.time_s < 0.75 * scenario.problem.time_limit_s
 
 
 def test_fixed_sequence_schedules_everything_in_initialize():
@@ -69,7 +69,7 @@ def test_reactive_adapts_to_thruster_degradation_while_fixed_sequence_does_not()
     assert delta_v_error(reactive_result) < SMALL_ERROR_MPS
 
     assert fixed_result.termination.reason is TerminationReason.MISSION_COMPLETE
-    assert delta_v_error(fixed_result) > 0.05 * scenario.target_delta_v_mps
+    assert delta_v_error(fixed_result) > 0.05 * scenario.problem.target_delta_v_mps
 
 
 @pytest.mark.parametrize("make_strategy", [fixed_sequence, reactive])
