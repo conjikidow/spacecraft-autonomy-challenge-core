@@ -1,0 +1,57 @@
+"""Run termination and run results."""
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+from spacecraft_ops.model import SpacecraftState
+from spacecraft_ops.scenario import Scenario
+from spacecraft_ops.telemetry import Telemetry
+from spacecraft_ops.timeline import ScheduledCommand
+
+
+class TerminationReason(StrEnum):
+    """Why a run ended. Safety reasons are listed in the priority used when several occur at once."""
+
+    MISSION_COMPLETE = "MISSION_COMPLETE"
+    TIME_LIMIT = "TIME_LIMIT"
+    THERMAL_VIOLATION = "THERMAL_VIOLATION"
+    BATTERY_DEPLETED = "BATTERY_DEPLETED"
+    MOMENTUM_VIOLATION = "MOMENTUM_VIOLATION"
+    STRATEGY_ERROR = "STRATEGY_ERROR"
+    INVALID_COMMAND = "INVALID_COMMAND"
+
+
+@dataclass(frozen=True, slots=True)
+class SafetyViolation:
+    """A safety limit exceeded by the true state."""
+
+    reason: TerminationReason
+    time_s: float
+    message: str
+
+
+@dataclass(frozen=True, slots=True)
+class Termination:
+    """How and when a run ended. `detail` holds a message or traceback for failures."""
+
+    reason: TerminationReason
+    time_s: float
+    detail: str = ""
+
+
+@dataclass(frozen=True)
+class RunResult:
+    """Complete record of one run, including ground truth for evaluation.
+
+    `trajectory` holds the true state at the start and at every event time, sampled after integration
+    and before commands at that time execute. `final_state` additionally reflects those commands.
+    """
+
+    scenario: Scenario
+    seed: int
+    termination: Termination
+    safety_violations: tuple[SafetyViolation, ...]
+    final_state: SpacecraftState
+    trajectory: tuple[SpacecraftState, ...]
+    telemetry: tuple[Telemetry, ...]
+    executed_commands: tuple[ScheduledCommand, ...]

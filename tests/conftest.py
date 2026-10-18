@@ -3,7 +3,8 @@ from collections.abc import Callable
 import pytest
 
 from spacecraft_ops.commands import PropulsionMode
-from spacecraft_ops.model import SpacecraftParameters, SpacecraftState, ThrusterParameters
+from spacecraft_ops.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
+from spacecraft_ops.scenario import Scenario
 
 
 @pytest.fixture
@@ -41,5 +42,36 @@ def make_state() -> Callable[..., SpacecraftState]:
             "propulsion_mode": PropulsionMode.OFF,
         }
         return SpacecraftState(**(values | overrides))
+
+    return factory
+
+
+@pytest.fixture
+def limits() -> SafetyLimits:
+    """Limits wide enough that short test runs stay safe unless a test narrows them."""
+    return SafetyLimits(
+        min_propulsion_temperature_c=-50.0,
+        max_propulsion_temperature_c=150.0,
+        min_battery_energy_wh=0.0,
+        max_abs_wheel_momentum_nms=100.0,
+    )
+
+
+@pytest.fixture
+def make_scenario(parameters, limits, make_state) -> Callable[..., Scenario]:
+    """Factory for small test scenarios: 1 s integration step, 60 s decision period, 600 s time limit."""
+
+    def factory(**overrides: object) -> Scenario:
+        values: dict[str, object] = {
+            "name": "test",
+            "parameters": parameters,
+            "initial_state": make_state(),
+            "limits": limits,
+            "target_delta_v_mps": 1.0,
+            "time_limit_s": 600.0,
+            "integration_step_s": 1.0,
+            "decision_period_s": 60.0,
+        }
+        return Scenario(**(values | overrides))
 
     return factory
