@@ -15,7 +15,7 @@ from pathlib import Path
 
 from spacecraft_ops.challenge import scenario as challenge_scenario
 from spacecraft_ops.challenge import scenario_names
-from spacecraft_ops.evaluation import RunMetrics, evaluate, reference_score
+from spacecraft_ops.evaluation import RunMetrics, evaluate
 from spacecraft_ops.results import RunResult, TerminationReason
 from spacecraft_ops.simulation import run
 from spacecraft_ops.strategy import Strategy
@@ -81,27 +81,26 @@ def _prepend_import_path(directory: Path) -> None:
         sys.path.insert(0, entry)
 
 
-def format_summary(result: RunResult, metrics: RunMetrics, score: float) -> str:
+def format_summary(result: RunResult, metrics: RunMetrics) -> str:
     """Human-readable summary of one run."""
-    completion = "-" if metrics.completion_time_s is None else f"{metrics.completion_time_s:.1f} s"
+    declared_at = "-" if metrics.completion_declared_time_s is None else f"{metrics.completion_declared_time_s:.1f} s"
     rows = [
         ("scenario", f"{result.scenario.name} (seed {result.seed})"),
         ("termination", f"{metrics.termination_reason} at {metrics.end_time_s:.1f} s"),
-        ("completed", str(metrics.completed)),
+        ("completion declared", str(metrics.completion_declared)),
         ("safe", str(metrics.safe)),
         (
             "delta-v",
             f"{metrics.delta_v_mps:.4f} m/s "
             f"(target {metrics.target_delta_v_mps:.4f}, error {metrics.delta_v_error_mps:+.4f})",
         ),
-        ("completion time", completion),
+        ("declaration time", declared_at),
         ("min battery energy", f"{metrics.min_battery_energy_wh:.2f} Wh"),
         (
             "temperature range",
             f"{metrics.min_propulsion_temperature_c:.2f} .. {metrics.max_propulsion_temperature_c:.2f} C",
         ),
         ("max |wheel momentum|", f"{metrics.max_abs_wheel_momentum_nms:.4f} Nms"),
-        ("reference score", f"{score:.4f}"),
     ]
     rows.extend(("violation", violation.message) for violation in metrics.safety_violations)
     return "\n".join(f"{label + ':':<22}{value}" for label, value in rows)
@@ -117,19 +116,17 @@ def _run_command(args: argparse.Namespace) -> int:
 
     result = run(strategy, scenario, seed=args.seed)
     metrics = evaluate(result)
-    score = reference_score(metrics)
 
     if args.json:
         payload = {
             "scenario": scenario.name,
             "seed": result.seed,
             "metrics": metrics.to_dict(),
-            "reference_score": score,
             "termination_detail": result.termination.detail,
         }
         print(json.dumps(payload, indent=2))
     else:
-        print(format_summary(result, metrics, score))
+        print(format_summary(result, metrics))
         if result.termination.detail and metrics.termination_reason in _FAILURE_REASONS:
             print(result.termination.detail, file=sys.stderr)
     return EXIT_STRATEGY_FAILURE if metrics.termination_reason in _FAILURE_REASONS else EXIT_OK

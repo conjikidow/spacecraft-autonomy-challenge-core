@@ -70,7 +70,7 @@ At every event time `t` the simulation:
 
 1. Integrates the true state up to `t`, applying the modifiers' parameter and rate hooks.
 2. Checks the safety limits against the true state; a violation ends the run.
-3. Executes pending commands due at `t` in timeline order; `CompleteMission` ends the run.
+3. Executes pending commands due at `t` in timeline order; `DeclareCompletion` ends the run.
 4. At a decision time, samples telemetry through the modifiers' telemetry hooks, calls `update`,
    and executes the commands it registered for `t`.
 5. Ends the run with `TIME_LIMIT` if `t` has reached the time limit.
@@ -86,7 +86,7 @@ At time 0 the simulation checks the initial state, samples telemetry, calls `ini
 
 | `TerminationReason` | Cause |
 |---|---|
-| `MISSION_COMPLETE` | A `CompleteMission` command executed |
+| `COMPLETION_DECLARED` | A `DeclareCompletion` command executed; the strategy declared completion, which does not imply success |
 | `TIME_LIMIT` | The time limit was reached |
 | `THERMAL_VIOLATION` | Propulsion temperature left the allowed range |
 | `BATTERY_DEPLETED` | Battery energy fell below the minimum |

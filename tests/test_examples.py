@@ -35,7 +35,7 @@ def delta_v_error(result):
 def test_examples_complete_nominal_safely(make_strategy):
     scenario = reference_scenario("nominal")
     result = run(make_strategy(), scenario)
-    assert result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert not result.safety_violations
     assert delta_v_error(result) < SMALL_ERROR_MPS
     assert result.termination.time_s < 0.75 * scenario.problem.time_limit_s
@@ -55,7 +55,7 @@ def test_fixed_sequence_schedules_everything_in_initialize():
             strategy.update(telemetry, commander)
     result = simulation.result()
 
-    assert result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert {scheduled.command_id for scheduled in result.executed_commands} == planned
 
 
@@ -64,11 +64,11 @@ def test_reactive_adapts_to_thruster_degradation_while_fixed_sequence_does_not()
     reactive_result = run(reactive(), scenario)
     fixed_result = run(fixed_sequence(), scenario)
 
-    assert reactive_result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert reactive_result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert not reactive_result.safety_violations
     assert delta_v_error(reactive_result) < SMALL_ERROR_MPS
 
-    assert fixed_result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert fixed_result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert delta_v_error(fixed_result) > 0.05 * scenario.problem.target_delta_v_mps
 
 

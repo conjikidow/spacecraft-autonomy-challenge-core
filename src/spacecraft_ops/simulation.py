@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from dataclasses import replace
 from functools import partial
 
-from spacecraft_ops.commands import Command, CommandError, CompleteMission, SetHeater, SetPropulsionMode
+from spacecraft_ops.commands import Command, CommandError, DeclareCompletion, SetHeater, SetPropulsionMode
 from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.model import SafetyLimits, SpacecraftState, integrate
 from spacecraft_ops.modifiers import effective_parameters, effective_rates, observe
@@ -252,8 +252,8 @@ class Simulation:
                     self._state = replace(self._state, propulsion_mode=mode)
                 case SetHeater(on=on):
                     self._state = replace(self._state, heater_on=on)
-                case CompleteMission():
-                    self._terminate(TerminationReason.MISSION_COMPLETE)
+                case DeclareCompletion():
+                    self._terminate(TerminationReason.COMPLETION_DECLARED)
 
     def _observe(self) -> Telemetry:
         telemetry = observe(self._state, self.scenario.modifiers, self._rng)

@@ -13,7 +13,7 @@ from spacecraft_ops.timeline import ScheduledCommand
 class TerminationReason(StrEnum):
     """Why a run ended. Safety reasons are listed in the priority used when several occur at once."""
 
-    MISSION_COMPLETE = "MISSION_COMPLETE"
+    COMPLETION_DECLARED = "COMPLETION_DECLARED"
     TIME_LIMIT = "TIME_LIMIT"
     THERMAL_VIOLATION = "THERMAL_VIOLATION"
     BATTERY_DEPLETED = "BATTERY_DEPLETED"

@@ -9,10 +9,10 @@ Both import only from the top-level `spacecraft_ops` package and see nothing but
 In `initialize` it predicts the whole maneuver with the nominal model from the mission brief
 and schedules every command at once.
 The plan alternates thrusters to keep the wheel momentum bounded, pauses to cool down before the temperature limit,
-and ends with `CompleteMission`.
+and ends with `DeclareCompletion`.
 It does not override `update`, so it never reacts to telemetry.
 
-It completes `nominal` exactly, but on `thruster-degradation` it ends short of the target,
+It reaches the target on `nominal` exactly, but on `thruster-degradation` it ends short of the target,
 because it cannot notice the weaker thruster.
 
 ## `reactive.py`
@@ -23,10 +23,10 @@ because it cannot notice the weaker thruster.
 - It starts the thruster that drives the wheel momentum toward zero.
 - It switches the heater on when idle near the minimum temperature.
 - It estimates each thruster's acceleration from the delta-v telemetry.
-- It sends `CompleteMission` once the delta-v telemetry reaches the target.
+- It sends `DeclareCompletion` once the delta-v telemetry reaches the target.
 
 When a burn starts, it schedules a future stop for the time the wheel momentum would reach a margin below its limit,
-or for the time the target would be reached together with `CompleteMission`.
+or for the time the target would be reached together with `DeclareCompletion`.
 It cancels that pending stop when the temperature forces an earlier stop,
 and replaces it at every update with one based on the latest estimates.
 This lets it reach the target on both `nominal` and `thruster-degradation`.

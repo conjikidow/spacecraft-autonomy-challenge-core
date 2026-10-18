@@ -44,15 +44,14 @@ The output summarizes how the run ended and its metrics:
 
 ```text
 scenario:             thruster-degradation (seed 0)
-termination:          MISSION_COMPLETE at 13640.0 s
-completed:            True
+termination:          COMPLETION_DECLARED at 13640.0 s
+completion declared:  True
 safe:                 True
 delta-v:              10.0000 m/s (target 10.0000, error +0.0000)
-completion time:      13640.0 s
+declaration time:     13640.0 s
 min battery energy:   65.67 Wh
 temperature range:    20.00 .. 52.04 C
 max |wheel momentum|: 4.0000 Nms
-reference score:      0.8737
 ```
 
 ## Writing a Strategy
@@ -93,7 +92,7 @@ and `--json` prints the metrics as JSON.
 
 | Exit status | Meaning |
 |---|---|
-| 0 | The run finished, whether or not the mission succeeded |
+| 0 | The run finished, whether or not the target was reached |
 | 1 | The strategy raised an exception or made an invalid timeline request during the run |
 | 2 | Usage error, such as a strategy or scenario that cannot be found |
 
@@ -104,7 +103,7 @@ and `--json` prints the metrics as JSON.
 - [Spacecraft Model](docs/spacecraft-model.md): state, dynamics, telemetry, and modifiers
 - [Simulation](docs/simulation.md): problems, scenarios, order of events, termination, and run results
 - [Challenge Problem](docs/challenge.md): the challenge problem and its public scenarios
-- [Evaluation](docs/evaluation.md): per-run metrics and the reference score
+- [Evaluation](docs/evaluation.md): per-run metrics
 
 ## Development
 

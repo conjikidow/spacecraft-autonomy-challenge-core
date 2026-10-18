@@ -27,11 +27,11 @@ def idle_strategy_file(tmp_path):
     return write(
         tmp_path / "cli_idle_strategy.py",
         """
-        from spacecraft_ops import CompleteMission, Strategy
+        from spacecraft_ops import DeclareCompletion, Strategy
 
         class Idle(Strategy):
             def initialize(self, brief, telemetry, commander):
-                commander.schedule(120.0, CompleteMission())
+                commander.schedule(120.0, DeclareCompletion())
         """,
     )
 
@@ -42,7 +42,7 @@ def test_load_strategy_from_file_with_sibling_module(tmp_path):
         tmp_path / "cli_multi_file_strategy.py",
         """
         from cli_plan_helpers import COMPLETE_AT_S
-        from spacecraft_ops import CompleteMission, Strategy
+        from spacecraft_ops import DeclareCompletion, Strategy
 
         class MultiFile(Strategy):
             complete_at_s = COMPLETE_AT_S
@@ -74,8 +74,8 @@ def test_load_strategy_rejects_bad_specs(spec):
 def test_run_prints_summary_and_exits_ok(idle_strategy_file, capsys):
     assert main(["run", f"{idle_strategy_file}:Idle"]) == EXIT_OK
     out = capsys.readouterr().out
-    assert "MISSION_COMPLETE at 120.0 s" in out
-    assert "reference score" in out
+    assert "COMPLETION_DECLARED at 120.0 s" in out
+    assert "completion declared:" in out
 
 
 def test_run_emits_json(idle_strategy_file, capsys):
@@ -83,8 +83,8 @@ def test_run_emits_json(idle_strategy_file, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["scenario"] == "nominal"
     assert payload["seed"] == 5
-    assert payload["metrics"]["termination_reason"] == "MISSION_COMPLETE"
-    assert 0.0 <= payload["reference_score"] <= 1.0
+    assert payload["metrics"]["termination_reason"] == "COMPLETION_DECLARED"
+    assert payload["metrics"]["completion_declared"] is True
 
 
 def test_strategy_error_exits_with_failure_and_prints_traceback(tmp_path, capsys):
@@ -108,11 +108,11 @@ def test_invalid_command_exits_with_failure(tmp_path, capsys):
     path = write(
         tmp_path / "cli_invalid_strategy.py",
         """
-        from spacecraft_ops import CompleteMission, Strategy
+        from spacecraft_ops import DeclareCompletion, Strategy
 
         class Invalid(Strategy):
             def update(self, telemetry, commander):
-                commander.schedule(telemetry.time_s - 1.0, CompleteMission())
+                commander.schedule(telemetry.time_s - 1.0, DeclareCompletion())
         """,
     )
     assert main(["run", f"{path}:Invalid"]) == EXIT_STRATEGY_FAILURE
@@ -163,4 +163,4 @@ def test_scenarios_lists_challenge_scenarios(capsys):
 @pytest.mark.parametrize("spec", ["fixed_sequence.py:FixedSequenceStrategy", "reactive.py:ReactiveStrategy"])
 def test_examples_run_through_the_cli(spec, capsys):
     assert main(["run", f"{EXAMPLES / spec}"]) == EXIT_OK
-    assert "MISSION_COMPLETE" in capsys.readouterr().out
+    assert "COMPLETION_DECLARED" in capsys.readouterr().out
