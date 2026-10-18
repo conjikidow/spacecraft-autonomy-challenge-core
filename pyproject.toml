@@ -1,0 +1,20 @@
+[project]
+name = "project-name"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  { include-group = "lint" },
+]
+lint = ["ruff==0.17.0"]
+
+[tool.ruff]
+required-version = "==0.17.0"
+line-length = 120
+
+[tool.uv]
+exclude-newer = "3 days"

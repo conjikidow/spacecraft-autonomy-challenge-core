@@ -1,0 +1,17 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "json5",
+      "severity": "error",
+      "pattern": [
+        {
+          "regexp": "^(.+): JSON5: (.+) at (\\d+):(\\d+)$",
+          "file": 1,
+          "line": 3,
+          "column": 4,
+          "message": 2
+        }
+      ]
+    }
+  ]
+}
