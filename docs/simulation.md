@@ -33,7 +33,7 @@ print(result.termination.reason, result.final_state.delta_v_mps)
 ```
 
 `run(strategy, scenario, seed=None)` overrides the scenario seed when `seed` is given.
-A strategy exception never propagates out of `run`; it ends the run instead.
+An `Exception` raised by the strategy does not propagate out of `run`; it ends the run instead.
 
 ## Time
 
@@ -44,6 +44,8 @@ Three time scales are independent:
 - Command times: any time chosen by the strategy.
 
 The integrator splits its step at command and decision times, so commands take effect at exactly their scheduled time.
+Integration grid points, decision times, and the time limit are compared with a small tolerance,
+so floating-point error in multiples such as `3 * 0.1` does not skip a decision.
 
 ## Order of Events
 
@@ -56,6 +58,7 @@ At every event time `t` the simulation:
    and executes the commands it registered for `t`.
 5. Ends the run with `TIME_LIMIT` if `t` has reached the time limit.
    Commands and the decision at exactly the time limit still take effect.
+   Commands scheduled after the time limit never execute.
 
 The next event time is the earliest of the next integration step, the next decision time,
 the next pending command, and the time limit.
@@ -107,6 +110,7 @@ result = simulation.result()
 
 - `start()` returns the telemetry at time 0, or `None` if the initial state violates a limit.
 - `decision()` opens a commanding window at the current time; commands for the current time execute when it closes.
+  If the window exits with an exception, they execute at the start of the next `advance()` instead.
 - `advance()` runs to the next decision time and returns its telemetry, or `None` once the run has ended.
 - `abort(reason, detail)` ends the run from outside, for example after a strategy error.
 - `result()` returns the `RunResult` after the run has ended.

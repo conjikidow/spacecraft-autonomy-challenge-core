@@ -32,19 +32,18 @@ class Commander:
     """
 
     def __init__(self, timeline: Timeline, now_s: float) -> None:
-        self._timeline = timeline
+        self._timeline: Timeline | None = timeline
         self._now_s = now_s
-        self._open = True
 
     @property
     def now_s(self) -> float:
         """Current simulation time in seconds."""
+        self._open_timeline()
         return self._now_s
 
     def schedule(self, time_s: float, command: Command) -> CommandId:
         """Register `command` for execution at `time_s`, which must not be earlier than `now_s`."""
-        self._ensure_open()
-        return self._timeline.schedule(time_s, command, now_s=self._now_s)
+        return self._open_timeline().schedule(time_s, command, now_s=self._now_s)
 
     def execute(self, command: Command) -> CommandId:
         """Register `command` for immediate execution, equivalent to `schedule(now_s, command)`."""
@@ -52,26 +51,24 @@ class Commander:
 
     def cancel(self, command_id: CommandId) -> bool:
         """Cancel a pending command. Returns `False` if it is unknown, executed, or already canceled."""
-        self._ensure_open()
-        return self._timeline.cancel(command_id)
+        return self._open_timeline().cancel(command_id)
 
     def cancel_from(self, time_s: float) -> tuple[CommandId, ...]:
         """Cancel all pending commands scheduled at or after `time_s` and return their identifiers."""
-        self._ensure_open()
-        return self._timeline.cancel_from(time_s)
+        return self._open_timeline().cancel_from(time_s)
 
     def pending(self) -> tuple[ScheduledCommand, ...]:
         """Pending commands in execution order."""
-        self._ensure_open()
-        return self._timeline.pending()
+        return self._open_timeline().pending()
 
     def close(self) -> None:
         """End the commanding window. Called by the simulation when the callback returns."""
-        self._open = False
+        self._timeline = None
 
-    def _ensure_open(self) -> None:
-        if not self._open:
+    def _open_timeline(self) -> Timeline:
+        if self._timeline is None:
             raise CommandError("this commander is only valid during the callback it was passed to")
+        return self._timeline
 
 
 class Strategy:

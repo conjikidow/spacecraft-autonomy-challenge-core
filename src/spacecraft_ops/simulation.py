@@ -14,6 +14,7 @@
 `run` drives a `Strategy` through these steps. Custom drivers can use the same steps directly.
 """
 
+import math
 import random
 import traceback
 from collections.abc import Callable, Iterator
@@ -115,6 +116,7 @@ class Simulation:
         """Open a commanding window at the current time.
 
         Commands registered for the current time execute when the window closes without an exception.
+        Otherwise they execute at the start of the next `advance`.
         """
         if not self._started or self.done or self._in_decision:
             raise RuntimeError("a decision window requires a started, running simulation and no open window")
@@ -131,6 +133,7 @@ class Simulation:
         """Run until the next decision time and return telemetry there, or `None` once the run has ended."""
         if not self._started or self._in_decision:
             raise RuntimeError("advance requires a started simulation and no open decision window")
+        self._execute_due()
         while not self.done:
             if self.time_s >= self.scenario.time_limit_s:
                 self._terminate(TerminationReason.TIME_LIMIT)
@@ -171,11 +174,13 @@ class Simulation:
         if next_command_s is not None:
             candidates.append(next_command_s)
         next_time_s = min(candidates)
-        if next_time_s == next_grid_s:
+        if _same_time(next_grid_s, next_time_s):
             self._grid_steps += 1
-        is_decision = next_time_s == next_decision_s
+        is_decision = _same_time(next_decision_s, next_time_s)
         if is_decision:
             self._decisions += 1
+        if _same_time(self.scenario.time_limit_s, next_time_s):
+            next_time_s = self.scenario.time_limit_s
         return next_time_s, is_decision
 
     def _integrate_to(self, time_s: float) -> None:
@@ -212,8 +217,13 @@ class Simulation:
         self._termination = Termination(reason, self.time_s, detail)
 
 
+def _same_time(a_s: float, b_s: float) -> bool:
+    """Whether two times are equal up to floating-point error in multiples of the step sizes."""
+    return math.isclose(a_s, b_s, rel_tol=1e-12, abs_tol=1e-9)
+
+
 def run(strategy: Strategy, scenario: Scenario, *, seed: int | None = None) -> RunResult:
-    """Run `strategy` on `scenario` and return the result. Strategy exceptions end the run; they never propagate."""
+    """Run `strategy` on `scenario` and return the result. An `Exception` from the strategy ends the run."""
     simulation = Simulation(scenario, seed=seed)
     telemetry = simulation.start()
     if telemetry is not None:

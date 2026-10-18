@@ -200,9 +200,40 @@ def test_strategy_receives_telemetry_and_brief_but_never_true_state(make_scenari
     assert telemetry[-1].delta_v_mps == pytest.approx(result.final_state.delta_v_mps + 0.5)
 
 
-def test_brief_hides_scenario_identity_modifiers_and_seed(make_scenario):
-    brief = make_scenario(name="secret", modifiers=[TelemetryBias("delta_v_mps", 1.0)], seed=42).brief()
-    assert not {"name", "modifiers", "seed", "description"} & set(brief.__dataclass_fields__)
+def test_brief_does_not_depend_on_scenario_identity_modifiers_or_seed(make_scenario):
+    plain = make_scenario()
+    other = make_scenario(name="other", description="other", modifiers=[TelemetryBias("delta_v_mps", 1.0)], seed=42)
+    assert plain.brief() == other.brief()
+
+
+def test_pre_scheduled_command_executes_before_the_decision_at_the_same_time(make_scenario):
+    strategy = Scripted(schedule_all((60.0, FIRE_1)))
+    run(strategy, make_scenario(time_limit_s=60.0))
+    assert strategy.received[-1].time_s == 60.0
+    assert strategy.received[-1].propulsion_mode is PropulsionMode.THRUSTER_1
+
+
+def test_decision_at_time_limit_is_not_skipped_by_float_error(make_scenario):
+    strategy = Scripted()
+    result = run(strategy, make_scenario(integration_step_s=0.05, decision_period_s=0.1, time_limit_s=0.3))
+    assert strategy.update_times == pytest.approx([0.1, 0.2, 0.3])
+    assert result.termination.reason is TerminationReason.TIME_LIMIT
+    assert result.termination.time_s == 0.3
+
+
+def test_commands_from_a_failed_window_execute_at_next_advance_without_a_zero_length_step(make_scenario):
+    simulation = Simulation(make_scenario(time_limit_s=60.0))
+    simulation.start()
+    with contextlib.suppress(ZeroDivisionError), simulation.decision() as commander:
+        commander.execute(FIRE_1)
+        raise ZeroDivisionError
+    while simulation.advance() is not None:
+        pass
+    result = simulation.result()
+    times = [s.time_s for s in result.trajectory]
+    assert len(times) == len(set(times))
+    assert result.executed_commands[0].time_s == 0.0
+    assert result.final_state.delta_v_mps == pytest.approx(60.0 * ACCELERATION_MPS2)
 
 
 def test_runs_are_repeatable_for_a_seed_and_vary_across_seeds(make_scenario):
@@ -284,6 +315,8 @@ def test_commander_is_invalid_outside_its_callback(make_scenario):
     assert result.termination.time_s == 120.0
     with pytest.raises(CommandError):
         kept[0].pending()
+    with pytest.raises(CommandError):
+        _ = kept[0].now_s
 
 
 def test_caught_command_error_does_not_end_the_run(make_scenario):

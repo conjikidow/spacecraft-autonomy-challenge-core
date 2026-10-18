@@ -47,7 +47,7 @@ strategies can only infer such deviations from telemetry.
 
 `cancel_from(now_s)` followed by new `schedule` calls replaces the rest of the timeline.
 
-A commander is valid only during the callback it was passed to; using it later raises `CommandError`.
+A commander is valid only during the callback it was passed to; using any of its members later raises `CommandError`.
 No command executes while a callback runs.
 Commands scheduled for `now_s` execute right after the callback returns, before simulation time advances.
 
