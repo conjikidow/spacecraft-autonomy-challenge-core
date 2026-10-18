@@ -12,6 +12,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.scripts]
+spacecraft-ops = "spacecraft_ops.cli:main"
+
 [dependency-groups]
 dev = [
   "pytest>=9.1.1",
