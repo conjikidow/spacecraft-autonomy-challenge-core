@@ -33,7 +33,15 @@ This lets it reach the target on both `nominal` and `thruster-degradation`.
 
 ## Running an Example
 
-The example files are not part of the installed package, so load them by path, for example from the repository root:
+From the repository root, run an example with the `spacecraft-ops` command:
+
+```sh
+uv run spacecraft-ops run examples/fixed_sequence.py:FixedSequenceStrategy
+uv run spacecraft-ops run examples/reactive.py:ReactiveStrategy --scenario thruster-degradation
+```
+
+The example files are not part of the installed package.
+To run one from Python, load it by path, for example from the repository root:
 
 ```python
 import importlib.util
