@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from dataclasses import replace
 from functools import partial
 
-from spacecraft_ops.commands import CommandError, CompleteMission, SetHeater, SetPropulsionMode
+from spacecraft_ops.commands import Command, CommandError, CompleteMission, SetHeater, SetPropulsionMode
 from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.model import SafetyLimits, SpacecraftState, integrate
 from spacecraft_ops.modifiers import effective_parameters, effective_rates, observe
@@ -30,7 +30,7 @@ from spacecraft_ops.results import RunResult, SafetyViolation, Termination, Term
 from spacecraft_ops.scenario import Scenario
 from spacecraft_ops.strategy import Commander, MissionBrief, Strategy
 from spacecraft_ops.telemetry import Telemetry
-from spacecraft_ops.timeline import ScheduledCommand, Timeline
+from spacecraft_ops.timeline import CommandId, ScheduledCommand, Timeline
 
 
 def check_safety(state: SpacecraftState, limits: SafetyLimits) -> tuple[SafetyViolation, ...]:
@@ -63,6 +63,49 @@ def check_safety(state: SpacecraftState, limits: SafetyLimits) -> tuple[SafetyVi
             )
         )
     return tuple(violations)
+
+
+class LocalCommander:
+    """`Commander` backed directly by a simulation's timeline in the same process."""
+
+    def __init__(self, timeline: Timeline, now_s: float) -> None:
+        self._timeline: Timeline | None = timeline
+        self._now_s = now_s
+
+    @property
+    def now_s(self) -> float:
+        """Current simulation time in seconds."""
+        self._open_timeline()
+        return self._now_s
+
+    def schedule(self, time_s: float, command: Command) -> CommandId:
+        """Register `command` for execution at `time_s`, which must not be earlier than `now_s`."""
+        return self._open_timeline().schedule(time_s, command, now_s=self._now_s)
+
+    def execute(self, command: Command) -> CommandId:
+        """Register `command` for immediate execution, equivalent to `schedule(now_s, command)`."""
+        return self.schedule(self._now_s, command)
+
+    def cancel(self, command_id: CommandId) -> bool:
+        """Cancel a pending command. Returns `False` if it is unknown, executed, or already canceled."""
+        return self._open_timeline().cancel(command_id)
+
+    def cancel_from(self, time_s: float) -> tuple[CommandId, ...]:
+        """Cancel all pending commands scheduled at or after `time_s` and return their identifiers."""
+        return self._open_timeline().cancel_from(time_s)
+
+    def pending(self) -> tuple[ScheduledCommand, ...]:
+        """Pending commands in execution order."""
+        return self._open_timeline().pending()
+
+    def close(self) -> None:
+        """End the commanding window; every member raises `CommandError` afterwards."""
+        self._timeline = None
+
+    def _open_timeline(self) -> Timeline:
+        if self._timeline is None:
+            raise CommandError("this commander is only valid during the callback it was passed to")
+        return self._timeline
 
 
 class Simulation:
@@ -123,7 +166,7 @@ class Simulation:
         """
         if not self._started or self.done or self._in_decision:
             raise RuntimeError("a decision window requires a started, running simulation and no open window")
-        commander = Commander(self._timeline, self.time_s)
+        commander = LocalCommander(self._timeline, self.time_s)
         self._in_decision = True
         try:
             yield commander

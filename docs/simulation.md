@@ -127,7 +127,8 @@ result = simulation.result()
 ```
 
 - `start()` returns the telemetry at time 0, or `None` if the initial state violates a limit.
-- `decision()` opens a commanding window at the current time; commands for the current time execute when it closes.
+- `decision()` opens a commanding window at the current time and yields a `LocalCommander`;
+  commands for the current time execute when it closes.
   If the window exits with an exception, they execute at the start of the next `advance()` instead.
 - `advance()` runs to the next decision time and returns its telemetry, or `None` once the run has ended.
 - `abort(reason, detail)` ends the run from outside, for example after a strategy error.

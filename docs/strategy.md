@@ -36,6 +36,11 @@ strategies can only infer such deviations from telemetry.
 
 ## Commander
 
+`Commander` is an interface (a `typing.Protocol`).
+A strategy should rely only on the members below.
+The simulation passes `spacecraft_ops.simulation.LocalCommander`, which works directly on its timeline in the same process.
+All requests and results are plain data: times, commands, command identifiers, and `ScheduledCommand` values.
+
 | Member | Behavior |
 |---|---|
 | `now_s` | Current simulation time in seconds |

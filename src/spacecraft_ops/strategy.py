@@ -5,11 +5,12 @@ or the true spacecraft state. See `docs/strategy.md`.
 """
 
 from dataclasses import dataclass
+from typing import Protocol
 
-from spacecraft_ops.commands import Command, CommandError
+from spacecraft_ops.commands import Command
 from spacecraft_ops.model import SafetyLimits, SpacecraftParameters
 from spacecraft_ops.telemetry import Telemetry
-from spacecraft_ops.timeline import CommandId, ScheduledCommand, Timeline
+from spacecraft_ops.timeline import CommandId, ScheduledCommand
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,51 +25,40 @@ class MissionBrief:
     """Published nominal model. The actual spacecraft may deviate from it."""
 
 
-class Commander:
-    """Access to the spacecraft timeline, valid only during the strategy callback it was passed to.
+class Commander(Protocol):
+    """Interface through which a strategy affects the spacecraft.
 
-    No command executes while the callback runs. Commands scheduled for the current time execute
-    right after the callback returns, before simulation time advances.
+    A commander is valid only during the strategy callback it was passed to; afterwards every member
+    raises `CommandError`. No command executes while the callback runs. Commands scheduled for the
+    current time execute right after the callback returns, before simulation time advances.
+    Requests are plain data (times, commands, and identifiers), so implementations may forward them
+    to a simulator in the same process or elsewhere.
     """
-
-    def __init__(self, timeline: Timeline, now_s: float) -> None:
-        self._timeline: Timeline | None = timeline
-        self._now_s = now_s
 
     @property
     def now_s(self) -> float:
         """Current simulation time in seconds."""
-        self._open_timeline()
-        return self._now_s
+        ...
 
     def schedule(self, time_s: float, command: Command) -> CommandId:
         """Register `command` for execution at `time_s`, which must not be earlier than `now_s`."""
-        return self._open_timeline().schedule(time_s, command, now_s=self._now_s)
+        ...
 
     def execute(self, command: Command) -> CommandId:
         """Register `command` for immediate execution, equivalent to `schedule(now_s, command)`."""
-        return self.schedule(self._now_s, command)
+        ...
 
     def cancel(self, command_id: CommandId) -> bool:
         """Cancel a pending command. Returns `False` if it is unknown, executed, or already canceled."""
-        return self._open_timeline().cancel(command_id)
+        ...
 
     def cancel_from(self, time_s: float) -> tuple[CommandId, ...]:
         """Cancel all pending commands scheduled at or after `time_s` and return their identifiers."""
-        return self._open_timeline().cancel_from(time_s)
+        ...
 
     def pending(self) -> tuple[ScheduledCommand, ...]:
         """Pending commands in execution order."""
-        return self._open_timeline().pending()
-
-    def close(self) -> None:
-        """End the commanding window. Called by the simulation when the callback returns."""
-        self._timeline = None
-
-    def _open_timeline(self) -> Timeline:
-        if self._timeline is None:
-            raise CommandError("this commander is only valid during the callback it was passed to")
-        return self._timeline
+        ...
 
 
 class Strategy:
