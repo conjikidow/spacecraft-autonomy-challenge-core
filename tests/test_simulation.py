@@ -257,7 +257,6 @@ def test_scenario_seed_is_used_by_default(make_scenario):
     ("limit_overrides", "initial_command", "reason"),
     [
         ({"max_propulsion_temperature_c": 21.0}, FIRE_1, TerminationReason.THERMAL_VIOLATION),
-        ({"min_propulsion_temperature_c": 19.0}, OFF, TerminationReason.THERMAL_VIOLATION),
         ({"min_battery_energy_wh": 49.99}, FIRE_1, TerminationReason.BATTERY_DEPLETED),
         ({"max_abs_wheel_momentum_nms": 0.5}, FIRE_2, TerminationReason.MOMENTUM_VIOLATION),
     ],
@@ -268,6 +267,18 @@ def test_safety_violations_terminate_the_run(make_scenario, limits, limit_overri
     assert result.termination.reason is reason
     assert 0.0 < result.termination.time_s < 600.0
     assert [v.reason for v in result.safety_violations] == [reason]
+
+
+def test_cold_thruster_does_not_fire_until_heated_and_cold_is_not_a_violation(make_scenario, make_state):
+    scenario = make_scenario(initial_state=make_state(propulsion_temperature_c=-51.0), time_limit_s=180.0)
+    strategy = Scripted(schedule_all((0.0, FIRE_1), (0.0, SetHeater(on=True))))
+    result = run(strategy, scenario)
+    at_60, at_120 = strategy.received[2:4]
+    assert at_60.propulsion_mode is PropulsionMode.THRUSTER_1
+    assert at_60.delta_v_mps == 0.0
+    assert at_120.delta_v_mps > 0.0
+    assert result.termination.reason is TerminationReason.TIME_LIMIT
+    assert not result.safety_violations
 
 
 def test_simultaneous_violations_are_all_recorded_and_prioritized(make_scenario, limits, make_state):

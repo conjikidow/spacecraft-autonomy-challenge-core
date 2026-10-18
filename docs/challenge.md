@@ -31,7 +31,8 @@ nominal = scenario("nominal")
 | Heat capacity | 2000 J/K |
 | Thermal conductance | 0.5 W/K |
 | Sink temperature | −10 °C |
-| Propulsion temperature limits | 0 °C to 60 °C |
+| Minimum firing temperature | 0 °C |
+| Maximum propulsion temperature | 60 °C |
 | Minimum battery energy | 10 Wh |
 | Maximum absolute wheel momentum | 5 Nms |
 | Initial temperature | 20 °C |

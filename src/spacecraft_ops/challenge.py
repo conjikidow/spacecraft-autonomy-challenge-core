@@ -29,6 +29,7 @@ def problem() -> Problem:
             heat_capacity_j_per_k=2000.0,
             thermal_conductance_w_per_k=0.5,
             sink_temperature_c=-10.0,
+            min_firing_temperature_c=0.0,
         ),
         initial_state=SpacecraftState(
             time_s=0.0,
@@ -40,7 +41,6 @@ def problem() -> Problem:
             propulsion_mode=PropulsionMode.OFF,
         ),
         limits=SafetyLimits(
-            min_propulsion_temperature_c=0.0,
             max_propulsion_temperature_c=60.0,
             min_battery_energy_wh=10.0,
             max_abs_wheel_momentum_nms=5.0,

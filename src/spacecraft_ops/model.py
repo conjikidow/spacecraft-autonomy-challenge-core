@@ -42,6 +42,8 @@ class SpacecraftParameters:
     thermal_conductance_w_per_k: float
     """Conductance of passive cooling toward the sink temperature."""
     sink_temperature_c: float
+    min_firing_temperature_c: float
+    """A selected thruster does not fire while the propulsion temperature is below this value."""
 
     def __post_init__(self) -> None:
         if self.battery_capacity_wh <= 0:
@@ -66,14 +68,11 @@ class SpacecraftParameters:
 class SafetyLimits:
     """Hard limits on the true state. Leaving them terminates the run."""
 
-    min_propulsion_temperature_c: float
     max_propulsion_temperature_c: float
     min_battery_energy_wh: float
     max_abs_wheel_momentum_nms: float
 
     def __post_init__(self) -> None:
-        if self.min_propulsion_temperature_c >= self.max_propulsion_temperature_c:
-            raise ValueError("min_propulsion_temperature_c must be below max_propulsion_temperature_c")
         if self.max_abs_wheel_momentum_nms <= 0:
             raise ValueError("max_abs_wheel_momentum_nms must be positive")
 
@@ -102,8 +101,14 @@ class StateRates:
 
 
 def compute_rates(state: SpacecraftState, parameters: SpacecraftParameters) -> StateRates:
-    """Nominal state rates for the current state and effective parameters."""
+    """Nominal state rates for the current state and effective parameters.
+
+    The selected thruster fires only while the propulsion temperature is at or above
+    `parameters.min_firing_temperature_c`; below it, the thruster contributes nothing.
+    """
     thruster = parameters.thruster(state.propulsion_mode)
+    if state.propulsion_temperature_c < parameters.min_firing_temperature_c:
+        thruster = None
     heater_power_w = parameters.heater_power_w if state.heater_on else 0.0
     thruster_power_w = thruster.power_w if thruster else 0.0
     thruster_heat_w = thruster.heat_w if thruster else 0.0

@@ -88,7 +88,7 @@ At time 0 the simulation checks the initial state, samples telemetry, calls `ini
 |---|---|
 | `COMPLETION_DECLARED` | A `DeclareCompletion` command executed; the strategy declared completion, which does not imply success |
 | `TIME_LIMIT` | The time limit was reached |
-| `THERMAL_VIOLATION` | Propulsion temperature left the allowed range |
+| `THERMAL_VIOLATION` | Propulsion temperature exceeded the maximum |
 | `BATTERY_DEPLETED` | Battery energy fell below the minimum |
 | `MOMENTUM_VIOLATION` | Absolute wheel momentum exceeded the maximum |
 | `STRATEGY_ERROR` | The strategy raised an exception |

@@ -101,19 +101,20 @@ def test_parameters_reject_invalid_values(parameters, overrides):
         replace(parameters, **overrides)
 
 
-@pytest.mark.parametrize(
-    "overrides",
-    [
-        {"min_propulsion_temperature_c": 50.0, "max_propulsion_temperature_c": 0.0},
-        {"max_abs_wheel_momentum_nms": 0.0},
-    ],
-)
-def test_safety_limits_reject_invalid_values(overrides):
-    values = {
-        "min_propulsion_temperature_c": 0.0,
-        "max_propulsion_temperature_c": 50.0,
-        "min_battery_energy_wh": 0.0,
-        "max_abs_wheel_momentum_nms": 1.0,
-    }
+def test_safety_limits_reject_non_positive_momentum_limit():
     with pytest.raises(ValueError, match="must"):
-        SafetyLimits(**(values | overrides))
+        SafetyLimits(max_propulsion_temperature_c=50.0, min_battery_energy_wh=0.0, max_abs_wheel_momentum_nms=0.0)
+
+
+@pytest.mark.parametrize("mode", [PropulsionMode.THRUSTER_1, PropulsionMode.THRUSTER_2])
+def test_thruster_below_min_firing_temperature_contributes_nothing(parameters, make_state, mode):
+    cold = make_state(propulsion_temperature_c=parameters.min_firing_temperature_c - 0.1, propulsion_mode=mode)
+    off = make_state(propulsion_temperature_c=parameters.min_firing_temperature_c - 0.1)
+    assert compute_rates(cold, parameters) == compute_rates(off, parameters)
+
+
+def test_thruster_fires_at_min_firing_temperature(parameters, make_state):
+    state = make_state(
+        propulsion_temperature_c=parameters.min_firing_temperature_c, propulsion_mode=PropulsionMode.THRUSTER_1
+    )
+    assert compute_rates(state, parameters).delta_v_rate_mps2 == parameters.thruster_1.acceleration_mps2

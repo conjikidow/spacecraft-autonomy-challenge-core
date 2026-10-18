@@ -26,6 +26,7 @@ def parameters() -> SpacecraftParameters:
         heat_capacity_j_per_k=2000.0,
         thermal_conductance_w_per_k=0.5,
         sink_temperature_c=-10.0,
+        min_firing_temperature_c=-50.0,
     )
 
 
@@ -52,7 +53,6 @@ def make_state() -> Callable[..., SpacecraftState]:
 def limits() -> SafetyLimits:
     """Limits wide enough that short test runs stay safe unless a test narrows them."""
     return SafetyLimits(
-        min_propulsion_temperature_c=-50.0,
         max_propulsion_temperature_c=150.0,
         min_battery_energy_wh=0.0,
         max_abs_wheel_momentum_nms=100.0,

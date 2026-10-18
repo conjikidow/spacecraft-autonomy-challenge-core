@@ -33,13 +33,18 @@ Both thrusters are configured independently.
 A symmetric configuration uses identical values except for opposite wheel-momentum rates,
 so that `THRUSTER_1` increases and `THRUSTER_2` decreases the wheel momentum.
 
-`SafetyLimits` defines the allowed propulsion temperature range, the minimum battery energy,
-and the maximum absolute wheel momentum.
+`min_firing_temperature_c` is the lowest propulsion temperature at which a selected thruster fires.
+
+`SafetyLimits` defines the maximum propulsion temperature, the minimum battery energy, and the maximum absolute wheel momentum.
 
 ## Dynamics
 
 `compute_rates(state, parameters)` returns the time derivatives in `StateRates`.
-Only the thruster selected by the propulsion mode contributes.
+Only the thruster selected by the propulsion mode contributes,
+and only while the propulsion temperature is at or above `min_firing_temperature_c`.
+Below that temperature the selected thruster contributes no acceleration, electrical load, heat, or wheel-momentum rate,
+as if propulsion were off.
+The propulsion mode itself stays as commanded, so telemetry still reports it.
 
 Delta-v and momentum:
 

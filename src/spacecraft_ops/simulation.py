@@ -37,13 +37,12 @@ def check_safety(state: SpacecraftState, limits: SafetyLimits) -> tuple[SafetyVi
     """Safety violations of `state`, ordered by termination priority."""
     violations = []
     temperature_c = state.propulsion_temperature_c
-    if not limits.min_propulsion_temperature_c <= temperature_c <= limits.max_propulsion_temperature_c:
+    if temperature_c > limits.max_propulsion_temperature_c:
         violations.append(
             SafetyViolation(
                 TerminationReason.THERMAL_VIOLATION,
                 state.time_s,
-                f"propulsion temperature {temperature_c:.3f} C outside "
-                f"[{limits.min_propulsion_temperature_c}, {limits.max_propulsion_temperature_c}] C",
+                f"propulsion temperature {temperature_c:.3f} C above {limits.max_propulsion_temperature_c} C",
             )
         )
     if state.battery_energy_wh < limits.min_battery_energy_wh:
