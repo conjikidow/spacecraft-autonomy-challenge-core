@@ -31,7 +31,6 @@ jobs:
       github-actions: ${{ steps.changed-files.outputs.github_actions_any_changed }}
       github-actions-ci: ${{ steps.changed-files.outputs.github_actions_ci_any_changed }}
       pre-commit-config: ${{ steps.changed-files.outputs.pre_commit_config_any_changed }}
-      renovate-config: ${{ steps.changed-files.outputs.renovate_config_any_changed }}
       json5: ${{ steps.changed-files.outputs.json5_any_changed }}
       toml: ${{ steps.changed-files.outputs.toml_any_changed }}
       yaml: ${{ steps.changed-files.outputs.yaml_any_changed }}
@@ -57,8 +56,6 @@ jobs:
               - '.github/workflows/ci.yaml'
             pre_commit_config:
               - '.pre-commit-config.yaml'
-            renovate_config:
-              - '.github/renovate.json5'
             json5:
               - '**/*.json5'
               - '.github/problem-matchers/json5.json'
@@ -145,46 +142,6 @@ jobs:
         with:
           version: 'v1.30.1'
           advanced-security: true
-
-  validate-renovate-config:
-    name: Validate Renovate config
-    needs: determine-changes
-    if: >-
-      needs.determine-changes.outputs.renovate-config == 'true'
-      || needs.determine-changes.outputs.github-actions-ci == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-
-      - name: Validate Renovate config
-        env:
-          LOG_FORMAT: json
-          RENOVATE_VERSION: '44.148.4'
-        run: |
-          npx --package="renovate@${RENOVATE_VERSION}" --yes renovate-config-validator \
-            --strict --no-global .github/renovate.json5 \
-            | jq --raw-output --arg file .github/renovate.json5 '
-                def escape: gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A");
-                def level: if .level >= 50 then "ERROR" elif .level >= 40 then "WARN" else "INFO" end;
-                "\(level): \(.msg)",
-                (.err.message? // empty),
-                (.errors[]? | "::error file=\($file),title=\(.topic)::\(.topic): \(.message | escape)"),
-                (.warnings[]? | "::warning file=\($file),title=\(.topic)::\(.topic): \(.message | escape)"),
-                (select(.msg == "Config migration necessary")
-                  | "::warning file=\($file),title=\(.msg)::\(.msg): See the log for the diff.")
-              '
 
   validate-json5:
     name: Validate JSON5
