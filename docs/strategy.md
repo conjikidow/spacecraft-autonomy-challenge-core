@@ -5,16 +5,17 @@ It receives only a `MissionBrief`, `Telemetry`, and a `Commander`; it never sees
 All of these are exported from the top-level `spacecraft_ops` package.
 
 ```python
-from spacecraft_ops import Commander, MissionBrief, PropulsionMode, SetPropulsionMode, Strategy, Telemetry
+from spacecraft_ops import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
     def initialize(self, brief: MissionBrief, telemetry: Telemetry, commander: Commander) -> None:
-        commander.schedule(600.0, SetPropulsionMode(PropulsionMode.THRUSTER_1))
+        self.heater_command = commander.schedule(600.0, SetHeater(on=True))
 
     def update(self, telemetry: Telemetry, commander: Commander) -> None:
-        if telemetry.propulsion_temperature_c > 50.0:
-            commander.execute(SetPropulsionMode(PropulsionMode.OFF))
+        print(telemetry.time_s, telemetry.heater_on)
+        if telemetry.time_s >= 300.0:
+            commander.cancel(self.heater_command)
 ```
 
 ## Lifecycle

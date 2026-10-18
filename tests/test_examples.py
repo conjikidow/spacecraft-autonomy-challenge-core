@@ -1,88 +1,63 @@
-import importlib.util
+import ast
+import runpy
+import sys
 from pathlib import Path
 
 import pytest
 
-from spacecraft_ops.challenge import scenario as reference_scenario
+from spacecraft_ops import DeclareCompletion, PropulsionMode, SetPropulsionMode, Strategy
+from spacecraft_ops.challenge import problem as challenge_problem
 from spacecraft_ops.results import TerminationReason
-from spacecraft_ops.simulation import Simulation, run
-from spacecraft_ops.strategy import Strategy
+from spacecraft_ops.simulation import run
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
-SMALL_ERROR_MPS = 1e-6
+STRATEGY_FILES = ["timeline_basics.py", "telemetry_and_replanning.py"]
 
 
-def load_example(name):
-    spec = importlib.util.spec_from_file_location(f"example_{name}", EXAMPLES / f"{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+@pytest.fixture
+def examples(monkeypatch):
+    """Import path and module cache as when running an example script from the repository root."""
+    monkeypatch.setattr(sys, "path", [str(EXAMPLES), *sys.path])
+    monkeypatch.setattr(sys, "modules", dict(sys.modules))
+    return lambda name: runpy.run_path(str(EXAMPLES / name))
 
 
-def fixed_sequence():
-    return load_example("fixed_sequence").FixedSequenceStrategy()
+@pytest.mark.parametrize("name", STRATEGY_FILES)
+def test_example_strategies_import_only_the_top_level_package(name):
+    tree = ast.parse((EXAMPLES / name).read_text())
+    modules = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
+    assert modules <= {"spacecraft_ops", "toy_problem"}
 
 
-def reactive():
-    return load_example("reactive").ReactiveStrategy()
+def test_toy_problem_differs_from_the_challenge_problem(examples):
+    toy = examples("toy_problem.py")["toy_scenario"]()
+    assert toy.problem != challenge_problem()
+    assert toy.problem.parameters != challenge_problem().parameters
 
 
-def delta_v_error(result):
-    return abs(result.final_state.delta_v_mps - result.scenario.problem.target_delta_v_mps)
+@pytest.mark.parametrize("name", STRATEGY_FILES)
+def test_example_scripts_run(name, examples, capsys):
+    runpy.run_path(str(EXAMPLES / name), run_name="__main__")
+    assert "termination: COMPLETION_DECLARED" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("make_strategy", [fixed_sequence, reactive])
-def test_examples_complete_nominal_safely(make_strategy):
-    scenario = reference_scenario("nominal")
-    result = run(make_strategy(), scenario)
+def test_timeline_basics_schedules_everything_in_initialize(examples):
+    namespace = examples("timeline_basics.py")
+    strategy_class = namespace["TimelineBasics"]
+    assert strategy_class.update is Strategy.update
+    result = run(strategy_class(), examples("toy_problem.py")["toy_scenario"]())
+    assert [s.time_s for s in result.executed_commands] == [10.0, 40.0, 60.0, 60.0, 90.0, 120.0]
+    assert [s.command_id for s in result.executed_commands] == [1, 2, 3, 4, 5, 6]
     assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
-    assert not result.safety_violations
-    assert delta_v_error(result) < SMALL_ERROR_MPS
-    assert result.termination.time_s < 0.75 * scenario.problem.time_limit_s
 
 
-def test_fixed_sequence_schedules_everything_in_initialize():
-    strategy = fixed_sequence()
-    assert type(strategy).update is Strategy.update
-
-    simulation = Simulation(reference_scenario("nominal"))
-    telemetry = simulation.start()
-    with simulation.decision() as commander:
-        strategy.initialize(simulation.brief, telemetry, commander)
-        planned = {scheduled.command_id for scheduled in commander.pending()}
-    while (telemetry := simulation.advance()) is not None:
-        with simulation.decision() as commander:
-            strategy.update(telemetry, commander)
-    result = simulation.result()
-
-    assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
-    assert {scheduled.command_id for scheduled in result.executed_commands} == planned
-
-
-def test_reactive_adapts_to_thruster_degradation_while_fixed_sequence_does_not():
-    scenario = reference_scenario("thruster-degradation")
-    reactive_result = run(reactive(), scenario)
-    fixed_result = run(fixed_sequence(), scenario)
-
-    assert reactive_result.termination.reason is TerminationReason.COMPLETION_DECLARED
-    assert not reactive_result.safety_violations
-    assert delta_v_error(reactive_result) < SMALL_ERROR_MPS
-
-    assert fixed_result.termination.reason is TerminationReason.COMPLETION_DECLARED
-    assert delta_v_error(fixed_result) > 0.05 * scenario.problem.target_delta_v_mps
-
-
-@pytest.mark.parametrize("make_strategy", [fixed_sequence, reactive])
-@pytest.mark.parametrize("name", ["nominal", "thruster-degradation"])
-def test_example_runs_are_deterministic(make_strategy, name):
-    first = run(make_strategy(), reference_scenario(name))
-    second = run(make_strategy(), reference_scenario(name))
-    assert first.termination == second.termination
-    assert first.trajectory == second.trajectory
-    assert first.executed_commands == second.executed_commands
-
-
-def test_reactive_cancels_planned_stops():
-    result = run(reactive(), reference_scenario("nominal"))
-    executed = [scheduled.command_id for scheduled in result.executed_commands]
-    assert len(executed) < max(executed)
+def test_telemetry_and_replanning_replaces_the_tentative_stop(examples):
+    namespace = examples("telemetry_and_replanning.py")
+    result = run(namespace["TelemetryAndReplanning"](), examples("toy_problem.py")["toy_scenario"]())
+    executed = [(s.time_s, s.command) for s in result.executed_commands]
+    assert executed == [
+        (0.0, SetPropulsionMode(PropulsionMode.THRUSTER_1)),
+        (75.0, SetPropulsionMode(PropulsionMode.OFF)),
+        (90.0, DeclareCompletion()),
+    ]
+    assert 2 not in {s.command_id for s in result.executed_commands}
