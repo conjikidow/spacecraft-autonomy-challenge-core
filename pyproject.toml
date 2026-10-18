@@ -1,20 +1,60 @@
 [project]
-name = "project-name"
+name = "spacecraft-operations-challenge-core"
 version = "0.1.0"
-description = "Add your description here"
+description = "Participant API, reference simulator, and evaluation tools for a spacecraft operations challenge"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
+classifiers = [
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+]
 dependencies = []
 
 [dependency-groups]
 dev = [
+  "pytest>=9.1.1",
   { include-group = "lint" },
 ]
 lint = ["ruff==0.17.0"]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.14"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+testpaths = ["tests"]
+xfail_strict = true
 
 [tool.ruff]
 required-version = "==0.17.0"
 line-length = 120
 
+[tool.ruff.lint]
+select = [
+  "ANN",
+  "B",
+  "C4",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PIE",
+  "PT",
+  "RET",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
+
 [tool.uv]
 exclude-newer = "3 days"
+
+[tool.uv.build-backend]
+module-name = "spacecraft_ops"
