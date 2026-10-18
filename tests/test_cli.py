@@ -1,4 +1,5 @@
 import json
+import sys
 import textwrap
 from pathlib import Path
 
@@ -8,6 +9,12 @@ from spacecraft_ops.cli import EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, Strat
 from spacecraft_ops.strategy import Strategy
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
+
+
+@pytest.fixture(autouse=True)
+def isolated_imports(monkeypatch):
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(sys, "modules", dict(sys.modules))
 
 
 def write(path: Path, source: str) -> Path:
@@ -95,6 +102,51 @@ def test_strategy_error_exits_with_failure_and_prints_traceback(tmp_path, capsys
     captured = capsys.readouterr()
     assert "STRATEGY_ERROR" in captured.out
     assert "RuntimeError: boom" in captured.err
+
+
+def test_invalid_command_exits_with_failure(tmp_path, capsys):
+    path = write(
+        tmp_path / "cli_invalid_strategy.py",
+        """
+        from spacecraft_ops import CompleteMission, Strategy
+
+        class Invalid(Strategy):
+            def update(self, telemetry, commander):
+                commander.schedule(telemetry.time_s - 1.0, CompleteMission())
+        """,
+    )
+    assert main(["run", f"{path}:Invalid"]) == EXIT_STRATEGY_FAILURE
+    assert "INVALID_COMMAND" in capsys.readouterr().out
+
+
+def test_unsafe_run_still_exits_ok_and_lists_violations(tmp_path, capsys):
+    path = write(
+        tmp_path / "cli_unsafe_strategy.py",
+        """
+        from spacecraft_ops import PropulsionMode, SetPropulsionMode, Strategy
+
+        class SingleThruster(Strategy):
+            def initialize(self, brief, telemetry, commander):
+                commander.execute(SetPropulsionMode(PropulsionMode.THRUSTER_1))
+        """,
+    )
+    assert main(["run", f"{path}:SingleThruster"]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "MOMENTUM_VIOLATION" in out
+    assert "violation:" in out
+
+
+def test_strategy_file_named_like_an_imported_module_does_not_shadow_it(tmp_path):
+    write(
+        tmp_path / "spacecraft_ops.py",
+        """
+        from spacecraft_ops import Strategy
+
+        class Shadow(Strategy):
+            pass
+        """,
+    )
+    assert type(load_strategy(f"{tmp_path / 'spacecraft_ops.py'}:Shadow")).__name__ == "Shadow"
 
 
 def test_usage_errors_exit_with_usage_status(idle_strategy_file, capsys):

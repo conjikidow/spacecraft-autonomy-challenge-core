@@ -8,6 +8,7 @@ import argparse
 import importlib
 import importlib.util
 import json
+import re
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -35,6 +36,8 @@ def load_strategy(spec: str) -> Strategy:
     `TARGET` is a path to a Python file or a dotted module name. For a file, its directory is put first
     on the import path so the file can import sibling modules. For a module name, the current directory
     is put on the import path. `CLASS` must be a `Strategy` subclass that takes no constructor arguments.
+
+    Modules imported by the strategy stay cached in `sys.modules`, so load one strategy per process.
     """
     target, separator, class_name = spec.rpartition(":")
     if not separator or not target or not class_name:
@@ -61,11 +64,12 @@ def _import_file(path: Path) -> object:
     if not path.is_file():
         raise FileNotFoundError(path)
     _prepend_import_path(path.parent)
-    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module_name = "_spacecraft_ops_strategy_" + re.sub(r"\W", "_", str(path))
+    spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {path}")
     module = importlib.util.module_from_spec(spec)
-    sys.modules[path.stem] = module
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 

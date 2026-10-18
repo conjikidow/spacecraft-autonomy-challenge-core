@@ -14,7 +14,7 @@ reference scenarios, per-run evaluation metrics, and a command-line runner.
 The spacecraft model is a generic toy model and does not represent any particular spacecraft or mission.
 The distribution name is `spacecraft-operations-challenge-core` and the import package is `spacecraft_ops`.
 
-The project is in early development (version 0.1.0); the API may still change.
+The project is in early development; the API may still change.
 
 ## Requirements
 
@@ -25,10 +25,10 @@ The package has no runtime dependencies beyond the Python standard library.
 
 ## Installation
 
-Add the package to another uv project from Git, optionally pinned to a tag or commit:
+Add the package to another uv project from Git, optionally pinned with `--tag` or `--rev`:
 
 ```sh
-uv add "spacecraft-operations-challenge-core @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
+uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
 ```
 
 ## Quick Start
@@ -94,7 +94,7 @@ and `--json` prints the metrics as JSON.
 | Exit status | Meaning |
 |---|---|
 | 0 | The run finished, whether or not the mission succeeded |
-| 1 | The strategy raised an exception or made an invalid timeline request |
+| 1 | The strategy raised an exception or made an invalid timeline request during the run |
 | 2 | Usage error, such as a strategy or scenario that cannot be found |
 
 ## Documentation
