@@ -5,6 +5,7 @@ from dataclasses import replace
 import pytest
 
 from spacecraft_ops.commands import CommandError, CompleteMission, PropulsionMode, SetHeater, SetPropulsionMode
+from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.model import SpacecraftState
 from spacecraft_ops.modifiers import Modifier, TelemetryBias
 from spacecraft_ops.results import TerminationReason
@@ -69,14 +70,15 @@ def test_base_strategy_with_no_overrides_runs_to_time_limit(make_scenario):
 
 def test_commands_execute_at_exact_times_off_the_integration_and_decision_grids(make_scenario):
     strategy = Scripted(schedule_all((25.3, FIRE_1), (37.8, OFF)))
-    result = run(strategy, make_scenario(integration_step_s=10.0, decision_period_s=60.0))
+    result = run(strategy, make_scenario(decision_period_s=60.0), config=SimulationConfig(integration_step_s=10.0))
     assert result.final_state.delta_v_mps == pytest.approx(12.5 * ACCELERATION_MPS2)
     assert {25.3, 37.8} <= {s.time_s for s in result.trajectory}
 
 
 def test_integration_step_and_decision_period_are_independent(make_scenario):
     strategy = Scripted()
-    result = run(strategy, make_scenario(integration_step_s=7.0, decision_period_s=100.0, time_limit_s=600.0))
+    scenario = make_scenario(decision_period_s=100.0, time_limit_s=600.0)
+    result = run(strategy, scenario, config=SimulationConfig(integration_step_s=7.0))
     assert strategy.update_times == [100.0, 200.0, 300.0, 400.0, 500.0, 600.0]
     times = [s.time_s for s in result.trajectory]
     assert times[:4] == [0.0, 7.0, 14.0, 21.0]
@@ -215,7 +217,8 @@ def test_pre_scheduled_command_executes_before_the_decision_at_the_same_time(mak
 
 def test_decision_at_time_limit_is_not_skipped_by_float_error(make_scenario):
     strategy = Scripted()
-    result = run(strategy, make_scenario(integration_step_s=0.05, decision_period_s=0.1, time_limit_s=0.3))
+    scenario = make_scenario(decision_period_s=0.1, time_limit_s=0.3)
+    result = run(strategy, scenario, config=SimulationConfig(integration_step_s=0.05))
     assert strategy.update_times == pytest.approx([0.1, 0.2, 0.3])
     assert result.termination.reason is TerminationReason.TIME_LIMIT
     assert result.termination.time_s == 0.3
@@ -354,7 +357,7 @@ def test_stepper_rejects_out_of_order_calls(make_scenario):
 
 
 def test_scenario_validates_timing(make_scenario, make_state):
-    for overrides in ({"integration_step_s": 0.0}, {"decision_period_s": -1.0}, {"time_limit_s": 0.0}):
+    for overrides in ({"decision_period_s": -1.0}, {"time_limit_s": 0.0}):
         with pytest.raises(ValueError, match="positive"):
             make_scenario(**overrides)
     with pytest.raises(ValueError, match="time_s"):
@@ -368,3 +371,11 @@ def test_noise_modifier_draws_only_from_the_seeded_rng(make_scenario):
     noise = [t.propulsion_temperature_c - true_temperature_c[t.time_s] for t in result.telemetry]
     rng = random.Random(1)
     assert noise == pytest.approx([rng.gauss(0.0, 1.0) for _ in result.telemetry])
+
+
+def test_simulation_config_is_validated_defaulted_and_recorded(make_scenario):
+    with pytest.raises(ValueError, match="positive"):
+        SimulationConfig(integration_step_s=0.0)
+    assert run(Strategy(), make_scenario(time_limit_s=60.0)).config == SimulationConfig()
+    config = SimulationConfig(integration_step_s=5.0)
+    assert run(Strategy(), make_scenario(time_limit_s=60.0), config=config).config is config

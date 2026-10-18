@@ -1,27 +1,43 @@
 # Simulation
 
-This page describes scenarios (`spacecraft_ops.scenario`), the simulation (`spacecraft_ops.simulation`),
+This page describes problems (`spacecraft_ops.problem`), scenarios (`spacecraft_ops.scenario`),
+simulation settings (`spacecraft_ops.config`), the simulation (`spacecraft_ops.simulation`),
 and run results (`spacecraft_ops.results`).
 
-## Scenario
+## Problem
 
-A `Scenario` configures one run:
+A `Problem` is the fixed task that all of its scenarios share:
 
 | Field | Meaning |
 |---|---|
-| `name`, `description` | Identification |
-| `parameters` | Nominal `SpacecraftParameters` |
+| `parameters` | Published nominal `SpacecraftParameters` |
 | `initial_state` | `SpacecraftState` at time 0 |
 | `limits` | `SafetyLimits` |
 | `target_delta_v_mps` | Delta-v goal |
 | `time_limit_s` | Time at which the run ends |
-| `integration_step_s` | Maximum integration step |
 | `decision_period_s` | Period of strategy updates |
+
+`problem.brief()` returns the `MissionBrief` given to the strategy.
+
+## Scenario
+
+A `Scenario` is one variant of a problem:
+
+| Field | Meaning |
+|---|---|
+| `name`, `description` | Identification |
+| `problem` | The `Problem` |
 | `modifiers` | `Modifier` sequence applied during the run |
 | `seed` | Seed of the run's random number generator |
 
-`scenario.brief()` returns the `MissionBrief` given to the strategy.
-It does not include the name, description, modifiers, or seed.
+A scenario without modifiers behaves exactly as the nominal model.
+`scenario.brief()` is the brief of its problem, so every scenario of a problem looks the same to a strategy.
+
+## Simulation Settings
+
+`SimulationConfig` holds settings that affect numerical accuracy only.
+Its single field, `integration_step_s`, is the maximum step of the explicit Euler integrator and defaults to 1 s.
+Strategies never see it.
 
 ## Running a Strategy
 
@@ -32,7 +48,8 @@ result = run(MyStrategy(), scenario)
 print(result.termination.reason, result.final_state.delta_v_mps)
 ```
 
-`run(strategy, scenario, seed=None)` overrides the scenario seed when `seed` is given.
+`run(strategy, scenario, config=None, seed=None)` uses the default `SimulationConfig` when `config` is `None`
+and overrides the scenario seed when `seed` is given.
 An `Exception` raised by the strategy does not propagate out of `run`; it ends the run instead.
 
 ## Time
@@ -83,7 +100,7 @@ When several safety limits are violated at once, all violations are recorded and
 
 `RunResult` contains:
 
-- `scenario` and `seed`
+- `scenario`, `config`, and `seed`
 - `termination`: reason, time, and detail (a message or traceback)
 - `safety_violations`
 - `final_state`
@@ -96,9 +113,10 @@ When several safety limits are violated at once, all violations are recorded and
 `Simulation` exposes the same loop as explicit steps, for drivers other than `run`:
 
 ```python
+from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.simulation import Simulation
 
-simulation = Simulation(scenario, seed=0)
+simulation = Simulation(scenario, config=SimulationConfig(), seed=0)
 telemetry = simulation.start()
 with simulation.decision() as commander:
     commander.execute(command)

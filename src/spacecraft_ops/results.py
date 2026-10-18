@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.model import SpacecraftState
 from spacecraft_ops.scenario import Scenario
 from spacecraft_ops.telemetry import Telemetry
@@ -48,6 +49,7 @@ class RunResult:
     """
 
     scenario: Scenario
+    config: SimulationConfig
     seed: int
     termination: Termination
     safety_violations: tuple[SafetyViolation, ...]

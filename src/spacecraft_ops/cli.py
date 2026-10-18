@@ -13,8 +13,9 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from spacecraft_ops.challenge import scenario as challenge_scenario
+from spacecraft_ops.challenge import scenario_names
 from spacecraft_ops.evaluation import RunMetrics, evaluate, reference_score
-from spacecraft_ops.reference import reference_scenario, reference_scenario_names
 from spacecraft_ops.results import RunResult, TerminationReason
 from spacecraft_ops.simulation import run
 from spacecraft_ops.strategy import Strategy
@@ -108,7 +109,7 @@ def format_summary(result: RunResult, metrics: RunMetrics, score: float) -> str:
 
 def _run_command(args: argparse.Namespace) -> int:
     try:
-        scenario = reference_scenario(args.scenario)
+        scenario = challenge_scenario(args.scenario)
         strategy = load_strategy(args.strategy)
     except (KeyError, StrategyLoadError) as error:
         print(f"error: {error.args[0] if error.args else error}", file=sys.stderr)
@@ -135,25 +136,25 @@ def _run_command(args: argparse.Namespace) -> int:
 
 
 def _scenarios_command(args: argparse.Namespace) -> int:
-    for name in reference_scenario_names():
-        description = reference_scenario(name).description
+    for name in scenario_names():
+        description = challenge_scenario(name).description
         print(f"{name}: {description}" if description else name)
     return EXIT_OK
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Argument parser of the `spacecraft-ops` command."""
-    parser = argparse.ArgumentParser(prog="spacecraft-ops", description="Run strategies on reference scenarios.")
+    parser = argparse.ArgumentParser(prog="spacecraft-ops", description="Run strategies on the challenge scenarios.")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    run_parser = subcommands.add_parser("run", help="run a strategy on a reference scenario and print metrics")
+    run_parser = subcommands.add_parser("run", help="run a strategy on a challenge scenario and print metrics")
     run_parser.add_argument("strategy", help="strategy as FILE.py:CLASS or MODULE:CLASS")
-    run_parser.add_argument("--scenario", default="nominal", help="reference scenario name (default: nominal)")
+    run_parser.add_argument("--scenario", default="nominal", help="challenge scenario name (default: nominal)")
     run_parser.add_argument("--seed", type=int, default=None, help="override the scenario seed")
     run_parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     run_parser.set_defaults(handler=_run_command)
 
-    scenarios_parser = subcommands.add_parser("scenarios", help="list reference scenarios")
+    scenarios_parser = subcommands.add_parser("scenarios", help="list the challenge scenarios")
     scenarios_parser.set_defaults(handler=_scenarios_command)
     return parser
 
