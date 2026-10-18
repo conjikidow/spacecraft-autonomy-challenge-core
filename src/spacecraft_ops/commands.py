@@ -42,8 +42,11 @@ class SetHeater:
 
 
 @dataclass(frozen=True, slots=True)
-class CompleteMission:
-    """Declare the maneuver complete. Executing this command ends the run."""
+class DeclareCompletion:
+    """Declare that the strategy considers the maneuver complete.
+
+    Executing this command ends the run. It says nothing about whether the maneuver succeeded.
+    """
 
 
-Command = SetPropulsionMode | SetHeater | CompleteMission
+Command = SetPropulsionMode | SetHeater | DeclareCompletion

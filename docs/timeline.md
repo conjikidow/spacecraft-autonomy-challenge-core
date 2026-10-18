@@ -8,7 +8,7 @@ This page describes the command types in `spacecraft_ops.commands` and the timel
 |---|---|
 | `SetPropulsionMode(mode)` | Selects the propulsion mode: `PropulsionMode.OFF`, `THRUSTER_1`, or `THRUSTER_2` |
 | `SetHeater(on)` | Switches the propulsion heater on (`True`) or off (`False`) |
-| `CompleteMission()` | Declares the maneuver complete |
+| `DeclareCompletion()` | Declares that the strategy considers the maneuver complete, which ends the run; it says nothing about success |
 
 The propulsion mode is exclusive: selecting one thruster implicitly stops the other,
 so both thrusters never fire at the same time.

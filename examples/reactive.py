@@ -11,7 +11,7 @@ simply burns longer.
 from spacecraft_ops import (
     Commander,
     CommandId,
-    CompleteMission,
+    DeclareCompletion,
     MissionBrief,
     PropulsionMode,
     SetHeater,
@@ -70,7 +70,7 @@ class ReactiveStrategy(Strategy):
 
         if telemetry.delta_v_mps >= self.brief.target_delta_v_mps:
             commander.execute(SetPropulsionMode(OFF))
-            commander.execute(CompleteMission())
+            commander.execute(DeclareCompletion())
             return
 
         # Temperature hysteresis: stop firing when hot, resume once cooled down.
@@ -121,7 +121,7 @@ class ReactiveStrategy(Strategy):
         stop_s = commander.now_s + max(0.0, min(momentum_s, goal_s))
         self.planned_stop = [commander.schedule(stop_s, SetPropulsionMode(OFF))]
         if goal_s <= momentum_s:
-            self.planned_stop.append(commander.schedule(stop_s, CompleteMission()))
+            self.planned_stop.append(commander.schedule(stop_s, DeclareCompletion()))
 
     def cancel_planned_stop(self, commander: Commander) -> None:
         for command_id in self.planned_stop:

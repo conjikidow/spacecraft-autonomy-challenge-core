@@ -10,7 +10,7 @@ import math
 
 from spacecraft_ops import (
     Commander,
-    CompleteMission,
+    DeclareCompletion,
     MissionBrief,
     PropulsionMode,
     SetPropulsionMode,
@@ -98,4 +98,4 @@ class FixedSequenceStrategy(Strategy):
                 temperature_c = resume_c
 
         commander.schedule(time_s, SetPropulsionMode(PropulsionMode.OFF))
-        commander.schedule(time_s, CompleteMission())
+        commander.schedule(time_s, DeclareCompletion())

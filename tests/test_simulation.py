@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops.commands import CommandError, CompleteMission, PropulsionMode, SetHeater, SetPropulsionMode
+from spacecraft_ops.commands import CommandError, DeclareCompletion, PropulsionMode, SetHeater, SetPropulsionMode
 from spacecraft_ops.config import SimulationConfig
 from spacecraft_ops.model import SpacecraftState
 from spacecraft_ops.modifiers import Modifier, TelemetryBias
@@ -54,9 +54,9 @@ def schedule_all(*items):
 
 
 def test_fixed_strategy_runs_entirely_from_initialize(make_scenario):
-    strategy = Scripted(schedule_all((100.0, FIRE_1), (200.0, OFF), (300.0, CompleteMission())))
+    strategy = Scripted(schedule_all((100.0, FIRE_1), (200.0, OFF), (300.0, DeclareCompletion())))
     result = run(strategy, make_scenario())
-    assert result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert result.termination.time_s == 300.0
     assert result.final_state.delta_v_mps == pytest.approx(100.0 * ACCELERATION_MPS2)
     assert [s.time_s for s in result.executed_commands] == [100.0, 200.0, 300.0]
@@ -111,10 +111,10 @@ def test_adaptive_strategy_schedules_commands_during_later_updates(make_scenario
             commander.schedule(90.0, FIRE_1)
             commander.schedule(100.0, OFF)
         if telemetry.time_s == 120.0 and telemetry.delta_v_mps > 0:
-            commander.execute(CompleteMission())
+            commander.execute(DeclareCompletion())
 
     result = run(Scripted(on_update=on_update), make_scenario())
-    assert result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert result.termination.time_s == 120.0
     assert result.final_state.delta_v_mps == pytest.approx(10.0 * ACCELERATION_MPS2)
 
@@ -167,22 +167,22 @@ def test_switching_thrusters_is_exclusive(make_scenario):
 
 
 def test_commands_after_complete_mission_at_same_time_do_not_execute(make_scenario):
-    strategy = Scripted(schedule_all((50.0, CompleteMission()), (50.0, SetHeater(on=True))))
+    strategy = Scripted(schedule_all((50.0, DeclareCompletion()), (50.0, SetHeater(on=True))))
     result = run(strategy, make_scenario())
-    assert [type(s.command) for s in result.executed_commands] == [CompleteMission]
+    assert [type(s.command) for s in result.executed_commands] == [DeclareCompletion]
     assert result.final_state.heater_on is False
 
 
 def test_update_is_not_called_after_completion(make_scenario):
-    strategy = Scripted(schedule_all((60.0, CompleteMission())))
+    strategy = Scripted(schedule_all((60.0, DeclareCompletion())))
     run(strategy, make_scenario())
     assert strategy.update_times == []
 
 
 def test_time_limit_is_inclusive_for_commands_and_decisions(make_scenario):
-    strategy = Scripted(schedule_all((600.0, CompleteMission())))
+    strategy = Scripted(schedule_all((600.0, DeclareCompletion())))
     result = run(strategy, make_scenario(time_limit_s=600.0))
-    assert result.termination.reason is TerminationReason.MISSION_COMPLETE
+    assert result.termination.reason is TerminationReason.COMPLETION_DECLARED
     assert strategy.update_times[-1] == 540.0
 
     strategy = Scripted()

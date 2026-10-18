@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from spacecraft_ops.commands import CommandError, CompleteMission, PropulsionMode, SetHeater, SetPropulsionMode
+from spacecraft_ops.commands import CommandError, DeclareCompletion, PropulsionMode, SetHeater, SetPropulsionMode
 from spacecraft_ops.timeline import Timeline
 
 FIRE_1 = SetPropulsionMode(PropulsionMode.THRUSTER_1)
@@ -35,7 +35,7 @@ def test_same_time_commands_execute_in_registration_order():
     first = timeline.schedule(10.0, FIRE_1, now_s=0.0)
     timeline.schedule(5.0, SetHeater(on=True), now_s=0.0)
     second = timeline.schedule(10.0, OFF, now_s=0.0)
-    third = timeline.schedule(10.0, CompleteMission(), now_s=0.0)
+    third = timeline.schedule(10.0, DeclareCompletion(), now_s=0.0)
     executed = drain(timeline, 10.0)
     assert [s.command_id for s in executed[1:]] == [first, second, third]
 

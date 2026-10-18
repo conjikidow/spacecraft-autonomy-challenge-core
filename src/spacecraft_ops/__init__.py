@@ -6,7 +6,7 @@ imported from their submodules.
 
 from importlib.metadata import version
 
-from spacecraft_ops.commands import CommandError, CompleteMission, PropulsionMode, SetHeater, SetPropulsionMode
+from spacecraft_ops.commands import CommandError, DeclareCompletion, PropulsionMode, SetHeater, SetPropulsionMode
 from spacecraft_ops.model import SafetyLimits, SpacecraftParameters, ThrusterParameters
 from spacecraft_ops.strategy import Commander, MissionBrief, Strategy
 from spacecraft_ops.telemetry import Telemetry
@@ -18,7 +18,7 @@ __all__ = [
     "CommandError",
     "CommandId",
     "Commander",
-    "CompleteMission",
+    "DeclareCompletion",
     "MissionBrief",
     "PropulsionMode",
     "SafetyLimits",
