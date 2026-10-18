@@ -8,8 +8,6 @@ import pytest
 from spacecraft_ops.cli import EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, StrategyLoadError, load_strategy, main
 from spacecraft_ops.strategy import Strategy
 
-EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
-
 
 @pytest.fixture(autouse=True)
 def isolated_imports(monkeypatch):
@@ -158,9 +156,3 @@ def test_usage_errors_exit_with_usage_status(idle_strategy_file, capsys):
 def test_scenarios_lists_challenge_scenarios(capsys):
     assert main(["scenarios"]) == EXIT_OK
     assert "nominal" in capsys.readouterr().out
-
-
-@pytest.mark.parametrize("spec", ["fixed_sequence.py:FixedSequenceStrategy", "reactive.py:ReactiveStrategy"])
-def test_examples_run_through_the_cli(spec, capsys):
-    assert main(["run", f"{EXAMPLES / spec}"]) == EXIT_OK
-    assert "COMPLETION_DECLARED" in capsys.readouterr().out

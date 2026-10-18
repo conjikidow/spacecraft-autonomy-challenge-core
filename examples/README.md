@@ -1,60 +1,35 @@
 # Examples
 
-Two example strategies for the challenge scenarios in `spacecraft_ops.challenge`.
-Both import only from the top-level `spacecraft_ops` package and see nothing but the mission brief and telemetry.
+These examples show how the strategy API behaves.
+They run on a small toy problem defined in `toy_problem.py`,
+which is deliberately different from the challenge problem and has loose limits.
+They are not strategies for the challenge.
 
-## `fixed_sequence.py`
-
-`FixedSequenceStrategy` is an open-loop strategy.
-In `initialize` it predicts the whole maneuver with the nominal model from the mission brief
-and schedules every command at once.
-The plan alternates thrusters to keep the wheel momentum bounded, pauses to cool down before the temperature limit,
-and ends with `DeclareCompletion`.
-It does not override `update`, so it never reacts to telemetry.
-
-It reaches the target on `nominal` exactly, but on `thruster-degradation` it ends short of the target,
-because it cannot notice the weaker thruster.
-
-## `reactive.py`
-
-`ReactiveStrategy` is a closed-loop strategy that decides from telemetry at every update:
-
-- It stops firing near the maximum temperature and resumes after cooling down (temperature hysteresis).
-- It starts the thruster that drives the wheel momentum toward zero.
-- It switches the heater on when idle near the minimum temperature.
-- It estimates each thruster's acceleration from the delta-v telemetry.
-- It sends `DeclareCompletion` once the delta-v telemetry reaches the target.
-
-When a burn starts, it schedules a future stop for the time the wheel momentum would reach a margin below its limit,
-or for the time the target would be reached together with `DeclareCompletion`.
-It cancels that pending stop when the temperature forces an earlier stop,
-and replaces it at every update with one based on the latest estimates.
-This lets it reach the target on both `nominal` and `thruster-degradation`.
-
-## Running an Example
-
-From the repository root, run an example with the `spacecraft-ops` command:
+Run them from the repository root:
 
 ```sh
-uv run spacecraft-ops run examples/fixed_sequence.py:FixedSequenceStrategy
-uv run spacecraft-ops run examples/reactive.py:ReactiveStrategy --scenario thruster-degradation
+uv run python examples/timeline_basics.py
+uv run python examples/telemetry_and_replanning.py
 ```
 
-The example files are not part of the installed package.
-To run one from Python, load it by path, for example from the repository root:
+Each script prints the commands that executed, how the run ended, and the true delta-v.
 
-```python
-import importlib.util
+## `timeline_basics.py`
 
-from spacecraft_ops.challenge import scenario
-from spacecraft_ops.simulation import run
+`TimelineBasics` registers its whole command timeline in `initialize` and does not override `update`.
+The simulation executes every command at its scheduled time without further callbacks.
+It also shows that selecting the other thruster stops the first one,
+and that commands with the same time execute in registration order.
 
-spec = importlib.util.spec_from_file_location("reactive", "examples/reactive.py")
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
+## `telemetry_and_replanning.py`
 
-result = run(module.ReactiveStrategy(), scenario("thruster-degradation"))
-print(result.termination.reason, result.termination.time_s, result.final_state.delta_v_mps)
-```
+`TelemetryAndReplanning` starts a thruster immediately with `execute` and schedules a tentative stop far in the future.
+At each `update` it prints the telemetry it receives.
+At 60 s it cancels the tentative stop by its identifier,
+cancels everything from the current time onward with `cancel_from`, and registers a replacement plan that ends with `DeclareCompletion`.
 
-Save this as a script and run it with `uv run python <script>`.
+## `toy_problem.py`
+
+`toy_scenario()` builds the toy scenario, and `run_and_report(strategy)` runs a strategy on it and prints the result.
+The strategy files import only the top-level `spacecraft_ops` package;
+`toy_problem.py` also uses the simulation modules to build and run the scenario.

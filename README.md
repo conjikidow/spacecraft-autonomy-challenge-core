@@ -33,46 +33,35 @@ uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
 
 ## Quick Start
 
-List the challenge scenarios and run an example strategy from the repository root:
+List the challenge scenarios and run an API example from the repository root:
 
 ```sh
 uv run spacecraft-ops scenarios
-uv run spacecraft-ops run examples/reactive.py:ReactiveStrategy --scenario thruster-degradation
+uv run python examples/timeline_basics.py
 ```
 
-The output summarizes how the run ended and its metrics:
-
-```text
-scenario:             thruster-degradation (seed 0)
-termination:          COMPLETION_DECLARED at 13640.0 s
-completion declared:  True
-safe:                 True
-delta-v:              10.0000 m/s (target 10.0000, error +0.0000)
-declaration time:     13640.0 s
-min battery energy:   65.67 Wh
-temperature range:    20.00 .. 52.04 C
-max |wheel momentum|: 4.0000 Nms
-```
+The examples run on a small toy problem and show how the API behaves; see [examples/](examples/README.md).
 
 ## Writing a Strategy
 
 Subclass `Strategy` and override `initialize`, `update`, or both:
 
 ```python
-from spacecraft_ops import Commander, MissionBrief, PropulsionMode, SetPropulsionMode, Strategy, Telemetry
+from spacecraft_ops import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
     def initialize(self, brief: MissionBrief, telemetry: Telemetry, commander: Commander) -> None:
-        commander.execute(SetPropulsionMode(PropulsionMode.THRUSTER_1))
+        print(brief.target_delta_v_mps, brief.time_limit_s)
+        commander.schedule(600.0, SetHeater(on=True))
 
     def update(self, telemetry: Telemetry, commander: Commander) -> None:
-        if telemetry.propulsion_temperature_c > 50.0:
-            commander.execute(SetPropulsionMode(PropulsionMode.OFF))
+        print(telemetry)
 ```
 
-Run it with `uv run spacecraft-ops run my_strategy.py:MyStrategy`.
-See [examples/](examples/README.md) for an open-loop and a closed-loop strategy.
+Run it on a challenge scenario with `uv run spacecraft-ops run my_strategy.py:MyStrategy`.
+The command prints how the run ended and its metrics.
+See [Writing a Strategy](docs/strategy.md) for the full API.
 
 ## Command-Line Runner
 
