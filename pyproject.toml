@@ -22,7 +22,9 @@ dev = [
   "pytest>=9.1.1",
   { include-group = "lint" },
 ]
-lint = ["ruff==0.17.0"]
+lint = [
+  "ruff==0.17.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.12,<0.14"]
@@ -34,7 +36,7 @@ testpaths = ["tests"]
 xfail_strict = true
 
 [tool.ruff]
-required-version = "==0.17.0"
+required-version = "==0.17.1"
 line-length = 120
 
 [tool.ruff.lint]
