@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from spacecraft_ops.model import SafetyLimits, SpacecraftParameters, SpacecraftState
-from spacecraft_ops.strategy import MissionBrief
+from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState
+from spacecraft_ops_challenge.strategy import MissionBrief
 
 
 @dataclass(frozen=True, slots=True)

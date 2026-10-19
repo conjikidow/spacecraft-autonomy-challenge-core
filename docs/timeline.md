@@ -1,6 +1,6 @@
 # Commands and Timeline
 
-This page describes the command types in `spacecraft_ops.commands` and the timeline in `spacecraft_ops.timeline`.
+This page describes the command types in `spacecraft_ops_challenge.commands` and the timeline in `spacecraft_ops_challenge.timeline`.
 
 ## Commands
 

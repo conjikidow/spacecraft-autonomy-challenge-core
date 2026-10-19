@@ -1,4 +1,4 @@
-"""Command-line runner: `spacecraft-ops run STRATEGY` and `spacecraft-ops scenarios`.
+"""Command-line runner: `spacecraft-ops-challenge run STRATEGY` and `spacecraft-ops-challenge scenarios`.
 
 Exit status: 0 when the run finished, 1 when the strategy raised an exception or made an invalid
 timeline request, and 2 for usage errors such as a strategy that cannot be loaded.
@@ -14,12 +14,12 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from spacecraft_ops.challenge import scenario as challenge_scenario
-from spacecraft_ops.challenge import scenario_names
-from spacecraft_ops.evaluation import RunMetrics, evaluate
-from spacecraft_ops.results import RunResult, TerminationReason
-from spacecraft_ops.simulation import run
-from spacecraft_ops.strategy import Strategy
+from spacecraft_ops_challenge.challenge import scenario as challenge_scenario
+from spacecraft_ops_challenge.challenge import scenario_names
+from spacecraft_ops_challenge.evaluation import RunMetrics, evaluate
+from spacecraft_ops_challenge.results import RunResult, TerminationReason
+from spacecraft_ops_challenge.simulation import run
+from spacecraft_ops_challenge.strategy import Strategy
 
 EXIT_OK = 0
 EXIT_STRATEGY_FAILURE = 1
@@ -66,7 +66,7 @@ def _import_file(path: Path) -> object:
     if not path.is_file():
         raise FileNotFoundError(path)
     _prepend_import_path(path.parent)
-    module_name = "_spacecraft_ops_strategy_" + re.sub(r"\W", "_", str(path))
+    module_name = "_spacecraft_ops_challenge_strategy_" + re.sub(r"\W", "_", str(path))
     spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {path}")
@@ -143,8 +143,10 @@ def _scenarios_command(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Argument parser of the `spacecraft-ops` command."""
-    parser = argparse.ArgumentParser(prog="spacecraft-ops", description="Run strategies on the challenge scenarios.")
+    """Argument parser of the `spacecraft-ops-challenge` command."""
+    parser = argparse.ArgumentParser(
+        prog="spacecraft-ops-challenge", description="Run strategies on the challenge scenarios."
+    )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subcommands.add_parser("run", help="run a strategy on a challenge scenario and print metrics")
@@ -160,6 +162,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point of the `spacecraft-ops` command."""
+    """Entry point of the `spacecraft-ops-challenge` command."""
     args = build_parser().parse_args(argv)
     return args.handler(args)

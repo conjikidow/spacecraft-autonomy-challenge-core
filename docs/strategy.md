@@ -2,10 +2,10 @@
 
 A strategy operates the spacecraft by scheduling commands on its timeline.
 It receives only a `MissionBrief`, `Telemetry`, and a `Commander`; it never sees the true spacecraft state.
-All of these are exported from the top-level `spacecraft_ops` package.
+All of these are exported from the top-level `spacecraft_ops_challenge` package.
 
 ```python
-from spacecraft_ops import Commander, MissionBrief, SetHeater, Strategy, Telemetry
+from spacecraft_ops_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
@@ -39,7 +39,8 @@ strategies can only infer such deviations from telemetry.
 
 `Commander` is an interface (a `typing.Protocol`).
 A strategy should rely only on the members below.
-The simulation passes `spacecraft_ops.simulation.LocalCommander`, which works directly on its timeline in the same process.
+The simulation passes `spacecraft_ops_challenge.simulation.LocalCommander`,
+which works directly on its timeline in the same process.
 All requests and results are plain data: times, commands, command identifiers, and `ScheduledCommand` values.
 
 | Member | Behavior |

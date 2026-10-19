@@ -7,7 +7,7 @@ watts (`_w`), watt-hours (`_wh`), joules per kelvin (`_j_per_k`), and newton-met
 
 from dataclasses import dataclass, replace
 
-from spacecraft_ops.commands import PropulsionMode
+from spacecraft_ops_challenge.commands import PropulsionMode
 
 SECONDS_PER_HOUR = 3600.0
 

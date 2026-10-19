@@ -5,7 +5,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![prek](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/j178/prek/master/docs/assets/badge-v0.json)](https://github.com/j178/prek)
 
-Python package for a spacecraft operations challenge.
+Python package for the Spacecraft Operations Challenge.
 You write a strategy that operates a simulated spacecraft:
 it reads telemetry and schedules commands
 so that the spacecraft accumulates a target delta-v without violating thermal, power, or momentum limits.
@@ -13,7 +13,7 @@ so that the spacecraft accumulates a target delta-v without violating thermal, p
 The package provides the strategy API, a small parameterized reference simulator,
 the challenge problem with its public scenarios, per-run evaluation metrics, and a command-line runner.
 The spacecraft model is a generic toy model and does not represent any particular spacecraft or mission.
-The distribution name is `spacecraft-operations-challenge-core` and the import package is `spacecraft_ops`.
+The distribution name is `spacecraft-operations-challenge-core` and the import package is `spacecraft_ops_challenge`.
 
 The project is in early development; the API may still change.
 
@@ -37,7 +37,7 @@ uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
 List the challenge scenarios and run an API example from the repository root:
 
 ```sh
-uv run spacecraft-ops scenarios
+uv run spacecraft-ops-challenge scenarios
 uv run python examples/timeline_basics.py
 ```
 
@@ -48,7 +48,7 @@ The examples run on a small toy problem and show how the API behaves; see [examp
 Subclass `Strategy` and override `initialize`, `update`, or both:
 
 ```python
-from spacecraft_ops import Commander, MissionBrief, SetHeater, Strategy, Telemetry
+from spacecraft_ops_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
@@ -60,15 +60,15 @@ class MyStrategy(Strategy):
         print(telemetry)
 ```
 
-Run it on a challenge scenario with `uv run spacecraft-ops run my_strategy.py:MyStrategy`.
+Run it on a challenge scenario with `uv run spacecraft-ops-challenge run my_strategy.py:MyStrategy`.
 The command prints how the run ended and its metrics.
 See [Writing a Strategy](docs/strategy.md) for the full API.
 
 ## Command-Line Runner
 
 ```text
-spacecraft-ops run STRATEGY [--scenario NAME] [--seed N] [--json]
-spacecraft-ops scenarios
+spacecraft-ops-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
+spacecraft-ops-challenge scenarios
 ```
 
 `STRATEGY` is `FILE.py:CLASS` or `MODULE:CLASS`, where `CLASS` is a `Strategy` subclass
@@ -79,7 +79,7 @@ For a module, the current directory is put on the import path.
 `--scenario` selects a challenge scenario (default `nominal`), `--seed` overrides the scenario seed,
 and `--json` prints the metrics as JSON.
 With `--json`, anything the strategy prints goes to standard error, so standard output stays valid JSON.
-`python -m spacecraft_ops` is equivalent to `spacecraft-ops`.
+`python -m spacecraft_ops_challenge` is equivalent to `spacecraft-ops-challenge`.
 
 | Exit status | Meaning |
 |---|---|

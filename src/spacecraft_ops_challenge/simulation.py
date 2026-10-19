@@ -22,15 +22,15 @@ from contextlib import contextmanager
 from dataclasses import replace
 from functools import partial
 
-from spacecraft_ops.commands import Command, CommandError, DeclareCompletion, SetHeater, SetPropulsionMode
-from spacecraft_ops.config import SimulationConfig
-from spacecraft_ops.model import SafetyLimits, SpacecraftState, integrate
-from spacecraft_ops.modifiers import effective_parameters, effective_rates, observe
-from spacecraft_ops.results import RunResult, SafetyViolation, Termination, TerminationReason
-from spacecraft_ops.scenario import Scenario
-from spacecraft_ops.strategy import Commander, MissionBrief, Strategy
-from spacecraft_ops.telemetry import Telemetry
-from spacecraft_ops.timeline import CommandId, ScheduledCommand, Timeline
+from spacecraft_ops_challenge.commands import Command, CommandError, DeclareCompletion, SetHeater, SetPropulsionMode
+from spacecraft_ops_challenge.config import SimulationConfig
+from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftState, integrate
+from spacecraft_ops_challenge.modifiers import effective_parameters, effective_rates, observe
+from spacecraft_ops_challenge.results import RunResult, SafetyViolation, Termination, TerminationReason
+from spacecraft_ops_challenge.scenario import Scenario
+from spacecraft_ops_challenge.strategy import Commander, MissionBrief, Strategy
+from spacecraft_ops_challenge.telemetry import Telemetry
+from spacecraft_ops_challenge.timeline import CommandId, ScheduledCommand, Timeline
 
 
 def check_safety(state: SpacecraftState, limits: SafetyLimits) -> tuple[SafetyViolation, ...]:

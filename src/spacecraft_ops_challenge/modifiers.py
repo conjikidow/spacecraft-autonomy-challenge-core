@@ -10,9 +10,9 @@ import typing
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from spacecraft_ops.commands import PropulsionMode
-from spacecraft_ops.model import SpacecraftParameters, SpacecraftState, StateRates, compute_rates
-from spacecraft_ops.telemetry import Telemetry
+from spacecraft_ops_challenge.commands import PropulsionMode
+from spacecraft_ops_challenge.model import SpacecraftParameters, SpacecraftState, StateRates, compute_rates
+from spacecraft_ops_challenge.telemetry import Telemetry
 
 
 class Modifier:
