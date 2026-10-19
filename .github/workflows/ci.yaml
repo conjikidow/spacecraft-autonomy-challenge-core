@@ -127,9 +127,9 @@ jobs:
           persist-credentials: false
 
       - name: Audit with zizmor
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
         with:
-          version: 'v1.30.1'
+          version: 'v1.31.0'
           advanced-security: false
           annotations: true
 
@@ -138,9 +138,9 @@ jobs:
           always()
           && github.event_name == 'push'
           && github.event.repository.private == false
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
         with:
-          version: 'v1.30.1'
+          version: 'v1.31.0'
           advanced-security: true
 
   validate-json5:
@@ -197,16 +197,16 @@ jobs:
           persist-credentials: false
 
       - name: Install Tombi
-        uses: tombi-toml/setup-tombi@ebc771afde2bfb9192c91338a71b2c5d6152e2c3 # v1.8.4
+        uses: tombi-toml/setup-tombi@be97456589cb1f9c6c8a419bd7fe825b40a9df50 # v1.8.5
         with:
-          version: '1.8.4'
+          version: '1.8.5'
 
       - name: Format TOML
         run: tombi format
 
       - name: Suggest TOML formatting
         if: github.event_name == 'pull_request'
-        uses: reviewdog/action-suggester@8219e3d2e54a63ddecf1318659aa541bd1fa7202 # v1.26.2
+        uses: reviewdog/action-suggester@ac5ce6d94e35c00530447dc63c271e38e4fd36c6 # v1.26.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tool_name: tombi-format
@@ -237,9 +237,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Tombi
-        uses: tombi-toml/setup-tombi@ebc771afde2bfb9192c91338a71b2c5d6152e2c3 # v1.8.4
+        uses: tombi-toml/setup-tombi@be97456589cb1f9c6c8a419bd7fe825b40a9df50 # v1.8.5
         with:
-          version: '1.8.4'
+          version: '1.8.5'
 
       - name: Lint TOML
         run: tombi lint --error-on-warnings --diagnostics-format=github
@@ -330,7 +330,7 @@ jobs:
 
       - name: Suggest Python formatting
         if: github.event_name == 'pull_request'
-        uses: reviewdog/action-suggester@8219e3d2e54a63ddecf1318659aa541bd1fa7202 # v1.26.2
+        uses: reviewdog/action-suggester@ac5ce6d94e35c00530447dc63c271e38e4fd36c6 # v1.26.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tool_name: ruff-format
