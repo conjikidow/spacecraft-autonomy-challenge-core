@@ -17,21 +17,48 @@ permissions: {}
 jobs:
   label-pull-request:
     name: Label pull request
-    if: github.event.action != 'edited'
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.changes.title != null)
+    concurrency:
+      group: pull-request-labels-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
       pull-requests: write
 
     steps:
       - name: Label pull request
-        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          configuration-path: .github/labels/labeler.yaml
-          sync-labels: false
-          dot: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          pull_request="$(gh api "repos/{owner}/{repo}/pulls/${PR_NUMBER}")"
+          title="$(jq --raw-output '.title' <<<"${pull_request}")"
+          mapfile -t current_labels < <(jq --raw-output '.labels[].name' <<<"${pull_request}")
+
+          title_pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^[:space:]]+\))?(!)?: '
+          wanted_labels=()
+          if [[ ${title} =~ ${title_pattern} ]]; then
+            wanted_labels+=("type::${BASH_REMATCH[1]}")
+            if [[ -n ${BASH_REMATCH[3]} ]]; then
+              wanted_labels+=('breaking')
+            fi
+          fi
+
+          for label in "${current_labels[@]}"; do
+            if [[ (${label} == type::* || ${label} == 'breaking') && " ${wanted_labels[*]} " != *" ${label} "* ]]; then
+              encoded_label="$(jq --null-input --raw-output --arg label "${label}" '$label | @uri')"
+              gh api "repos/{owner}/{repo}/issues/${PR_NUMBER}/labels/${encoded_label}" --method=DELETE >/dev/null
+            fi
+          done
+
+          if [[ ${#wanted_labels[@]} -gt 0 ]]; then
+            jq --null-input --args '{labels: $ARGS.positional}' "${wanted_labels[@]}" \
+              | gh api "repos/{owner}/{repo}/issues/${PR_NUMBER}/labels" --method=POST --input=- >/dev/null
+          fi
 
   lint-pull-request-title:
     name: Lint pull request title
