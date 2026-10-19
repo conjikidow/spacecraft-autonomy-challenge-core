@@ -2,9 +2,9 @@
 
 from dataclasses import dataclass
 
-from spacecraft_ops.modifiers import Modifier
-from spacecraft_ops.problem import Problem
-from spacecraft_ops.strategy import MissionBrief
+from spacecraft_ops_challenge.modifiers import Modifier
+from spacecraft_ops_challenge.problem import Problem
+from spacecraft_ops_challenge.strategy import MissionBrief
 
 
 @dataclass(frozen=True)

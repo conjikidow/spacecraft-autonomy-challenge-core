@@ -3,10 +3,10 @@ from dataclasses import fields
 
 import pytest
 
-from spacecraft_ops.commands import PropulsionMode
-from spacecraft_ops.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
-from spacecraft_ops.problem import Problem
-from spacecraft_ops.scenario import Scenario
+from spacecraft_ops_challenge.commands import PropulsionMode
+from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
+from spacecraft_ops_challenge.problem import Problem
+from spacecraft_ops_challenge.scenario import Scenario
 
 
 @pytest.fixture

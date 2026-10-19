@@ -1,8 +1,8 @@
 # Simulation
 
-This page describes problems (`spacecraft_ops.problem`), scenarios (`spacecraft_ops.scenario`),
-simulation settings (`spacecraft_ops.config`), the simulation (`spacecraft_ops.simulation`),
-and run results (`spacecraft_ops.results`).
+This page describes problems (`spacecraft_ops_challenge.problem`), scenarios (`spacecraft_ops_challenge.scenario`),
+simulation settings (`spacecraft_ops_challenge.config`), the simulation (`spacecraft_ops_challenge.simulation`),
+and run results (`spacecraft_ops_challenge.results`).
 
 ## Problem
 
@@ -42,7 +42,7 @@ Strategies never see it.
 ## Running a Strategy
 
 ```python
-from spacecraft_ops.simulation import run
+from spacecraft_ops_challenge.simulation import run
 
 result = run(MyStrategy(), scenario)
 print(result.termination.reason, result.final_state.delta_v_mps)
@@ -113,8 +113,8 @@ When several safety limits are violated at once, all violations are recorded and
 `Simulation` exposes the same loop as explicit steps, for drivers other than `run`:
 
 ```python
-from spacecraft_ops.config import SimulationConfig
-from spacecraft_ops.simulation import Simulation
+from spacecraft_ops_challenge.config import SimulationConfig
+from spacecraft_ops_challenge.simulation import Simulation
 
 simulation = Simulation(scenario, config=SimulationConfig(), seed=0)
 telemetry = simulation.start()

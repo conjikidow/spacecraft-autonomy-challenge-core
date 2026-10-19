@@ -2,8 +2,8 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops.commands import PropulsionMode
-from spacecraft_ops.model import SafetyLimits, compute_rates, integrate
+from spacecraft_ops_challenge.commands import PropulsionMode
+from spacecraft_ops_challenge.model import SafetyLimits, compute_rates, integrate
 
 
 def test_thrusters_have_symmetric_thrust_power_and_heat(parameters, make_state):

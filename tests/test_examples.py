@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from spacecraft_ops import DeclareCompletion, PropulsionMode, SetPropulsionMode, Strategy
-from spacecraft_ops.challenge import problem as challenge_problem
-from spacecraft_ops.results import TerminationReason
-from spacecraft_ops.simulation import run
+from spacecraft_ops_challenge import DeclareCompletion, PropulsionMode, SetPropulsionMode, Strategy
+from spacecraft_ops_challenge.challenge import problem as challenge_problem
+from spacecraft_ops_challenge.results import TerminationReason
+from spacecraft_ops_challenge.simulation import run
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 STRATEGY_FILES = ["timeline_basics.py", "telemetry_and_replanning.py"]
@@ -26,7 +26,7 @@ def examples(monkeypatch):
 def test_example_strategies_import_only_the_top_level_package(name):
     tree = ast.parse((EXAMPLES / name).read_text())
     modules = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
-    assert modules <= {"spacecraft_ops", "toy_problem"}
+    assert modules <= {"spacecraft_ops_challenge", "toy_problem"}
 
 
 def test_toy_problem_differs_from_the_challenge_problem(examples):

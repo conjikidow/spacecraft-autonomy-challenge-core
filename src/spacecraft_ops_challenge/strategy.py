@@ -7,10 +7,10 @@ or the true spacecraft state. See `docs/strategy.md`.
 from dataclasses import dataclass
 from typing import Protocol
 
-from spacecraft_ops.commands import Command
-from spacecraft_ops.model import SafetyLimits, SpacecraftParameters
-from spacecraft_ops.telemetry import Telemetry
-from spacecraft_ops.timeline import CommandId, ScheduledCommand
+from spacecraft_ops_challenge.commands import Command
+from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters
+from spacecraft_ops_challenge.telemetry import Telemetry
+from spacecraft_ops_challenge.timeline import CommandId, ScheduledCommand
 
 
 @dataclass(frozen=True, slots=True)

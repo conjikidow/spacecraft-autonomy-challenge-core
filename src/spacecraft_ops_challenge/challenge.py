@@ -5,11 +5,11 @@ The numbers are provisional placeholders for the toy spacecraft model. See `docs
 
 from collections.abc import Callable
 
-from spacecraft_ops.commands import PropulsionMode
-from spacecraft_ops.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
-from spacecraft_ops.modifiers import ThrusterEfficiency
-from spacecraft_ops.problem import Problem
-from spacecraft_ops.scenario import Scenario
+from spacecraft_ops_challenge.commands import PropulsionMode
+from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
+from spacecraft_ops_challenge.modifiers import ThrusterEfficiency
+from spacecraft_ops_challenge.problem import Problem
+from spacecraft_ops_challenge.scenario import Scenario
 
 
 def problem() -> Problem:

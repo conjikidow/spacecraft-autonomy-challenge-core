@@ -1,7 +1,7 @@
 [project]
 name = "spacecraft-operations-challenge-core"
 version = "0.1.0"
-description = "Participant API, reference simulator, and evaluation tools for a spacecraft operations challenge"
+description = "Participant API, reference simulator, and evaluation tools for the Spacecraft Operations Challenge"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
@@ -15,7 +15,7 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-spacecraft-ops = "spacecraft_ops.cli:main"
+spacecraft-ops-challenge = "spacecraft_ops_challenge.cli:main"
 
 [dependency-groups]
 dev = [
@@ -62,4 +62,4 @@ select = [
 exclude-newer = "3 days"
 
 [tool.uv.build-backend]
-module-name = "spacecraft_ops"
+module-name = "spacecraft_ops_challenge"

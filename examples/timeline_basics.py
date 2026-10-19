@@ -3,7 +3,7 @@
 Run from the repository root with `uv run python examples/timeline_basics.py`.
 """
 
-from spacecraft_ops import (
+from spacecraft_ops_challenge import (
     Commander,
     DeclareCompletion,
     MissionBrief,

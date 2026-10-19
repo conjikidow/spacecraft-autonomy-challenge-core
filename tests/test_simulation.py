@@ -4,14 +4,20 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops.commands import CommandError, DeclareCompletion, PropulsionMode, SetHeater, SetPropulsionMode
-from spacecraft_ops.config import SimulationConfig
-from spacecraft_ops.model import SpacecraftState
-from spacecraft_ops.modifiers import Modifier, TelemetryBias
-from spacecraft_ops.results import TerminationReason
-from spacecraft_ops.simulation import Simulation, run
-from spacecraft_ops.strategy import Strategy
-from spacecraft_ops.telemetry import Telemetry
+from spacecraft_ops_challenge.commands import (
+    CommandError,
+    DeclareCompletion,
+    PropulsionMode,
+    SetHeater,
+    SetPropulsionMode,
+)
+from spacecraft_ops_challenge.config import SimulationConfig
+from spacecraft_ops_challenge.model import SpacecraftState
+from spacecraft_ops_challenge.modifiers import Modifier, TelemetryBias
+from spacecraft_ops_challenge.results import TerminationReason
+from spacecraft_ops_challenge.simulation import Simulation, run
+from spacecraft_ops_challenge.strategy import Strategy
+from spacecraft_ops_challenge.telemetry import Telemetry
 
 FIRE_1 = SetPropulsionMode(PropulsionMode.THRUSTER_1)
 FIRE_2 = SetPropulsionMode(PropulsionMode.THRUSTER_2)

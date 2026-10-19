@@ -1,7 +1,7 @@
 # Spacecraft Model
 
-This page describes the reference spacecraft model in `spacecraft_ops.model`,
-telemetry in `spacecraft_ops.telemetry`, and modifiers in `spacecraft_ops.modifiers`.
+This page describes the reference spacecraft model in `spacecraft_ops_challenge.model`,
+telemetry in `spacecraft_ops_challenge.telemetry`, and modifiers in `spacecraft_ops_challenge.modifiers`.
 
 The model is a deliberately small toy model.
 All numbers are parameters; none are fixed by the model itself.
