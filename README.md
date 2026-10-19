@@ -77,6 +77,7 @@ For a module, the current directory is put on the import path.
 
 `--scenario` selects a challenge scenario (default `nominal`), `--seed` overrides the scenario seed,
 and `--json` prints the metrics as JSON.
+With `--json`, anything the strategy prints goes to standard error, so standard output stays valid JSON.
 `python -m spacecraft_ops` is equivalent to `spacecraft-ops`.
 
 | Exit status | Meaning |

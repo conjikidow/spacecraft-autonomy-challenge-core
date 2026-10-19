@@ -85,6 +85,47 @@ def test_run_emits_json(idle_strategy_file, capsys):
     assert payload["metrics"]["completion_declared"] is True
 
 
+def test_json_output_stays_valid_when_the_strategy_prints(tmp_path, capsys):
+    path = write(
+        tmp_path / "cli_printing_strategy.py",
+        """
+        from spacecraft_ops import DeclareCompletion, Strategy
+
+        print("printed while loading")
+
+        class Printing(Strategy):
+            def initialize(self, brief, telemetry, commander):
+                print("printed in initialize")
+                commander.schedule(120.0, DeclareCompletion())
+
+            def update(self, telemetry, commander):
+                print("printed in update")
+        """,
+    )
+    assert main(["run", f"{path}:Printing", "--json"]) == EXIT_OK
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["metrics"]["completion_declared"] is True
+    for text in ("printed while loading", "printed in initialize", "printed in update"):
+        assert text in captured.err
+
+
+def test_text_output_keeps_strategy_prints_on_stdout(tmp_path, capsys):
+    path = write(
+        tmp_path / "cli_text_printing_strategy.py",
+        """
+        from spacecraft_ops import DeclareCompletion, Strategy
+
+        class Printing(Strategy):
+            def initialize(self, brief, telemetry, commander):
+                print("printed in initialize")
+                commander.schedule(60.0, DeclareCompletion())
+        """,
+    )
+    assert main(["run", f"{path}:Printing"]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert out.index("printed in initialize") < out.index("termination:")
+
+
 def test_strategy_error_exits_with_failure_and_prints_traceback(tmp_path, capsys):
     path = write(
         tmp_path / "cli_failing_strategy.py",

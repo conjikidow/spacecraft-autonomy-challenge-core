@@ -5,6 +5,7 @@ timeline request, and 2 for usage errors such as a strategy that cannot be loade
 """
 
 import argparse
+import contextlib
 import importlib
 import importlib.util
 import json
@@ -107,14 +108,16 @@ def format_summary(result: RunResult, metrics: RunMetrics) -> str:
 
 
 def _run_command(args: argparse.Namespace) -> int:
-    try:
-        scenario = challenge_scenario(args.scenario)
-        strategy = load_strategy(args.strategy)
-    except (KeyError, StrategyLoadError) as error:
-        print(f"error: {error.args[0] if error.args else error}", file=sys.stderr)
-        return EXIT_USAGE
-
-    result = run(strategy, scenario, seed=args.seed)
+    # With --json, whatever the strategy prints goes to stderr so that stdout stays valid JSON.
+    strategy_output = contextlib.redirect_stdout(sys.stderr) if args.json else contextlib.nullcontext()
+    with strategy_output:
+        try:
+            scenario = challenge_scenario(args.scenario)
+            strategy = load_strategy(args.strategy)
+        except (KeyError, StrategyLoadError) as error:
+            print(f"error: {error.args[0] if error.args else error}", file=sys.stderr)
+            return EXIT_USAGE
+        result = run(strategy, scenario, seed=args.seed)
     metrics = evaluate(result)
 
     if args.json:
