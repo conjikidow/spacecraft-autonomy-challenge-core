@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Participant API, reference simulator, and evaluation tools for a spacecraft operations challenge"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
   "Private :: Do Not Upload",
   "Programming Language :: Python :: 3",
