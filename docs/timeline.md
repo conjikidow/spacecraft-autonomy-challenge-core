@@ -1,5 +1,7 @@
 # Commands and Timeline
 
+**English** | [日本語](timeline.ja.md)
+
 This page describes the command types in `spacecraft_ops_challenge.commands` and the timeline in `spacecraft_ops_challenge.timeline`.
 
 ## Commands

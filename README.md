@@ -5,6 +5,8 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![prek](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/j178/prek/master/docs/assets/badge-v0.json)](https://github.com/j178/prek)
 
+**English** | [日本語](README.ja.md)
+
 Python package for the Spacecraft Operations Challenge.
 You write a strategy that operates a simulated spacecraft:
 it reads telemetry and schedules commands

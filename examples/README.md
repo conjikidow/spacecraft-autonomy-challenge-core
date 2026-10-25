@@ -1,5 +1,7 @@
 # Examples
 
+**English** | [日本語](README.ja.md)
+
 These examples show how the strategy API behaves.
 They run on a small toy problem defined in `toy_problem.py`,
 which is deliberately different from the challenge problem and has loose limits.

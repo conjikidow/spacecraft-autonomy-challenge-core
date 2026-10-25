@@ -1,5 +1,7 @@
 # Evaluation
 
+**English** | [日本語](evaluation.ja.md)
+
 This page describes per-run evaluation metrics (`spacecraft_ops_challenge.evaluation`).
 Metrics are computed from the ground truth in a `RunResult`, not from telemetry.
 

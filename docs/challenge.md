@@ -1,5 +1,7 @@
 # Challenge Problem
 
+**English** | [日本語](challenge.ja.md)
+
 `spacecraft_ops_challenge.challenge` defines the challenge problem and its public scenarios.
 All numbers are provisional placeholders for the toy spacecraft model.
 
