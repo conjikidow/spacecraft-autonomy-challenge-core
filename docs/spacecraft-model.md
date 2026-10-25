@@ -35,7 +35,7 @@ Both thrusters are configured independently.
 A symmetric configuration uses identical values except for opposite wheel-momentum rates,
 so that `THRUSTER_1` increases and `THRUSTER_2` decreases the wheel momentum.
 
-![Two thrusters offset from the center of mass and a single-axis reaction wheel](figures/spacecraft-geometry.svg)
+![Two thrusters offset from the center of mass and a single-axis reaction wheel](../src/spacecraft_ops_challenge/figures/spacecraft-geometry.svg)
 
 The figure shows the physical picture behind the wheel-momentum rate for the general case,
 in which the two offsets and thrusts differ.
