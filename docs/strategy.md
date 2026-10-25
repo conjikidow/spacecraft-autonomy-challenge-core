@@ -1,5 +1,7 @@
 # Writing a Strategy
 
+**English** | [日本語](strategy.ja.md)
+
 A strategy operates the spacecraft by scheduling commands on its timeline.
 It receives only a `MissionBrief`, `Telemetry`, and a `Commander`; it never sees the true spacecraft state.
 All of these are exported from the top-level `spacecraft_ops_challenge` package.

@@ -1,5 +1,7 @@
 # Spacecraft Model
 
+**English** | [日本語](spacecraft-model.ja.md)
+
 This page describes the reference spacecraft model in `spacecraft_ops_challenge.model`,
 telemetry in `spacecraft_ops_challenge.telemetry`, and modifiers in `spacecraft_ops_challenge.modifiers`.
 

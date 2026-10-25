@@ -1,5 +1,7 @@
 # Simulation
 
+**English** | [日本語](simulation.ja.md)
+
 This page describes problems (`spacecraft_ops_challenge.problem`), scenarios (`spacecraft_ops_challenge.scenario`),
 simulation settings (`spacecraft_ops_challenge.config`), the simulation (`spacecraft_ops_challenge.simulation`),
 and run results (`spacecraft_ops_challenge.results`).
