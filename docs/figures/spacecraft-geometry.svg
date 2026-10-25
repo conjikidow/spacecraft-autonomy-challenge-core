@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="180 0 380 450" width="380" height="450" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#222">
+  <title>Spacecraft viewed along the wheel axis: two offset thrusters and a single-axis reaction wheel</title>
+  <defs>
+    <marker id="head-dark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#4a4f57"/>
+    </marker>
+    <marker id="head-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1f6fb2"/>
+    </marker>
+    <marker id="head-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#c75f14"/>
+    </marker>
+  </defs>
+
+  <rect x="180" y="0" width="380" height="450" fill="#fff"/>
+
+  <!-- Thrust direction -->
+  <line x1="300" y1="70" x2="300" y2="28" stroke="#4a4f57" stroke-width="2" marker-end="url(#head-dark)"/>
+  <text x="310" y="44">Thrust (Δv) direction</text>
+
+  <!-- Body -->
+  <rect x="200" y="80" width="200" height="240" rx="6" fill="#eef1f5" stroke="#4a4f57" stroke-width="2"/>
+
+  <!-- Reaction wheel, axis out of page -->
+  <circle cx="300" cy="130" r="20" fill="#fff" stroke="#4a4f57" stroke-width="3"/>
+  <circle cx="300" cy="130" r="3.5" fill="#4a4f57"/>
+  <line x1="322" y1="130" x2="408" y2="130" stroke="#4a4f57" stroke-width="1"/>
+  <text x="412" y="126">Reaction wheel</text>
+  <text x="412" y="142">axis out of page</text>
+  <text x="412" y="158">+H counterclockwise</text>
+
+  <!-- Reference line through the center of mass -->
+  <line x1="300" y1="160" x2="300" y2="320" stroke="#4a4f57" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Lines of action -->
+  <line x1="380" y1="150" x2="380" y2="320" stroke="#1f6fb2" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="245" y1="150" x2="245" y2="320" stroke="#c75f14" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Center of mass -->
+  <circle cx="300" cy="205" r="8" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <path d="M300 205 L300 197 A8 8 0 0 1 308 205 z M300 205 L300 213 A8 8 0 0 1 292 205 z" fill="#222"/>
+  <text x="300" y="232" text-anchor="middle" font-size="11">CoM</text>
+
+  <!-- Torques about the center of mass -->
+  <path d="M309.8 241.7 A38 38 0 0 0 309.8 168.3" fill="none" stroke="#1f6fb2" stroke-width="2" marker-end="url(#head-1)"/>
+  <text x="322" y="160" fill="#1f6fb2">τ<tspan dy="4" font-size="10">1</tspan></text>
+  <path d="M273.1 231.9 A38 38 0 0 1 273.1 178.1" fill="none" stroke="#c75f14" stroke-width="2" marker-end="url(#head-2)"/>
+  <text x="266" y="174" text-anchor="end" fill="#c75f14">τ<tspan dy="4" font-size="10">2</tspan></text>
+
+  <!-- Thrusters -->
+  <polygon points="374,320 386,320 390,336 370,336" fill="#4a4f57"/>
+  <polygon points="239,320 251,320 255,336 235,336" fill="#4a4f57"/>
+
+  <!-- Thrust forces -->
+  <line x1="380" y1="412" x2="380" y2="342" stroke="#1f6fb2" stroke-width="2.5" marker-end="url(#head-1)"/>
+  <text x="390" y="384" fill="#1f6fb2">F<tspan dy="4" font-size="10">1</tspan></text>
+  <line x1="245" y1="396" x2="245" y2="342" stroke="#c75f14" stroke-width="2.5" marker-end="url(#head-2)"/>
+  <text x="235" y="376" text-anchor="end" fill="#c75f14">F<tspan dy="4" font-size="10">2</tspan></text>
+
+  <text x="380" y="436" text-anchor="middle">Thruster 1</text>
+  <text x="245" y="436" text-anchor="middle">Thruster 2</text>
+</svg>
