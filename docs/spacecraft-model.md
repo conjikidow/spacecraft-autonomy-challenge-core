@@ -35,6 +35,16 @@ Both thrusters are configured independently.
 A symmetric configuration uses identical values except for opposite wheel-momentum rates,
 so that `THRUSTER_1` increases and `THRUSTER_2` decreases the wheel momentum.
 
+![Two thrusters offset from the center of mass and a single-axis reaction wheel](figures/spacecraft-geometry.svg)
+
+The figure shows the physical picture behind the wheel-momentum rate for the general case,
+in which the two offsets and thrusts differ.
+Each thruster's line of action is offset from the center of mass,
+so firing it produces a torque about a single axis, which a reaction wheel absorbs.
+Because the torque is about a single axis, the wheel momentum is a scalar,
+and the thrusters are the only part of the model that change it.
+The model does not compute this torque from geometry; it takes the resulting rate directly as `wheel_momentum_rate_nms_per_s`.
+
 `min_firing_temperature_c` is the lowest propulsion temperature at which a selected thruster fires.
 
 `SafetyLimits` defines the maximum propulsion temperature, the minimum battery energy, and the maximum absolute wheel momentum.
