@@ -268,8 +268,8 @@ def _check_command(args: argparse.Namespace) -> int:
         def on_case_done(outcome: "CaseOutcome") -> None:
             nonlocal done
             done += 1
-            score = score_case(outcome, scoring).value
-            print(f"[{done}/{total}] {outcome.case_id}: {outcome.status.value} (score {score:.4f})", file=sys.stderr)
+            score = 100 * score_case(outcome, scoring).value
+            print(f"[{done}/{total}] {outcome.case_id}: {outcome.status.value} (score {score:.2f})", file=sys.stderr)
 
         evaluation = check_submission(
             archive,
