@@ -631,3 +631,47 @@ def test_cases_need_a_posix_platform(make_submission, monkeypatch):
     monkeypatch.setattr(runner.os, "name", "nt")
     with pytest.raises(RuntimeError, match="requires Linux or macOS"):
         run_case(submission.root, CASES[0], PROVIDER)
+
+
+def test_an_interrupted_case_stops_its_processes(make_submission, monkeypatch):
+    sleeping = """
+    import time
+
+    from spacecraft_ops_challenge import Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            time.sleep(60)
+    """
+    submission = make_submission({"strategy.py": sleeping})
+    started = []
+    original_popen = runner.subprocess.Popen
+
+    def popen(*args, **kwargs):
+        process = original_popen(*args, **kwargs)
+        started.append(process)
+        return process
+
+    deadline = time.monotonic() + 1.0
+
+    def interrupted(process):
+        if time.monotonic() > deadline:  # the strategy is sleeping by now
+            raise KeyboardInterrupt
+        return False
+
+    monkeypatch.setattr(runner.subprocess, "Popen", popen)
+    monkeypatch.setattr(runner, "_has_exited", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        run_case(submission.root, CASES[0], PROVIDER)
+    (worker,) = started
+    assert worker.returncode is not None
+    # The worker led its own process group, which held the participant process as well.
+    for _ in range(100):
+        try:
+            os.killpg(worker.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.05)
+    else:
+        pytest.fail("processes of the interrupted case are still running")

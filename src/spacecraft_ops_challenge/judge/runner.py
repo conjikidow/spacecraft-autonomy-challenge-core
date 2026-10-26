@@ -251,15 +251,19 @@ def run_case(
         )
         stdout, stderr = _CappedOutput(process.stdout), _CappedOutput(process.stderr)
         try:
-            with process.stdin:
-                process.stdin.write(json.dumps(request).encode())
-        except BrokenPipeError:
-            pass
-        while not (exited := _has_exited(process)) and time.monotonic() - started < timeout_s:
-            time.sleep(_POLL_INTERVAL_S)
-        timed_out = not exited
-        _kill_process_group(process)
-        process.wait()
+            try:
+                with process.stdin:
+                    process.stdin.write(json.dumps(request).encode())
+            except BrokenPipeError:
+                pass
+            while not (exited := _has_exited(process)) and time.monotonic() - started < timeout_s:
+                time.sleep(_POLL_INTERVAL_S)
+            timed_out = not exited
+        finally:
+            # Also when waiting is interrupted, e.g. by KeyboardInterrupt: the worker runs in its own session, so
+            # nothing else would stop it, and the time limit is enforced only here.
+            _kill_process_group(process)
+            process.wait()
         readers_deadline = time.monotonic() + _READER_JOIN_TIMEOUT_S
         for output in (stdout, stderr):
             output.thread.join(max(0.0, readers_deadline - time.monotonic()))
