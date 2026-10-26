@@ -13,6 +13,7 @@ from spacecraft_ops_challenge import (
     Telemetry,
 )
 from spacecraft_ops_challenge.challenge import problem
+from spacecraft_ops_challenge.judge import protocol
 from spacecraft_ops_challenge.judge.protocol import (
     MAX_MESSAGE_BYTES,
     Channel,
@@ -94,3 +95,12 @@ def test_unknown_commands():
         decode_command({"command": "SelfDestruct"})
     with pytest.raises(ProtocolError, match="unknown command"):
         decode_command({"command": "SetHeater", "on": "yes"})
+
+
+def test_messages_above_the_limit_are_not_sent(monkeypatch):
+    sender, receiver = socket.socketpair()
+    with sender, receiver:
+        monkeypatch.setattr(protocol, "MAX_MESSAGE_BYTES", 10)
+        with pytest.raises(protocol.MessageTooLargeError):
+            protocol.Channel(sender).send({"type": "x" * 20})
+        assert not protocol.Channel(receiver).readable(0.01)

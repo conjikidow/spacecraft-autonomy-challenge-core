@@ -26,7 +26,7 @@ Both take these keyword arguments:
 | Argument | Meaning |
 |---|---|
 | `timeout_s` | Wall-clock limit of one case (default `DEFAULT_CASE_TIMEOUT_S`, 300 s) |
-| `env` | Environment variables of the case processes (default: the current process environment) |
+| `env` | Environment variables of the case processes (default: the current process environment); take it before any scenario provider runs in the calling process, since a provider may change the environment |
 | `overlay` | An `Overlay` of participant packages (see [Participant Packages](dependencies.md)), or `None` |
 
 Cases and scenario providers are described in [Evaluation Cases](judge.md).
@@ -62,6 +62,8 @@ Its standard input is empty.
 The two processes talk over a dedicated socket pair, separate from standard output and standard error.
 Each message is a JSON object, preceded by its length as a 4-byte big-endian integer,
 and may be at most `MAX_MESSAGE_BYTES` (16 MiB) long.
+A larger message is not sent; a commander result above the limit, such as a very long `pending()`,
+reaches the strategy as `CommandError`.
 
 - After loading the strategy, the participant process reports that it is ready, or the traceback of the load error.
 - `initialize` carries the mission brief and the initial telemetry, and `update` carries the latest telemetry.
@@ -169,3 +171,5 @@ so even an overlay that provides a module of the core package cannot replace the
 The separate processes keep the case and the simulator out of ordinary introspection by the participant's code.
 They are an architectural boundary, not a sandbox against hostile code:
 the participant process runs as the same user, with the same file system access, as the code that runs the cases.
+Nor are its memory, processes, or open files limited, apart from the wall-clock limit and the captured output;
+limit them for the whole evaluating environment, for example with the resource limits of a container.

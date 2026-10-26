@@ -7,7 +7,6 @@ brief, telemetry, and the results of commander requests. It never imports the ca
     python -P -m spacecraft_ops_challenge.judge.participant SOCKET_FD SUBMISSION_ROOT [OVERLAY]
 """
 
-import contextlib
 import operator
 import os
 import site
@@ -19,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from spacecraft_ops_challenge import CommandError, CommandId, ScheduledCommand, Strategy
-from spacecraft_ops_challenge.cli import StrategyLoadError, load_strategy
+from spacecraft_ops_challenge.cli import load_strategy
 from spacecraft_ops_challenge.commands import Command
 from spacecraft_ops_challenge.judge.protocol import (
     Channel,
@@ -164,7 +163,7 @@ def _callback(channel: Channel, strategy: Strategy, message: dict[str, Any]) -> 
         return _failure("command_error", error)
     except Exception as error:
         return _failure("exception", error)
-    except (SystemExit, KeyboardInterrupt) as error:
+    except BaseException as error:  # SystemExit, KeyboardInterrupt, and anything else that is not an Exception
         return _failure("exit", error)
     finally:
         commander.close()
@@ -175,7 +174,7 @@ def serve(channel: Channel, submission_root: Path) -> None:
     """Load a fresh strategy, report whether that worked, and run callbacks until the trusted worker disconnects."""
     try:
         strategy = load_strategy(f"{submission_root / STRATEGY_PATH}:{STRATEGY_CLASS}")
-    except (StrategyLoadError, SystemExit, KeyboardInterrupt) as error:
+    except BaseException as error:  # StrategyLoadError, or SystemExit and the like raised while importing
         channel.send({"type": "load_error", "detail": _detail(error)})
         return
     channel.send({"type": "ready"})
@@ -206,11 +205,16 @@ def main(argv: Sequence[str] | None = None) -> None:
     # Keep processes that the strategy starts from holding the trusted worker's end of the connection open.
     sock.set_inheritable(False)
     channel = Channel(sock)
-    with contextlib.suppress(ChannelClosedError):
+    try:
         serve(channel, Path(submission_root))
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(0)
+    except ChannelClosedError:
+        pass
+    except BaseException:
+        traceback.print_exc()
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
 
 
 if __name__ == "__main__":

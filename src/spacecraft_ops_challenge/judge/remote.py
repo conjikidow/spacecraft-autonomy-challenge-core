@@ -20,6 +20,7 @@ from spacecraft_ops_challenge.judge.protocol import (
     Channel,
     ChannelClosedError,
     JSONValue,
+    MessageTooLargeError,
     ProtocolError,
     decode_command,
     encode_brief,
@@ -186,11 +187,16 @@ class RemoteStrategy(Strategy):
             reply = participant.receive()
             if reply["type"] == "call":
                 try:
-                    participant.send({"type": "return", "value": _serve_call(commander, reply)})
+                    value = _serve_call(commander, reply)
                 except CommandError as error:
                     participant.send({"type": "command_error", "message": str(error)})
                 except (ProtocolError, KeyError, TypeError, ValueError) as error:
                     raise ParticipantStopError(f"the strategy process sent a malformed request: {error!r}") from None
+                else:
+                    try:
+                        participant.send({"type": "return", "value": value})
+                    except MessageTooLargeError as error:
+                        participant.send({"type": "command_error", "message": f"the reply is too large: {error}"})
             elif reply["type"] == "done":
                 return
             elif reply["type"] == "failed":

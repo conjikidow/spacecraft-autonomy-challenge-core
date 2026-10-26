@@ -225,7 +225,7 @@ def run_case(
         raise RuntimeError("running cases requires Linux or macOS")
     with (
         tempfile.TemporaryDirectory(prefix="spacecraft-ops-case-", ignore_cleanup_errors=True) as scratch,
-        tempfile.TemporaryDirectory(prefix="spacecraft-ops-result-") as results,
+        tempfile.TemporaryDirectory(prefix="spacecraft-ops-result-", ignore_cleanup_errors=True) as results,
     ):
         root = Path(scratch) / "root"
         shutil.copytree(submission_root, root, symlinks=True)

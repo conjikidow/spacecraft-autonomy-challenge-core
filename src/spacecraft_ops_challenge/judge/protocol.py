@@ -7,7 +7,7 @@ can use it without loading the trusted modules of the evaluation.
 """
 
 import json
-import select
+import selectors
 import socket
 from dataclasses import asdict
 from typing import Any
@@ -41,6 +41,10 @@ class ProtocolError(Exception):
     """Raised for a message that does not follow the protocol."""
 
 
+class MessageTooLargeError(ProtocolError):
+    """Raised for a message to send that exceeds `MAX_MESSAGE_BYTES`; nothing is sent."""
+
+
 class Channel:
     """Framed JSON messages over a connected stream socket."""
 
@@ -48,8 +52,12 @@ class Channel:
         self._sock = sock
 
     def send(self, message: dict[str, Any]) -> None:
-        """Send one message. Raises `ChannelClosedError` if the other side is gone."""
+        """Send one message. Raises `ChannelClosedError` if the other side is gone and `MessageTooLargeError` for
+        a message above `MAX_MESSAGE_BYTES`, which is not sent.
+        """
         data = json.dumps(message).encode()
+        if len(data) > MAX_MESSAGE_BYTES:
+            raise MessageTooLargeError(f"message of {len(data)} bytes exceeds the limit of {MAX_MESSAGE_BYTES}")
         try:
             self._sock.sendall(len(data).to_bytes(_HEADER_BYTES, "big") + data)
         except OSError as error:
@@ -62,7 +70,7 @@ class Channel:
             raise ProtocolError(f"message of {length} bytes exceeds the limit of {MAX_MESSAGE_BYTES}")
         try:
             message = json.loads(self._read(length))
-        except ValueError as error:
+        except (ValueError, RecursionError) as error:
             raise ProtocolError(f"message is not JSON: {error}") from error
         if not isinstance(message, dict) or not isinstance(message.get("type"), str):
             raise ProtocolError("message is not an object with a type")
@@ -70,7 +78,10 @@ class Channel:
 
     def readable(self, timeout_s: float) -> bool:
         """Whether a message, the end of the stream, or an error can be read within `timeout_s`."""
-        return bool(select.select([self._sock], [], [], timeout_s)[0])
+        # A selector, unlike select.select, also works for file descriptors of 1024 and above.
+        with selectors.DefaultSelector() as selector:
+            selector.register(self._sock, selectors.EVENT_READ)
+            return bool(selector.select(timeout_s))
 
     def close(self) -> None:
         """Close the connection."""

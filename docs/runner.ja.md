@@ -26,7 +26,7 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 | 引数 | 意味 |
 |---|---|
 | `timeout_s` | 1つの評価ケースの実時間の上限（デフォルトは `DEFAULT_CASE_TIMEOUT_S`，300 秒） |
-| `env` | 評価ケースのプロセスの環境変数（デフォルトは現在のプロセスの環境変数） |
+| `env` | 評価ケースのプロセスの環境変数（デフォルトは現在のプロセスの環境変数）。`ScenarioProvider` が環境変数を変えうるため，呼び出し側のプロセスでそれが実行される前に取得したものを渡します |
 | `overlay` | 参加者のパッケージの `Overlay`（[参加者のパッケージ](dependencies.ja.md)を参照），または `None` |
 
 評価ケースと `ScenarioProvider` については，[評価ケース](judge.ja.md)を参照してください。
@@ -62,6 +62,8 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 2つのプロセスは，標準出力や標準エラー出力とは別の，専用のソケットの組で通信します。
 各メッセージは JSON オブジェクトで，その前に長さを4バイトのビッグエンディアン整数で置きます。
 1つのメッセージは最大 `MAX_MESSAGE_BYTES`（16 MiB）です。
+それより大きいメッセージは送りません。
+非常に長い `pending()` など，上限を超える `Commander` の結果は，戦略には `CommandError` として届きます。
 
 - 参加者のプロセスは，戦略を読み込んだ後，準備ができたこと，または読み込みエラーのトレースバックを報告します。
 - `initialize` は `MissionBrief` と初期テレメトリを，`update` は最新のテレメトリを運びます。
@@ -161,3 +163,5 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 プロセスを分けることで，評価ケースとシミュレータは，参加者のコードによる通常の内部調査から切り離されます。
 これは設計上の境界であり，悪意のあるコードに対する隔離環境ではありません。
 参加者のプロセスは，評価ケースを実行するコードと同じユーザーとして，同じファイルシステムへのアクセス権で実行されます。
+時間の上限と取得する出力を除き，メモリ，プロセス，開いたファイルも制限しないため，
+コンテナのリソース制限などで，評価する環境全体を制限してください。

@@ -695,3 +695,47 @@ def test_a_relative_overlay_path_is_resolved_against_the_caller(make_submission,
     outcome = run_case(submission.root, CASES[0], PROVIDER, overlay=Overlay(Path("overlay")))
     assert outcome.status is CaseStatus.COMPLETED, outcome.detail
     assert outcome.stdout == "42\n"
+
+
+def test_other_base_exceptions_end_the_case_at_once(make_submission):
+    odd = """
+    import threading
+    import time
+
+    from spacecraft_ops_challenge import Strategy
+
+
+    class Odd(BaseException):
+        pass
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            threading.Thread(target=time.sleep, args=(60,)).start()
+            raise Odd("odd")
+    """
+    outcome = run_case(make_submission({"strategy.py": odd}).root, CASES[0], PROVIDER, timeout_s=30.0)
+    assert outcome.status is CaseStatus.CRASHED
+    assert "Odd" in outcome.detail
+    assert outcome.duration_s < 10.0
+
+
+def test_deeply_nested_messages_are_protocol_errors(make_submission):
+    nesting = """
+    import os
+    import sys
+    import time
+
+    from spacecraft_ops_challenge import Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            data = b"[" * 200_000
+            os.write(int(sys.argv[1]), len(data).to_bytes(4, "big") + data)
+            time.sleep(30)
+    """
+    outcome = run_case(make_submission({"strategy.py": nesting}).root, CASES[0], PROVIDER, timeout_s=20.0)
+    assert outcome.status is CaseStatus.CRASHED
+    assert "broke the protocol" in outcome.detail
+    assert outcome.worker_error is None
