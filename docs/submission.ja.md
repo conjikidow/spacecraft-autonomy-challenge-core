@@ -34,7 +34,7 @@ print(submission.strategy_file, submission.pyproject is not None)
 - `project_dir/submission/` 以下のすべてのファイルを `submission/<相対パス>` として追加します。
 - `__pycache__` ディレクトリと，`.pyc` および `.pyo` ファイルは含めません。
 - `project_dir/pyproject.toml` が通常のファイルであれば，`pyproject.toml` として追加します。
-- プロジェクトディレクトリにあるそれ以外のものは追加しません。
+- プロジェクトディレクトリにあるそれ以外のものと，空のディレクトリは追加しません。
 
 プロジェクトが次のいずれかに当てはまる場合は，`SubmissionError` が送出されます。
 
@@ -62,7 +62,7 @@ print(submission.strategy_file, submission.pyproject is not None)
 - 絶対パス，ドライブ文字，`..`，バックスラッシュを含むエントリがある。
 - シンボリックリンクなどの特殊ファイルのエントリがある（`submission/` の外にあるものも含む）。
 - 暗号化されたエントリがある。
-- 同じ名前のエントリが複数ある，またはファイルとディレクトリの両方として現れる名前がある。
+- 展開するエントリまたはルートの `pyproject.toml` と同じ名前のエントリが複数ある，またはその名前がディレクトリとしても使われている。
 - アーカイブに `submission/strategy.py` がない。
 - 有効な ZIP アーカイブでない。
 - 展開後のファイルの合計サイズが `max_total_bytes`（デフォルトは `DEFAULT_MAX_TOTAL_BYTES`）を超える。

@@ -2,6 +2,7 @@ import io
 import os
 import stat
 import zipfile
+from pathlib import Path
 
 import pytest
 from judge_support import DECLARE_AT_START, zip_bytes
@@ -377,3 +378,33 @@ def test_unreadable_files_raise_os_error(tmp_path):
             build_submission(project)
     finally:
         secret.chmod(0o644)
+
+
+def test_build_size_limit_is_checked_before_reading(tmp_path, monkeypatch):
+    project = make_project(tmp_path / "project", {"strategy.py": DECLARE_AT_START, "big.bin": b"x" * 100})
+
+    def fail(self):
+        raise AssertionError("files must not be read when the limit is exceeded")
+
+    monkeypatch.setattr(Path, "read_bytes", fail)
+    with pytest.raises(SubmissionError, match="exceed"):
+        build_submission(project, max_total_bytes=50)
+
+
+def test_a_backslash_in_a_file_name_is_rejected(tmp_path):
+    project = make_project(tmp_path / "project", {"strategy.py": DECLARE_AT_START, "a\\b.txt": "x"})
+    with pytest.raises(SubmissionError, match="backslash"):
+        build_submission(project)
+
+
+def test_unreadable_directories_raise_os_error(tmp_path):
+    project = make_project(tmp_path / "project", {"strategy.py": DECLARE_AT_START, "data/x.txt": "x"})
+    data = project / "submission" / "data"
+    data.chmod(0)
+    try:
+        if os.access(data, os.R_OK):
+            pytest.skip("file permissions are not enforced for this user")
+        with pytest.raises(PermissionError):
+            build_submission(project)
+    finally:
+        data.chmod(0o755)

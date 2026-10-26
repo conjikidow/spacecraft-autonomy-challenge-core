@@ -20,7 +20,7 @@ PYPROJECT_PATH = "pyproject.toml"
 STRATEGY_PATH = f"{SUBMISSION_DIRNAME}/strategy.py"
 STRATEGY_CLASS = "MyStrategy"
 DEFAULT_MAX_TOTAL_BYTES = 512 * 1024**2
-"""Default limit on the total uncompressed size of the extracted files, which every case copies afresh."""
+"""Default limit on the total uncompressed size of the files of a submission."""
 
 _COPY_CHUNK_BYTES = 1024 * 1024
 _SKIPPED_DIRNAMES = frozenset({"__pycache__"})
@@ -90,18 +90,28 @@ def _submission_files(submission_dir: Path) -> dict[str, Path]:
     """Map archive names to the files under `submission_dir`, rejecting symbolic links instead of following them."""
     files: dict[str, Path] = {}
     for directory, dirnames, filenames in os.walk(submission_dir, onerror=_raise):
-        for name in [*dirnames, *filenames]:
+        for name in dirnames:
+            _check_not_symlink(submission_dir, Path(directory, name))
+        for name in filenames:
             path = Path(directory, name)
-            archive_name = f"{SUBMISSION_DIRNAME}/{path.relative_to(submission_dir).as_posix()}"
-            if path.is_symlink():
-                raise SubmissionError(f"{archive_name} is a symbolic link; replace it with a regular file or directory")
-            if name in filenames and Path(name).suffix not in _SKIPPED_SUFFIXES:
-                if not stat.S_ISREG(path.lstat().st_mode):
-                    raise SubmissionError(f"{archive_name} is not a regular file or directory")
-                _entry_parts(archive_name)
-                files[archive_name] = path
+            archive_name = _check_not_symlink(submission_dir, path)
+            if Path(name).suffix in _SKIPPED_SUFFIXES:
+                continue
+            if not stat.S_ISREG(path.lstat().st_mode):
+                raise SubmissionError(f"{archive_name} is not a regular file or directory")
+            if "\\" in archive_name:
+                raise SubmissionError(f"{archive_name} has a backslash in its name; rename it")
+            files[archive_name] = path
         dirnames[:] = [name for name in dirnames if name not in _SKIPPED_DIRNAMES]
     return files
+
+
+def _check_not_symlink(submission_dir: Path, path: Path) -> str:
+    """The archive name of `path`. Raises `SubmissionError` if it is a symbolic link."""
+    archive_name = f"{SUBMISSION_DIRNAME}/{path.relative_to(submission_dir).as_posix()}"
+    if path.is_symlink():
+        raise SubmissionError(f"{archive_name} is a symbolic link; replace it with a regular file or directory")
+    return archive_name
 
 
 def build_submission(project_dir: str | Path, *, max_total_bytes: int = DEFAULT_MAX_TOTAL_BYTES) -> bytes:
@@ -130,14 +140,14 @@ def build_submission(project_dir: str | Path, *, max_total_bytes: int = DEFAULT_
     if pyproject.is_file():
         files[PYPROJECT_PATH] = pyproject
 
+    # Checked before anything is read, so that an oversized file is rejected without loading it.
+    if sum(path.lstat().st_size for path in files.values()) > max_total_bytes:
+        raise SubmissionError(f"the submission files exceed {max_total_bytes} bytes")
+
     buffer = io.BytesIO()
-    total_bytes = 0
     with zipfile.ZipFile(buffer, "w") as archive:
         for name in sorted(files):
             data = files[name].read_bytes()
-            total_bytes += len(data)
-            if total_bytes > max_total_bytes:
-                raise SubmissionError(f"the submission files exceed {max_total_bytes} bytes")
             info = zipfile.ZipInfo(name, date_time=_ENTRY_DATE_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.create_system = _UNIX_SYSTEM

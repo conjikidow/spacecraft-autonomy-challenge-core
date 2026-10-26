@@ -34,7 +34,7 @@ The constants `SUBMISSION_DIRNAME`, `STRATEGY_PATH`, `STRATEGY_CLASS`, and `PYPR
 - Every file under `project_dir/submission/` is added as `submission/<relative path>`.
 - `__pycache__` directories and `.pyc` and `.pyo` files are left out.
 - `project_dir/pyproject.toml` is added as `pyproject.toml` if it is a regular file.
-- Nothing else in the project directory is added.
+- Nothing else in the project directory is added, and empty directories are not stored.
 
 `SubmissionError` is raised for an invalid project:
 
@@ -62,7 +62,8 @@ Every entry is validated before anything is written.
 - An entry has an absolute path, a drive letter, a `..` component, or a backslash.
 - An entry is a symbolic link or another special file, even outside `submission/`.
 - An entry is encrypted.
-- An entry appears more than once, or a name is both a file and a directory.
+- An entry that would be extracted, or `pyproject.toml` at the root, appears more than once,
+  or its name is also used as a directory.
 - The archive has no `submission/strategy.py`.
 - The archive is not a valid ZIP archive.
 - The extracted files would exceed `max_total_bytes` (default `DEFAULT_MAX_TOTAL_BYTES`) in total uncompressed size.
