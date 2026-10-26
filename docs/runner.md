@@ -30,6 +30,7 @@ Both take these keyword arguments:
 | `overlay` | An `Overlay` of participant packages (see [Participant Packages](dependencies.md)), or `None` |
 
 Cases and scenario providers are described in [Evaluation Cases](judge.md).
+[Evaluating Submissions](evaluating.md) describes how a whole archive is evaluated and its outcomes recorded.
 
 ## Two Processes per Case
 
