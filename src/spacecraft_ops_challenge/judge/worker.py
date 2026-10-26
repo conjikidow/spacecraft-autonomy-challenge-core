@@ -44,8 +44,10 @@ def evaluate_case(
     `overlay`, first on its import path. A completed case also reports the CPU time of the participant
     process (see `ParticipantProcess.finish`); other cases report `None`.
     """
+    # Taken before the provider runs, so that whatever it puts into the environment never reaches the participant.
+    base_env = dict(os.environ)
     scenario = provider.build(case)
-    env = dict(os.environ) if overlay is None else Overlay(overlay).environment()
+    env = base_env if overlay is None else Overlay(overlay).environment(base_env)
     with ParticipantProcess(submission_root, env, overlay) as participant:
         try:
             load_error = participant.wait_ready()

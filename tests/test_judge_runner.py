@@ -582,3 +582,21 @@ def test_a_scenario_provider_that_exits_still_leaves_a_result(make_submission):
     assert outcome.detail == "the trusted worker failed to evaluate the case (SystemExit)"
     assert "bad configuration" in outcome.worker_error
     assert "bad configuration" not in outcome.stdout + outcome.stderr
+
+
+def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participant(make_submission):
+    provider = ScenarioProvider("judge_test_provider:exporting", PROVIDER.paths)
+    reading = """
+    import os
+
+    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print("hidden:", os.environ.get("JUDGE_TEST_HIDDEN"))
+            commander.execute(DeclareCompletion())
+    """
+    outcome = run_case(make_submission({"strategy.py": reading}).root, CASES[0], provider)
+    assert outcome.status is CaseStatus.COMPLETED
+    assert "hidden: None" in outcome.stdout

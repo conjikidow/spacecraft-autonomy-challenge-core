@@ -43,6 +43,8 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 信頼された実行プロセスは，評価ケースと `ScenarioProvider` を標準入力から受け取ります。
 `ScenarioProvider` でシナリオを作成し，`run()` と `evaluate()` で実行します（[シミュレーション](simulation.ja.md)を参照）。
 その戦略は，すべてのコールバックを参加者のプロセスに転送します。
+参加者のプロセスには，`ScenarioProvider` が実行される前の環境変数を渡すため，
+`ScenarioProvider` が設定した環境変数は参加者のプロセスに届きません。
 結果は，参加者のファイルとは別の一時ディレクトリにあるファイルに書き込みます。
 
 参加者のプロセスは，`spacecraft-ops-challenge run` と同じように，

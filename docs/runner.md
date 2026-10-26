@@ -43,6 +43,8 @@ caller
 The trusted case worker receives the case and the scenario provider on its standard input.
 It builds the scenario with the provider and runs it with `run()` and `evaluate()` (see [Simulation](simulation.md)).
 Its strategy forwards every callback to the participant process.
+The participant process gets the worker's environment variables as they were before the provider ran,
+so variables that the provider sets never reach it.
 It writes its result to a file in a temporary directory apart from the participant's files.
 
 The participant process loads `submission/strategy.py:MyStrategy` like `spacecraft-ops-challenge run`,

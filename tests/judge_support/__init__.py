@@ -31,6 +31,13 @@ def failing(payload):
     raise RuntimeError("the provider failed")
 
 
+def exporting(payload):
+    import os
+
+    os.environ["JUDGE_TEST_HIDDEN"] = f"seed-{payload['seed']}"
+    return build_scenario(payload)
+
+
 def exiting(payload):
     raise SystemExit("bad configuration")
 
