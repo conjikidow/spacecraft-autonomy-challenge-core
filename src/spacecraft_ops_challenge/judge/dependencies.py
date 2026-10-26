@@ -465,7 +465,14 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
         return _decision(Decision.JUDGE_CONTROLLED, _core_reason(requirement, installed))
 
     if requirement.url:
-        if urlsplit(requirement.url).scheme == "file":
+        url = urlsplit(requirement.url)
+        if not url.scheme or (url.scheme == "file" and not _local_path(requirement.url).is_absolute()):
+            return _decision(
+                Decision.UNSUPPORTED,
+                "a relative path of the participant's project, which cannot be reproduced; "
+                "put that code under submission/ or publish the package",
+            )
+        if url.scheme == "file":
             if installed is not None:
                 return _installed(
                     installed, f"a local package already installed in the evaluating environment ({installed.version})"
@@ -618,7 +625,8 @@ def install_overlay(
     """
     if not requirements:
         raise ValueError("nothing to install")
-    target = Path(target)
+    # Absolute, because the installer runs in `workdir` and would resolve relative paths against it again.
+    target = Path(target).resolve()
     target.mkdir(parents=True)
     workdir = target.parent
     uv = find_uv() if uv is None else uv

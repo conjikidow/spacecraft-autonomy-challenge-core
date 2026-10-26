@@ -236,6 +236,13 @@ def test_local_files_present_in_the_evaluating_environment_can_be_installed(tmp_
     assert decision.decision is Decision.INSTALL
 
 
+@pytest.mark.parametrize("requirement", ["helper @ ../helper", "helper @ file:../helper", "helper @ ./dist/h.whl"])
+def test_relative_direct_references_are_unsupported(requirement):
+    decision = decide(Requirement(requirement), {}.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "a relative path of the participant's project" in decision.reason
+
+
 def test_installed_local_files_are_satisfied_whatever_their_path():
     other_build = "file:///opt/other-wheels/toolkit-1.1.0-py3-none-any.whl"
     assert decide(Requirement(f"toolkit @ {other_build}"), environment).decision is Decision.SATISFIED
@@ -601,6 +608,20 @@ def test_install_overlay_constrains_to_the_environment_packages(tmp_path):
     assert call["cwd"] == tmp_path
     assert call["check"] is False
     assert [attempt.returncode for attempt in overlay.attempts] == [0]
+
+
+def test_install_overlay_resolves_a_relative_target(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    installer = FakeInstaller(0)
+    overlay = install_overlay(
+        ["polars"], Path("work/overlay"), uv="/bin/uv", python="/py", constraints=[], run=installer
+    )
+    (call,) = installer.calls
+    command = call["command"]
+    assert overlay.path == tmp_path / "work" / "overlay"
+    assert call["cwd"] == tmp_path / "work"
+    assert command[command.index("--target") + 1] == str(tmp_path / "work" / "overlay")
+    assert Path(command[command.index("--requirements") + 1]).is_absolute()
 
 
 def test_install_overlay_excludes_requested_packages_from_the_default_constraints(tmp_path, monkeypatch):

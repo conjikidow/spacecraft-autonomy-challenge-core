@@ -44,6 +44,8 @@ Each requirement gets one `Decision` against the evaluating environment:
   and the reason says whether the participant's reference to the core matches it.
 - A local `file://` package that is already installed in the evaluating environment counts as satisfied, whatever its path.
   A `file://` package that is not installed is installed if the file exists, and is `UNSUPPORTED` otherwise.
+- A direct reference by a relative path, such as `helper @ ../helper`, is `UNSUPPORTED`,
+  because the path would be resolved against the evaluating machine instead of the participant's project.
 - URL requirements match only with the same subdirectory.
 - For an installed package that lacks the dependencies of a requested extra, only those dependencies are installed.
   Dependencies of extras are decided like any other requirement.
