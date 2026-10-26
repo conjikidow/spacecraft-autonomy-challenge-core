@@ -36,7 +36,12 @@ def missing_module(error_text: str) -> str | None:
 
 
 def evaluate_case(
-    submission_root: Path, case: EvaluationCase, provider: ScenarioProvider, overlay: Path | None = None
+    submission_root: Path,
+    case: EvaluationCase,
+    provider: ScenarioProvider,
+    overlay: Path | None = None,
+    *,
+    output: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
     """Run the case with a fresh strategy from `submission_root` in a participant process; return the JSON result.
 
@@ -48,7 +53,7 @@ def evaluate_case(
     base_env = dict(os.environ)
     scenario = provider.build(case)
     env = base_env if overlay is None else Overlay(overlay).environment(base_env)
-    with ParticipantProcess(submission_root, env, overlay) as participant:
+    with ParticipantProcess(submission_root, env, overlay, output=output) as participant:
         try:
             load_error = participant.wait_ready()
             if load_error is not None:
@@ -79,15 +84,19 @@ def main(argv: Sequence[str] | None = None) -> None:
     """
     (result_path,) = sys.argv[1:] if argv is None else argv
     request = json.loads(sys.stdin.read())
-    # The runner captures the participant's output from the streams that this process shares with it; what the
-    # trusted side prints, such as warnings of the scenario provider, is discarded instead of joining it. The
-    # participant process writes to the inherited file descriptors, not to these Python streams.
-    sys.stdout = sys.stderr = open(os.devnull, "w")  # noqa: SIM115
+    # The runner captures the participant's output from the pipes on this process's descriptors 1 and 2. Keep them
+    # for the participant process and point this process's own descriptors at the null device, so that what the
+    # trusted side writes, including subprocesses and native code of the scenario provider, is discarded.
+    output = (os.dup(1), os.dup(2))
+    null = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(null, 1)
+    os.dup2(null, 2)
+    os.close(null)
     overlay = Path(request["overlay"]) if request.get("overlay") else None
     try:
         case = EvaluationCase.from_dict(request["case"])
         provider = ScenarioProvider.from_dict(request["provider"])
-        result = evaluate_case(Path(request["submission_root"]), case, provider, overlay)
+        result = evaluate_case(Path(request["submission_root"]), case, provider, overlay, output=output)
     except BaseException as error:
         # The traceback may show the scenario provider and data of the case, so the participant-visible detail
         # names the exception type only.

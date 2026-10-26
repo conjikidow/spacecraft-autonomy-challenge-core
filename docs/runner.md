@@ -90,8 +90,8 @@ The working directory of the participant process is the directory of that copy, 
 
 The case processes run with `PYTHONUNBUFFERED=1`, so their output survives a crash or a timeout.
 Their standard output and standard error are captured separately as `stdout` and `stderr` of the outcome.
-What the trusted worker itself prints through Python's `sys.stdout` and `sys.stderr`,
-such as output or warnings of the scenario provider, is discarded, so the captured output is the participant's.
+What the trusted worker itself writes to its standard output and standard error is discarded,
+including output, warnings, and subprocesses of the scenario provider, so the captured output is the participant's.
 Each keeps at most `MAX_OUTPUT_BYTES` (100 000 bytes): the first and the last 50 000 bytes,
 with a line `... [N bytes omitted] ...` in between.
 The output is read while the case runs, so endless output cannot block it.

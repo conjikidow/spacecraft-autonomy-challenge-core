@@ -54,7 +54,15 @@ class ParticipantStopError(BaseException):
 class ParticipantProcess:
     """A participant strategy process for one case, connected through a socket pair."""
 
-    def __init__(self, submission_root: Path, env: Mapping[str, str], overlay: Path | None = None) -> None:
+    def __init__(
+        self,
+        submission_root: Path,
+        env: Mapping[str, str],
+        overlay: Path | None = None,
+        *,
+        output: tuple[int, int] | None = None,
+    ) -> None:
+        """Start the process; `output` gives its standard output and error descriptors (default: inherited)."""
         trusted, participant = socket.socketpair()
         command = [sys.executable, "-P", "-c", _PARTICIPANT_BOOTSTRAP, PACKAGE_ROOT]
         command += [str(participant.fileno()), str(submission_root)]
@@ -66,6 +74,8 @@ class ParticipantProcess:
                 cwd=submission_root,
                 env=dict(env),
                 stdin=subprocess.DEVNULL,
+                stdout=None if output is None else output[0],
+                stderr=None if output is None else output[1],
                 pass_fds=(participant.fileno(),),
             )
         self.channel = Channel(trusted)

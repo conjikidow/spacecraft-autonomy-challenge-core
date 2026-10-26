@@ -43,10 +43,15 @@ def exiting(payload):
 
 
 def noisy(payload):
+    import os
+    import subprocess
     import sys
     import warnings
 
     print("provider stdout: secret", payload["seed"])
+    os.write(1, b"provider descriptor: secret\\n")
+    os.write(2, b"provider descriptor: secret\\n")
+    subprocess.run([sys.executable, "-c", "print('provider child: secret')"], check=True)
     print("provider stderr: secret", file=sys.stderr)
     warnings.warn("provider warning: secret", stacklevel=1)
     return build_scenario(payload)
