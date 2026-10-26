@@ -178,7 +178,7 @@ including values outside the range from 0 to 1.
 - `SubmissionEvaluation.scoring` is the configuration of the evaluation (see [Evaluating Submissions](evaluating.md)).
 - `SuiteSummary.score` is the suite score, and `summary_rows` shows it first, with two decimals.
 - `EvaluationResult.scores` holds the `CaseScore` of each outcome,
-  and `case_rows(outcomes, scores)` shows its value in the `Score` column, with four decimals.
+  and `case_rows(outcomes, scores)` shows 100 times its value, on the scale of the suite score, in the `Score` column.
 - In a result document, `scoring` holds the configuration, `summary.score` the suite score,
   and the `score` of each entry of `cases` its `CaseScore`.
   A filtered document that leaves out cases keeps the score of every case it keeps and the stored suite score.

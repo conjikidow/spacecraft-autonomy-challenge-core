@@ -134,8 +134,8 @@ SCORES = tuple(score_case(o, ScoringConfig.default()) for o in OUTCOMES)
 
 def test_case_rows_show_metrics_and_never_a_verdict():
     rows = case_rows(OUTCOMES, SCORES)
-    assert [row["Score"] for row in rows] == [f"{score.value:.4f}" for score in SCORES]
-    assert rows[5]["Score"] == "0.0000"
+    assert [row["Score"] for row in rows] == [f"{100 * score.value:.2f}" for score in SCORES]
+    assert rows[5]["Score"] == "0.00"
     assert rows[0]["Delta-v error [m/s]"] == "+0.1000"
     assert rows[0]["CPU [s]"] == "0.25"
     assert rows[3]["Safe"] == "no"

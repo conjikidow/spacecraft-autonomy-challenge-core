@@ -175,6 +175,7 @@ evaluation = check_submission(archive, scoring=config)
 
 - `SubmissionEvaluation.scoring` は，評価の得点の設定です（[提出物の評価](evaluating.ja.md)を参照）。
 - `SuiteSummary.score` は `Suite` の得点で，`summary_rows` はこれを小数第2位まで最初に示します。
-- `EvaluationResult.scores` は各結果の `CaseScore` を持ち，`case_rows(outcomes, scores)` はその `value` を `Score` 列に小数第4位まで示します。
+- `EvaluationResult.scores` は各結果の `CaseScore` を持ち，
+  `case_rows(outcomes, scores)` はその `value` の 100 倍を，`Suite` の得点と同じ尺度で `Score` 列に示します。
 - 結果文書では，`scoring` が設定を，`summary.score` が `Suite` の得点を，`cases` の各要素の `score` がその `CaseScore` を持ちます。
   評価ケースを省いて絞り込んだ結果文書でも，残した評価ケースの得点と保存された `Suite` の得点はそのまま保たれます。

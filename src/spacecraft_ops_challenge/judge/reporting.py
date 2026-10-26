@@ -189,7 +189,7 @@ def case_rows(outcomes: Iterable[CaseOutcome], scores: Iterable[CaseScore]) -> l
     rows = []
     for outcome, score in zip(outcomes, scores, strict=True):
         m = outcome.metrics
-        row = {"Case": outcome.case_id, "Status": outcome.status.value, "Score": f"{score.value:.4f}"}
+        row = {"Case": outcome.case_id, "Status": outcome.status.value, "Score": f"{100 * score.value:.2f}"}
         if m is None:
             row |= dict.fromkeys(
                 (
