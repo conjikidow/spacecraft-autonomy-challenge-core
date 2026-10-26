@@ -40,7 +40,7 @@ See [Evaluating Submissions](evaluating.md) for how a result document is created
 |---|---|
 | `results_view(result, *, missing_module_hint=DEFAULT_MISSING_MODULE_HINT)` | An `EvaluationResult`: suite score, summary, cases, score components, errors, and strategy output |
 | `dependencies_view(report)` | A `DependencyReport`: how the packages of the participant's `pyproject.toml` were reproduced |
-| `score_view(outcomes, scores)` | A table of the factors and terms of each `CaseScore`, with `scores` in the order of `outcomes` |
+| `score_view(outcomes, scores)` | A table of each `CaseScore`: the score on the scale of the suite score and its factors and terms, with `scores` in the order of `outcomes` |
 | `output_view(outcome)` | Standard output and standard error of one `CaseOutcome` |
 
 `results_view` shows, from top to bottom:
@@ -52,6 +52,7 @@ See [Evaluating Submissions](evaluating.md) for how a result document is created
    If the result has fewer outcomes than `case_ids`, a note says how many of the cases are shown.
 5. A short description of the scoring formula (see [Scoring](scoring.md)),
    and the score components of `score_view` in a collapsed section.
+   Case scores appear on the scale of the suite score, from 0 to 100, and their factors and terms from 0 to 1.
 6. The status and detail of each outcome of `problem_outcomes` in a collapsed section,
    with the `worker_error` of the outcome when it is present.
 7. The standard output and standard error of each case that printed anything in a collapsed section,

@@ -66,24 +66,25 @@ def results_view(result: EvaluationResult, *, missing_module_hint: str = DEFAULT
     sections += [
         mo.ui.table(case_rows(outcomes, result.scores), selection=None, pagination=False),
         mo.md(
-            "The score of a case is from 0 to 1: the gate (a completed, safe run without a strategy failure), "
-            "the accuracy factor, and the declaration factor multiply a weighted sum of a base term and the "
-            "completion time, battery margin, and CPU time terms. "
-            "The suite score is 100 times the mean score of all its cases, and no pass threshold is applied."
+            "Case scores are shown on the scale of the suite score, from 0 to 100. "
+            "The score of a case is the product of the gate (a completed, safe run without a strategy failure), "
+            "the accuracy factor, and the declaration factor with a weighted sum of a base term and the "
+            "completion time, battery margin, and CPU time terms, each from 0 to 1. "
+            "The suite score is the mean score of all its cases, and no pass threshold is applied."
         ),
         mo.accordion({"Score components": score_view(outcomes, result.scores)}),
     ]
     problems = problem_outcomes(outcomes)
     if problems:
         sections.append(
-            mo.accordion({f"Errors ({len(problems)} cases)": mo.vstack([_problem_view(o) for o in problems])})
+            mo.accordion({f"Errors ({_cases(len(problems))})": mo.vstack([_problem_view(o) for o in problems])})
         )
     printed = [o for o in outcomes if o.stdout or o.stderr]
     if printed:
         sections.append(
             mo.accordion(
                 {
-                    f"Strategy output ({len(printed)} cases)": mo.accordion(
+                    f"Strategy output ({_cases(len(printed))})": mo.accordion(
                         {o.case_id: output_view(o) for o in printed}, multiple=True
                     )
                 }
@@ -94,12 +95,19 @@ def results_view(result: EvaluationResult, *, missing_module_hint: str = DEFAULT
     return mo.vstack(sections)
 
 
+def _cases(count: int) -> str:
+    return f"{count} case" if count == 1 else f"{count} cases"
+
+
 def score_view(outcomes: Sequence[CaseOutcome], scores: Sequence[CaseScore]) -> mo.Html:
-    """Table of the factors and terms of each case score, with `scores` in the order of `outcomes`."""
+    """Table of each case score, on the scale of the suite score, and of its factors and terms, from 0 to 1.
+
+    `scores` are in the order of `outcomes`.
+    """
     rows = [
         {
             "Case": outcome.case_id,
-            "Score": f"{score.value:.4f}",
+            "Score": f"{100 * score.value:.2f}",
             "Gate": f"{score.gate:.0f}",
             "Accuracy": f"{score.accuracy:.4f}",
             "Declaration": f"{score.declaration:.4f}",

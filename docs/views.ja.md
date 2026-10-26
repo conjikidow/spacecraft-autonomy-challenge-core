@@ -41,7 +41,7 @@ mo.vstack([results_view(result), dependencies_view(result.dependencies)])
 |---|---|
 | `results_view(result, *, missing_module_hint=DEFAULT_MISSING_MODULE_HINT)` | `EvaluationResult` の `Suite` の得点，集計，評価ケース，得点の内訳，エラー，戦略の出力 |
 | `dependencies_view(report)` | `DependencyReport`，つまり参加者の `pyproject.toml` のパッケージをどう再現したか |
-| `score_view(outcomes, scores)` | 各 `CaseScore` の係数と項の表。`scores` は `outcomes` と同じ順 |
+| `score_view(outcomes, scores)` | 各 `CaseScore` の表。得点を `Suite` の得点と同じ尺度で，その係数と項とともに示します。`scores` は `outcomes` と同じ順 |
 | `output_view(outcome)` | 1つの `CaseOutcome` の標準出力と標準エラー出力 |
 
 `results_view` は，上から順に次のものを表示します。
@@ -52,6 +52,7 @@ mo.vstack([results_view(result), dependencies_view(result.dependencies)])
 4. `case_rows(result.outcomes, result.scores)` の評価ケースの表。
    結果の数が `case_ids` より少なければ，表示している評価ケースの数を示す注記。
 5. 得点の計算式の短い説明（[得点](scoring.ja.md)を参照）と，折りたたまれた `score_view` の得点の内訳。
+   評価ケースの得点は `Suite` の得点と同じ 0 から 100 の尺度で，その係数と項は 0 から 1 で示します。
 6. 折りたたまれた，`problem_outcomes` の各結果の状態と詳細。
    `worker_error` があれば，それも表示します。
 7. 折りたたまれた，何かを出力した各評価ケースの標準出力と標準エラー出力。

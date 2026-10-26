@@ -86,6 +86,10 @@ def test_results_view_renders_a_full_result():
         "Traceback x",
         "Strategy output (2 cases)",
         "no pass threshold",
+        "printed",
+        "warning",
+        f"{100 * FULL.scores[0].value:.2f}",
+        f"{FULL.scores[0].accuracy:.4f}",
     ):
         assert expected in html
     assert "cases are shown" not in html
@@ -104,7 +108,7 @@ def test_results_view_shows_the_stored_summary():
 def test_results_view_renders_a_filtered_result():
     outcomes = [CaseOutcome("a", CaseStatus.TIMEOUT, None, "", None, "", "", 0.1, None)]
     html = results_view(result(outcomes, participant=None, case_ids=("a", "b", "c"))).text
-    for expected in ("1 of 3 cases are shown", "Errors (1 cases)", "The strategy printed nothing."):
+    for expected in ("1 of 3 cases are shown", "Errors (1 case)", "The strategy printed nothing."):
         assert expected in html
     assert "participant" not in html
     assert "Missing modules" not in html
