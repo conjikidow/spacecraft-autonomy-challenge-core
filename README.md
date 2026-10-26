@@ -97,6 +97,7 @@ With `--json`, anything the strategy prints goes to standard error, so standard 
 - [Simulation](docs/simulation.md): problems, scenarios, order of events, termination, and run results
 - [Challenge Problem](docs/challenge.md): the challenge problem and its public scenarios
 - [Evaluation](docs/evaluation.md): per-run metrics
+- [Submission Archives](docs/submission.md): building and extracting `submission.zip`
 
 ## Development
 
