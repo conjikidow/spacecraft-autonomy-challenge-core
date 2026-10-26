@@ -739,3 +739,23 @@ def test_deeply_nested_messages_are_protocol_errors(make_submission):
     assert outcome.status is CaseStatus.CRASHED
     assert "broke the protocol" in outcome.detail
     assert outcome.worker_error is None
+
+
+def test_oversized_commander_requests_are_command_errors(make_submission):
+    oversized = """
+    from spacecraft_ops_challenge import CommandError, DeclareCompletion, Strategy
+    from spacecraft_ops_challenge.judge.protocol import MAX_MESSAGE_BYTES
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            try:
+                commander.cancel_from("x" * MAX_MESSAGE_BYTES)
+            except CommandError as error:
+                print("CommandError:", str(error)[:40])
+            commander.execute(DeclareCompletion())
+    """
+    outcome = run_case(make_submission({"strategy.py": oversized}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert outcome.metrics["termination_reason"] == "COMPLETION_DECLARED"
+    assert outcome.stdout.startswith("CommandError: the request is too large")

@@ -24,6 +24,7 @@ from spacecraft_ops_challenge.judge.protocol import (
     Channel,
     ChannelClosedError,
     JSONValue,
+    MessageTooLargeError,
     decode_brief,
     decode_scheduled,
     decode_telemetry,
@@ -125,7 +126,10 @@ class RemoteCommander:
 
     @staticmethod
     def _call(channel: Channel, method: str, **arguments: JSONValue) -> JSONValue:
-        channel.send({"type": "call", "method": method, **arguments})
+        try:
+            channel.send({"type": "call", "method": method, **arguments})
+        except MessageTooLargeError as error:  # an argument that core would also reject, but huge
+            raise CommandError(f"the request is too large: {error}") from None
         reply = channel.receive()
         if reply["type"] == "command_error":
             raise CommandError(reply["message"])
