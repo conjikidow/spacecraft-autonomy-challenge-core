@@ -68,7 +68,7 @@ Every entry is validated before anything is written.
 - An entry that would be extracted, or `pyproject.toml` at the root, appears more than once,
   or its name is also used as a directory.
 - The archive has no `submission/strategy.py`.
-- The archive is not a valid ZIP archive.
+- The archive is not a valid ZIP archive, or an entry uses a compression method that Python cannot read.
 - The extracted files would exceed `max_total_bytes` (default `DEFAULT_MAX_TOTAL_BYTES`) in total uncompressed size.
 
 If an entry turns out to be corrupt while it is extracted, such as a bad checksum,

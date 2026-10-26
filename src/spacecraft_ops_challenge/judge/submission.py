@@ -244,7 +244,7 @@ def extract_submission(
                 # Corrupt contents, such as a bad checksum, show only while reading: leave nothing behind.
                 _clear(root)
                 raise
-    except (zipfile.BadZipFile, zlib.error) as error:
+    except (zipfile.BadZipFile, zlib.error, NotImplementedError) as error:  # NotImplementedError: compression method
         raise SubmissionError(f"not a valid ZIP archive: {error}") from error
     except (FileExistsError, IsADirectoryError, NotADirectoryError) as error:
         raise SubmissionError(f"conflicting archive entries: {error}") from error
