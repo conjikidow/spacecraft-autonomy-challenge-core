@@ -98,6 +98,7 @@ spacecraft-ops-challenge scenarios
 - [チャレンジ問題](docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
 - [評価](docs/evaluation.ja.md)：実行ごとの評価指標
 - [提出アーカイブ](docs/submission.ja.md)：`submission.zip` の作成と展開
+- [評価ケース](docs/judge.ja.md)：評価ケース，`Suite`，`ScenarioProvider`
 
 ## 開発
 

@@ -1,9 +1,51 @@
 """Helpers shared by the tests of `spacecraft_ops_challenge.judge`."""
 
+import atexit
 import io
+import shutil
 import stat
+import tempfile
 import zipfile
 from collections.abc import Mapping
+from pathlib import Path
+
+from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider
+
+PROVIDER_SOURCE = """
+from spacecraft_ops_challenge.challenge import problem
+from spacecraft_ops_challenge.modifiers import TelemetryBias, ThrusterEfficiency
+from spacecraft_ops_challenge.scenario import Scenario
+
+TYPES = {"ThrusterEfficiency": ThrusterEfficiency, "TelemetryBias": TelemetryBias}
+
+
+def build_scenario(payload):
+    modifiers = tuple(
+        TYPES[spec["type"]](**{name: value for name, value in spec.items() if name != "type"})
+        for spec in payload.get("modifiers", ())
+    )
+    return Scenario(name=payload.get("name", "case"), problem=problem(), modifiers=modifiers, seed=payload["seed"])
+
+
+def failing(payload):
+    raise RuntimeError("the provider failed")
+
+
+def not_a_scenario(payload):
+    return "not a scenario"
+"""
+
+# A provider that is not installed, as a scenario provider of an organizer typically is.
+_PROVIDER_DIR = Path(tempfile.mkdtemp(prefix="judge-test-provider-"))
+atexit.register(shutil.rmtree, _PROVIDER_DIR, ignore_errors=True)
+(_PROVIDER_DIR / "judge_test_provider.py").write_text(PROVIDER_SOURCE)
+PROVIDER = ScenarioProvider("judge_test_provider:build_scenario", (str(_PROVIDER_DIR),))
+
+
+def case(case_id, seed=0, *modifiers, **payload):
+    """A case for the test provider; each modifier is a dictionary with the `type` of a core modifier."""
+    return EvaluationCase.of(case_id, {"seed": seed, "modifiers": list(modifiers), **payload})
+
 
 DECLARE_AT_START = """
 from spacecraft_ops_challenge import DeclareCompletion, Strategy
