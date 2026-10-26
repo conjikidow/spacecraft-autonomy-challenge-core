@@ -1,18 +1,26 @@
-"""Command-line runner: `spacecraft-ops-challenge run STRATEGY` and `spacecraft-ops-challenge scenarios`.
+"""Command-line runner: `spacecraft-ops-challenge run`, `scenarios`, `pack`, and `check`.
 
-Exit status: 0 when the run finished, 1 when the strategy raised an exception or made an invalid
-timeline request, and 2 for usage errors such as a strategy that cannot be loaded.
+Exit status of `run`: 0 when the run finished, 1 when the strategy raised an exception or made an invalid
+timeline request, and 2 for usage errors such as a strategy that cannot be loaded. `check` exits with 1 when a
+case did not complete or ended with a strategy failure.
+
+The participant process imports `load_strategy` from this module, so the evaluation modules are imported
+only inside the handlers of `pack` and `check`.
 """
 
 import argparse
 import contextlib
+import hashlib
 import importlib
 import importlib.util
+import io
 import json
 import re
 import sys
-from collections.abc import Sequence
+import zipfile
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from spacecraft_ops_challenge.challenge import scenario as challenge_scenario
 from spacecraft_ops_challenge.challenge import scenario_names
@@ -20,6 +28,10 @@ from spacecraft_ops_challenge.evaluation import RunMetrics, evaluate
 from spacecraft_ops_challenge.results import RunResult, TerminationReason
 from spacecraft_ops_challenge.simulation import run
 from spacecraft_ops_challenge.strategy import Strategy
+
+if TYPE_CHECKING:
+    from spacecraft_ops_challenge.judge.reporting import EvaluationResult
+    from spacecraft_ops_challenge.judge.runner import CaseOutcome
 
 EXIT_OK = 0
 EXIT_STRATEGY_FAILURE = 1
@@ -142,6 +154,152 @@ def _scenarios_command(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _pack_command(args: argparse.Namespace) -> int:
+    from spacecraft_ops_challenge.judge.submission import SUBMISSION_DIRNAME, SubmissionError, build_submission
+
+    output = Path(args.output)
+    submission_dir = (Path(args.project_dir) / SUBMISSION_DIRNAME).resolve()
+    if output.resolve().is_relative_to(submission_dir):
+        print(f"error: the output {output} must not be inside {submission_dir}", file=sys.stderr)
+        return EXIT_USAGE
+    try:
+        archive = build_submission(args.project_dir)
+        output.write_bytes(archive)
+    except (SubmissionError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return EXIT_USAGE
+    with zipfile.ZipFile(io.BytesIO(archive)) as zip_file:
+        entries = len(zip_file.infolist())
+    print(f"{'wrote:':<10}{output}")
+    print(f"{'size:':<10}{len(archive)} bytes")
+    print(f"{'sha256:':<10}{hashlib.sha256(archive).hexdigest()}")
+    print(f"{'entries:':<10}{entries}")
+    return EXIT_OK
+
+
+_OUTPUT_TAIL_LINES = 20
+
+
+def _format_table(rows: Sequence[Mapping[str, str]]) -> str:
+    """Rows of strings as a plain-text table with a header line."""
+    if not rows:
+        return ""
+    columns = list(rows[0])
+    widths = {column: max(len(column), *(len(row[column]) for row in rows)) for column in columns}
+    lines = ["  ".join(column.ljust(widths[column]) for column in columns).rstrip()]
+    lines += ["  ".join(row[column].ljust(widths[column]) for column in columns).rstrip() for row in rows]
+    return "\n".join(lines)
+
+
+def _indented_tail(text: str) -> str:
+    lines = text.rstrip("\n").splitlines()
+    omitted = len(lines) - _OUTPUT_TAIL_LINES
+    shown = [f"    ({omitted} earlier lines omitted)"] if omitted > 0 else []
+    return "\n".join(shown + [f"    {line}".rstrip() for line in lines[-_OUTPUT_TAIL_LINES:]])
+
+
+def format_check_report(source: str, result: "EvaluationResult") -> str:
+    """Human-readable report of a `check` run: summary, per-case table, problems, and participant output."""
+    from spacecraft_ops_challenge.judge.reporting import case_rows, missing_modules, problem_outcomes, summary_rows
+
+    lines = [f"{'Submission:':<12}{source}", f"{'SHA-256:':<12}{result.submission_sha256}"]
+    if result.skipped_entries:
+        lines.append(f"{'Skipped:':<12}{', '.join(result.skipped_entries)}")
+    plan = result.dependencies.plan
+    if plan is not None and plan.to_install:
+        lines.append(f"{'Installed:':<12}{', '.join(plan.to_install)}")
+
+    statistics = summary_rows(result.summary)
+    width = max(len(row["Statistic"]) for row in statistics) + 2
+    lines += ["", "Summary"]
+    lines += [f"  {row['Statistic'] + ':':<{width}}{row['Value']}" for row in statistics]
+    lines += ["", "Cases", _format_table(case_rows(result.outcomes, result.scores))]
+
+    problems = problem_outcomes(result.outcomes)
+    if problems:
+        lines += ["", "Problems"]
+        for outcome in problems:
+            reason = "" if outcome.metrics is None else f" ({outcome.metrics['termination_reason']})"
+            lines.append(f"  {outcome.case_id}: {outcome.status.value}{reason}")
+            if outcome.detail:
+                lines.append(_indented_tail(outcome.detail))
+            if outcome.worker_error:
+                lines += ["    worker error:", _indented_tail(outcome.worker_error)]
+
+    modules = missing_modules(result.outcomes)
+    if modules:
+        lines += [
+            "",
+            f"Missing modules: {', '.join(modules)}",
+            "  Packages added with uv add must be listed in pyproject.toml next to submission/;",
+            "  your own modules must be inside submission/.",
+        ]
+
+    printed = [
+        (o.case_id, name, text)
+        for o in result.outcomes
+        for name, text in (("stdout", o.stdout), ("stderr", o.stderr))
+        if text.strip()
+    ]
+    if printed:
+        lines += ["", f"Participant output (last {_OUTPUT_TAIL_LINES} lines of each stream)"]
+        for case_id, name, text in printed:
+            lines += [f"  {case_id} {name}:", _indented_tail(text)]
+    return "\n".join(lines)
+
+
+def _check_command(args: argparse.Namespace) -> int:
+    from spacecraft_ops_challenge.judge.cases import CaseError
+    from spacecraft_ops_challenge.judge.dependencies import DependencyError
+    from spacecraft_ops_challenge.judge.judging import check_submission
+    from spacecraft_ops_challenge.judge.public_scenarios import public_suite
+    from spacecraft_ops_challenge.judge.reporting import EvaluationResult, problem_outcomes
+    from spacecraft_ops_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
+    from spacecraft_ops_challenge.judge.scoring import ScoringConfig, ScoringConfigError, score_case
+    from spacecraft_ops_challenge.judge.submission import SubmissionError, build_submission
+
+    source = Path(args.submission)
+    total = len(public_suite().cases)
+    done = 0
+    try:
+        scoring = ScoringConfig.default() if args.scoring is None else ScoringConfig.from_toml(Path(args.scoring))
+        archive = build_submission(source) if source.is_dir() else source.read_bytes()
+
+        def on_case_done(outcome: "CaseOutcome") -> None:
+            nonlocal done
+            done += 1
+            score = score_case(outcome, scoring).value
+            print(f"[{done}/{total}] {outcome.case_id}: {outcome.status.value} (score {score:.4f})", file=sys.stderr)
+
+        evaluation = check_submission(
+            archive,
+            timeout_s=DEFAULT_CASE_TIMEOUT_S if args.timeout is None else args.timeout,
+            scoring=scoring,
+            on_status=lambda message: print(message, file=sys.stderr),
+            on_case_done=on_case_done,
+        )
+    except (SubmissionError, DependencyError, CaseError, ScoringConfigError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return EXIT_USAGE
+
+    result = EvaluationResult.from_evaluation(evaluation)
+    if args.json:
+        print(result.to_json(), end="")
+    else:
+        print(format_check_report(str(source), result))
+    return EXIT_STRATEGY_FAILURE if problem_outcomes(result.outcomes) else EXIT_OK
+
+
+def _positive_seconds(text: str) -> float:
+    try:
+        value = float(text)
+    except ValueError:
+        value = float("nan")
+    if not value > 0 or value == float("inf"):
+        raise argparse.ArgumentTypeError(f"expected a positive number of seconds, got {text!r}")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Argument parser of the `spacecraft-ops-challenge` command."""
     parser = argparse.ArgumentParser(
@@ -158,6 +316,42 @@ def build_parser() -> argparse.ArgumentParser:
 
     scenarios_parser = subcommands.add_parser("scenarios", help="list the challenge scenarios")
     scenarios_parser.set_defaults(handler=_scenarios_command)
+
+    pack_parser = subcommands.add_parser("pack", help="pack a project into a submission archive")
+    pack_parser.add_argument(
+        "project_dir",
+        nargs="?",
+        default=".",
+        metavar="PROJECT_DIR",
+        help="project with a submission/ directory (default: .)",
+    )
+    pack_parser.add_argument(
+        "-o",
+        "--output",
+        default="submission.zip",
+        metavar="FILE",
+        help="archive to write, replaced if it exists (default: submission.zip)",
+    )
+    pack_parser.set_defaults(handler=_pack_command)
+
+    check_parser = subcommands.add_parser("check", help="evaluate a submission on the public scenarios")
+    check_parser.add_argument(
+        "submission",
+        nargs="?",
+        default=".",
+        metavar="SUBMISSION",
+        help="project directory or submission archive (default: .)",
+    )
+    check_parser.add_argument(
+        "--timeout",
+        type=_positive_seconds,
+        default=None,
+        metavar="SECONDS",
+        help="wall-clock limit of one case (default: 300)",
+    )
+    check_parser.add_argument("--scoring", metavar="TOML", help="scoring configuration (default: the shipped one)")
+    check_parser.add_argument("--json", action="store_true", help="print the result document as JSON")
+    check_parser.set_defaults(handler=_check_command)
     return parser
 
 

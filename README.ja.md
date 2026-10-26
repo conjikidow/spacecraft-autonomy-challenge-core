@@ -72,7 +72,15 @@ API の詳細は [戦略の書き方](docs/strategy.ja.md) を参照してくだ
 ```text
 spacecraft-ops-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
 spacecraft-ops-challenge scenarios
+spacecraft-ops-challenge pack [PROJECT_DIR] [-o FILE]
+spacecraft-ops-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
 ```
+
+`python -m spacecraft_ops_challenge` は `spacecraft-ops-challenge` と同じ働きをします。
+
+### `run` と `scenarios`
+
+`run` は戦略を1つのチャレンジのシナリオで実行して評価指標を出力し，`scenarios` はチャレンジのシナリオを一覧表示します。
 
 `STRATEGY` は `FILE.py:CLASS` または `MODULE:CLASS` の形式で指定します。
 `CLASS` は `Strategy` のサブクラスで，引数を取らないコンストラクタを持つ必要があります。
@@ -82,13 +90,38 @@ spacecraft-ops-challenge scenarios
 `--scenario` でチャレンジのシナリオを選び（デフォルトは `nominal`），
 `--seed` でシナリオのシードを上書きし，`--json` で評価指標を JSON として出力します。
 `--json` を付けると，戦略が出力した内容はすべて標準エラー出力に送られるため，標準出力は正しい JSON のまま保たれます。
-`python -m spacecraft_ops_challenge` は `spacecraft-ops-challenge` と同じ働きをします。
 
 | 終了ステータス | 意味 |
 |---|---|
 | 0 | シミュレーションが終了した（目標に到達したかどうかは問わない） |
 | 1 | シミュレーション中に，戦略が例外を送出したか，タイムラインに不正な要求をした |
 | 2 | 使い方の誤り（戦略やシナリオが見つからない場合など） |
+
+### `pack` と `check`
+
+これらのコマンドは，戦略クラス `MyStrategy` を定義した `submission/strategy.py` を含むプロジェクトディレクトリを対象とします（[提出アーカイブ](docs/submission.ja.md)を参照）。
+
+`pack` は，`PROJECT_DIR`（デフォルトはカレントディレクトリ）から `submission.zip` を作成し，
+`FILE`（デフォルトはカレントディレクトリの `submission.zip`）に書き込みます。
+`FILE` が既に存在する場合は置き換えます。
+`FILE` をプロジェクトの `submission/` ディレクトリの中に置くことはできません。
+`pack` は，アーカイブのパス，サイズ，SHA-256，エントリ数を出力します。
+
+`check` は，提出物を公開シナリオ（シナリオごとに1つの評価ケース）で評価します。
+評価の手順は，ほかの提出アーカイブの評価と同じです（[提出物の評価](docs/evaluating.ja.md)を参照）。
+`SUBMISSION` には，プロジェクトディレクトリ（デフォルトはカレントディレクトリ）か `submission.zip` ファイルを指定します。
+プロジェクトディレクトリは `pack` と同じ方法でメモリ上でアーカイブにし，`submission.zip` ファイルはそのまま読み込みます。
+`--timeout` で1つの評価ケースの実時間の上限（デフォルトは 300 秒）を設定し，
+`--scoring` で同梱の得点設定の代わりに TOML ファイルの得点設定を読み込みます（[得点](docs/scoring.ja.md)を参照）。
+進捗は標準エラー出力に送られます。
+その後 `check` は，`Suite` の得点，集計統計，評価ケースの表，完了しなかった評価ケースと戦略の失敗で終わった評価ケースの詳細，提出物がインポートできなかったモジュール，各評価ケースで戦略が標準出力と標準エラー出力に出力した内容の末尾を出力します。
+`--json` を付けると，代わりに JSON の結果文書を出力します。
+
+| 終了ステータス | 意味 |
+|---|---|
+| 0 | `pack` がアーカイブを書き込んだ。または `check` で，すべての評価ケースが戦略の例外や不正なコマンドなしに完了した（得点は問わない） |
+| 1 | `check` のみ。評価ケースが読み込めなかった，クラッシュした，時間切れになった，または実行が戦略の例外か不正なコマンドで終わった |
+| 2 | 使い方の誤り（不正なプロジェクトやアーカイブ，再現できないパッケージ，不正な得点設定，読み書きできないファイルなど） |
 
 ## ドキュメント
 

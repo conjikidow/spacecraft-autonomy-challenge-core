@@ -15,6 +15,8 @@ submission = extract_submission("submission.zip", Path("extracted"))
 print(submission.strategy_file, submission.pyproject is not None)
 ```
 
+コマンドラインでは，`spacecraft-ops-challenge pack` でプロジェクトディレクトリから `submission.zip` を作成できます（[README](../README.ja.md#コマンドラインツール)を参照）。
+
 ## アーカイブの構成
 
 アーカイブの構成は，作成元のプロジェクトのルートディレクトリと同じです。

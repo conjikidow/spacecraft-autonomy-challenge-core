@@ -15,6 +15,9 @@ submission = extract_submission("submission.zip", Path("extracted"))
 print(submission.strategy_file, submission.pyproject is not None)
 ```
 
+On the command line, `spacecraft-ops-challenge pack` builds `submission.zip` from a project directory
+(see the [README](../README.md#command-line-runner)).
+
 ## Archive Layout
 
 The archive mirrors the root of the project it was built from:
