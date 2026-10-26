@@ -107,7 +107,7 @@ def test_a_broken_provider_fails_before_the_submission_runs(tmp_path, monkeypatc
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     broken = ScenarioProvider("judge_test_provider:failing", PROVIDER.paths)
     with pytest.raises(CaseError, match="failed for case 'case-001'"):
-        evaluate_submission(zip_bytes({"submission/strategy.py": DECLARE_AT_START}), SUITE, broken)
+        evaluate_submission(b"not a zip archive", SUITE, broken)
     assert list(tmp_path.iterdir()) == []
 
 

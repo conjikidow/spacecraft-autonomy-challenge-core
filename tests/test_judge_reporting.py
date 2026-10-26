@@ -188,6 +188,10 @@ def test_filtered_documents_load_and_keep_their_stored_summary():
     document["cases"] = [
         case | {"stdout": "", "stderr": "", "detail": ""} for case in document["cases"] if case["case_id"] in ("a", "b")
     ]
+    without_worker_error = json.loads(json.dumps(document))
+    for case in without_worker_error["cases"]:
+        del case["worker_error"]
+    assert EvaluationResult.from_dict(without_worker_error).to_dict() == document
     loaded = EvaluationResult.from_json(json.dumps(document))
     assert loaded.participant is None
     assert [o.case_id for o in loaded.outcomes] == ["a", "b"]
@@ -199,7 +203,7 @@ def test_filtered_documents_load_and_keep_their_stored_summary():
 
 def test_other_formats_and_versions_are_rejected():
     document = EvaluationResult.from_evaluation(EVALUATION).to_dict()
-    for format_name in ("spacecraft-operations-challenge-judge/result", None):
+    for format_name in ("other/result", None):
         with pytest.raises(ResultFormatError, match="not a result document"):
             EvaluationResult.from_dict(document | {"format": format_name})
     for version in (2, 0, "1", 1.0, True, None):
@@ -258,3 +262,28 @@ def test_malformed_documents_are_rejected(path, value):
 def test_text_that_is_not_a_result_document_is_rejected(text):
     with pytest.raises(ResultFormatError):
         EvaluationResult.from_json(text)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda d: d["summary"].update(mean_abs_delta_v_error_mps=10**400),
+        lambda d: d["cases"][0].update(duration_s=10**400),
+        lambda d: d["cases"][0].update(metrics={}),
+        lambda d: d["cases"][0]["metrics"].update(termination_reason=5),
+        lambda d: d["cases"][0]["metrics"].update(delta_v_error_mps="x"),
+        lambda d: d["cases"][0]["metrics"].update(safe=1),
+        lambda d: d["cases"][0]["metrics"].update(end_time_s=True),
+    ],
+)
+def test_malformed_values_are_format_errors(change):
+    document = EvaluationResult.from_evaluation(EVALUATION).to_dict()
+    assert document["cases"][0]["metrics"] is not None
+    change(document)
+    with pytest.raises(ResultFormatError):
+        EvaluationResult.from_json(json.dumps(document))
+
+
+def test_deeply_nested_json_is_a_format_error():
+    with pytest.raises(ResultFormatError):
+        EvaluationResult.from_json("[" * 100_000 + "]" * 100_000)

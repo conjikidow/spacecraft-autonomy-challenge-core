@@ -100,7 +100,7 @@ class SuiteSummary:
                     data["median_abs_delta_v_error_safe_declared_mps"]
                 ),
             )
-        except (KeyError, TypeError) as error:
+        except (KeyError, TypeError, OverflowError) as error:
             raise ValueError(f"not a suite summary: {error!r}") from None
 
 
@@ -235,6 +235,30 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value
 
 
+_METRIC_TYPES: Mapping[str, type | tuple[type, ...]] = {
+    "termination_reason": str,
+    "completion_declared": bool,
+    "safe": bool,
+    "delta_v_error_mps": (int, float),
+    "end_time_s": (int, float),
+    "min_battery_energy_wh": (int, float),
+    "min_propulsion_temperature_c": (int, float),
+    "max_propulsion_temperature_c": (int, float),
+    "max_abs_wheel_momentum_nms": (int, float),
+}
+"""Metrics that the report functions read, with their JSON types."""
+
+
+def _outcome(data: Mapping[str, Any]) -> CaseOutcome:
+    """`CaseOutcome.from_dict`, which also checks the metrics that the report functions read."""
+    outcome = CaseOutcome.from_dict(data)
+    for name, expected in _METRIC_TYPES.items() if outcome.metrics is not None else ():
+        value = outcome.metrics.get(name)
+        if not isinstance(value, expected) or (expected is not bool and isinstance(value, bool)):
+            raise TypeError(f"metric {name} of case {outcome.case_id!r} must be {expected}, got {value!r}")
+    return outcome
+
+
 @dataclass(frozen=True, slots=True)
 class EvaluationResult:
     """Record of one evaluation, complete enough to aggregate without rerunning it.
@@ -327,9 +351,9 @@ class EvaluationResult:
                 started_at=_string(data["started_at"]),
                 finished_at=_string(data["finished_at"]),
                 summary=SuiteSummary.from_dict(_mapping(data["summary"])),
-                outcomes=tuple(CaseOutcome.from_dict(_mapping(case)) for case in cases),
+                outcomes=tuple(_outcome(_mapping(case)) for case in cases),
             )
-        except (KeyError, TypeError, ValueError, AttributeError) as error:
+        except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as error:
             raise ResultFormatError(f"malformed result document: {error!r}") from None
 
     def to_json(self) -> str:
@@ -341,6 +365,6 @@ class EvaluationResult:
         """Inverse of `to_json`; accepts any JSON layout. Raises `ResultFormatError` for text that is not one."""
         try:
             data = json.loads(text)
-        except ValueError as error:
+        except (ValueError, RecursionError) as error:
             raise ResultFormatError(f"a result document must be JSON: {error}") from None
         return cls.from_dict(data)

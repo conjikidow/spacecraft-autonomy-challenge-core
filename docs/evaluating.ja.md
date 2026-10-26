@@ -81,7 +81,7 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 `problem_outcomes(outcomes)` は，詳しく見る価値のある結果，つまり完了しなかった評価ケースと，戦略の失敗で終了した完了した実行を返します。
 `missing_modules(outcomes)` は，提出物がインポートに失敗したモジュールの名前を整列して返します。
 
-スコア，成否の基準，合格の閾値はどこにも適用されません。
+得点，成否の基準，合格の閾値はどこにも適用されません。
 集計と行が示すのは，数と評価指標だけです。
 
 ## 結果文書
@@ -118,13 +118,16 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 
 結果文書は，例えば別の読み手のために詳細を省くなど，読み込む前に絞り込まれていることがあります。
 そのため `from_dict` は，`null` の `participant`，`case_ids` より少ない `cases`，
-空文字列の `stdout`，`stderr`，`detail` を受け付けます。
+空文字列の `stdout`，`stderr`，`detail`，`worker_error` のない評価ケースを受け付けます。
 保存された `summary` は，`cases` から計算し直されることなく，そのまま読み込まれます。
 
 `from_dict` と `from_json` は，`format` や `format_version` が異なる文書，JSON ではないテキスト，
-キーの欠落や型の誤った値に対して，`ValueError` のサブクラスである `ResultFormatError` を送出します。
+文書，その `summary` と `cases`，報告の関数が読む評価ケースの評価指標でのキーの欠落や型の誤った値に対して，
+`ValueError` のサブクラスである `ResultFormatError` を送出します。
+依存関係のレポートは，構造だけを検査します。
 形式が定義していないキーは無視されます。
 
 結果文書を読み込んで再び `to_dict()` を呼び出すと，同じ文書が得られます。
+ただし，`worker_error` のない評価ケースには `"worker_error": null` が加わります。
 依存関係の判定の制約と保護するパッケージは結果文書に含まれないため（[参加者のパッケージ](dependencies.ja.md)を参照），
 読み込んだ結果が元の結果と異なりうるのはその点だけです。

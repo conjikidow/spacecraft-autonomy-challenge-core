@@ -120,14 +120,17 @@ The document is a JSON object with these keys:
 
 A document may have been filtered before it is loaded, for example to leave out details for another reader.
 `from_dict` therefore accepts a `participant` of `null`, fewer `cases` than `case_ids`,
-and empty strings for `stdout`, `stderr`, and `detail`.
+empty strings for `stdout`, `stderr`, and `detail`, and cases without `worker_error`.
 The stored `summary` is authoritative: it is read as it is and never recomputed from `cases`.
 
 `from_dict` and `from_json` raise `ResultFormatError`, a subclass of `ValueError`,
 for a document of another `format` or `format_version`, for text that is not JSON,
-and for missing keys or values of the wrong type.
+and for missing keys or values of the wrong type in the document, its `summary`, its `cases`,
+and the metrics of the cases that the report functions read.
+The dependency report is checked for its structure only.
 Keys that the format does not define are ignored.
 
-Loading a document and calling `to_dict()` again gives the same document.
+Loading a document and calling `to_dict()` again gives the same document,
+except that a case without `worker_error` gets `"worker_error": null`.
 The constraints and preserved packages of the dependency decisions are not part of the document
 (see [Participant Packages](dependencies.md)), so a loaded result can differ from the original in those alone.
