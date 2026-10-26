@@ -152,6 +152,9 @@ The trusted worker starts in a new session, and the participant process is part 
 When the trusted worker exits or the time limit is reached, every process remaining in that process group is stopped,
 which includes the participant process and the processes it started.
 A process that the strategy moves into a new session or process group is outside that group and may survive the case.
+Stopped processes other than the trusted worker, such as the participant process, are reaped by the init process.
+In a container, run an init process that reaps orphaned processes, for example with `docker run --init`,
+so that they do not remain as zombies.
 
 ## Participant Packages
 
