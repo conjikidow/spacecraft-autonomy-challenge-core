@@ -122,7 +122,8 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 `worker_error` のほか，`dependencies` のインストーラのコマンドと出力には，評価するマシンのパスが現れます。
 そのため `from_dict` は，`null` の `participant`，`case_ids` より少ない `cases`，
 空文字列の `stdout`，`stderr`，`detail`，`worker_error` のない評価ケースを受け付けます。
-ただし，`cases` は `Suite` の異なる評価ケースで，`case_ids` の順でなければなりません。
+ただし，`cases` は `Suite` の異なる評価ケースで，`case_ids` の順でなければならず，
+評価指標は `COMPLETED` の評価ケースにだけあり，集計の数は負であってはなりません。
 保存された `summary` は，`cases` から計算し直されることなく，そのまま読み込まれます。
 
 `from_dict` と `from_json` は，`format` や `format_version` が異なる文書，JSON ではないテキスト，有限でない数値，

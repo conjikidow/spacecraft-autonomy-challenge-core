@@ -29,8 +29,8 @@ class ResultFormatError(ValueError):
 
 
 def _count(value: object) -> int:
-    if not isinstance(value, int) or isinstance(value, bool):
-        raise TypeError(f"expected an integer, got {value!r}")
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise TypeError(f"expected a non-negative integer, got {value!r}")
     return value
 
 
@@ -253,6 +253,8 @@ _METRIC_TYPES: Mapping[str, type | tuple[type, ...]] = {
 def _outcome(data: Mapping[str, Any]) -> CaseOutcome:
     """`CaseOutcome.from_dict`, which also checks the metrics that the report functions read."""
     outcome = CaseOutcome.from_dict(data)
+    if (outcome.metrics is not None) != (outcome.status is CaseStatus.COMPLETED):
+        raise ValueError(f"case {outcome.case_id!r} has metrics if and only if it is COMPLETED")
     for name, expected in _METRIC_TYPES.items() if outcome.metrics is not None else ():
         value = outcome.metrics.get(name)
         if not isinstance(value, expected) or (expected is not bool and isinstance(value, bool)):

@@ -329,3 +329,19 @@ def test_metrics_too_large_for_a_float_are_rejected():
     tampered = document.replace('"delta_v_error_mps": ', '"delta_v_error_mps": 1' + "0" * 400 + ', "_": ', 1)
     with pytest.raises(ResultFormatError):
         EvaluationResult.from_json(tampered)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda d: d["summary"].update(cases=-1),
+        lambda d: d["cases"][0].update(metrics=None),
+        lambda d: d["cases"][0].update(status="TIMEOUT"),
+    ],
+)
+def test_inconsistent_documents_are_rejected(change):
+    document = EvaluationResult.from_evaluation(EVALUATION).to_dict()
+    assert document["cases"][0]["status"] == "COMPLETED"
+    change(document)
+    with pytest.raises(ResultFormatError):
+        EvaluationResult.from_dict(document)

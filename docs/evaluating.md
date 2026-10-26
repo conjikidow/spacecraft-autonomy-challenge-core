@@ -125,7 +125,8 @@ A document may have been filtered before it is loaded, for example to leave out 
 Besides `worker_error`, the installer commands and output in `dependencies` show paths of the evaluating machine.
 `from_dict` therefore accepts a `participant` of `null`, fewer `cases` than `case_ids`,
 empty strings for `stdout`, `stderr`, and `detail`, and cases without `worker_error`.
-The `cases` must still be distinct cases of the suite, in the order of `case_ids`.
+The `cases` must still be distinct cases of the suite, in the order of `case_ids`,
+with metrics exactly for `COMPLETED` cases, and the counts of the summary must not be negative.
 The stored `summary` is authoritative: it is read as it is and never recomputed from `cases`.
 
 `from_dict` and `from_json` raise `ResultFormatError`, a subclass of `ValueError`,
