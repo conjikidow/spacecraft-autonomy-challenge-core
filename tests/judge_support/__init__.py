@@ -31,6 +31,10 @@ def failing(payload):
     raise RuntimeError("the provider failed")
 
 
+def exiting(payload):
+    raise SystemExit("bad configuration")
+
+
 def noisy(payload):
     import sys
     import warnings

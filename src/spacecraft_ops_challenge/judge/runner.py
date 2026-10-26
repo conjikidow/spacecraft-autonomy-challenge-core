@@ -77,6 +77,12 @@ class CaseOutcome:
     counted process, before the participant process exited. It is also `None` if the participant process did not
     exit within a few seconds after the run, or on platforms without `os.wait4`.
     """
+    worker_error: str | None = None
+    """Traceback of a failure of the trusted worker itself, for whoever runs the evaluation.
+
+    It may show the scenario provider and data of the case, so it is kept apart from `detail`, which names only
+    the type of the exception in that case.
+    """
 
     def to_dict(self) -> dict[str, Any]:
         """JSON-serializable dictionary of the outcome."""
@@ -90,6 +96,7 @@ class CaseOutcome:
             "stderr": self.stderr,
             "duration_s": self.duration_s,
             "participant_cpu_s": self.participant_cpu_s,
+            "worker_error": self.worker_error,
         }
 
     @classmethod
@@ -100,18 +107,36 @@ class CaseOutcome:
             if metrics is not None and not isinstance(metrics, Mapping):
                 raise TypeError(f"metrics must be a mapping or None, got {metrics!r}")
             return cls(
-                case_id=data["case_id"],
+                case_id=_text(data, "case_id"),
                 status=CaseStatus(data["status"]),
                 metrics=metrics,
-                detail=data["detail"],
-                missing_module=data["missing_module"],
-                stdout=data["stdout"],
-                stderr=data["stderr"],
-                duration_s=float(data["duration_s"]),
-                participant_cpu_s=None if cpu_s is None else float(cpu_s),
+                detail=_text(data, "detail"),
+                missing_module=_optional_text(data, "missing_module"),
+                stdout=_text(data, "stdout"),
+                stderr=_text(data, "stderr"),
+                duration_s=_number(data["duration_s"]),
+                participant_cpu_s=None if cpu_s is None else _number(cpu_s),
+                worker_error=_optional_text(data, "worker_error"),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError(f"not a case outcome: {error!r}") from None
+
+
+def _text(data: Mapping[str, Any], key: str) -> str:
+    value = data[key]
+    if not isinstance(value, str):
+        raise TypeError(f"{key} must be a string, got {value!r}")
+    return value
+
+
+def _optional_text(data: Mapping[str, Any], key: str) -> str | None:
+    return None if data.get(key) is None else _text(data, key)
+
+
+def _number(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise TypeError(f"expected a number, got {value!r}")
+    return float(value)
 
 
 class _CappedOutput:
@@ -259,6 +284,7 @@ def run_case(
         stderr=stderr.text(),
         duration_s=duration_s,
         participant_cpu_s=None if result is None else result["participant_cpu_s"],
+        worker_error=None if result is None else result.get("worker_error"),
     )
 
 

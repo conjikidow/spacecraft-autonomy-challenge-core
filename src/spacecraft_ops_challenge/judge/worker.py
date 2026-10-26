@@ -86,10 +86,16 @@ def main(argv: Sequence[str] | None = None) -> None:
         case = EvaluationCase.from_dict(request["case"])
         provider = ScenarioProvider.from_dict(request["provider"])
         result = evaluate_case(Path(request["submission_root"]), case, provider, overlay)
-    except Exception as error:
-        detail = "".join(traceback.format_exception(error))
-        result = {"status": "CRASHED", "detail": f"the trusted worker failed to evaluate the case:\n{detail}"}
-        result |= {"missing_module": None, "participant_cpu_s": None}
+    except BaseException as error:
+        # The traceback may show the scenario provider and data of the case, so the participant-visible detail
+        # names the exception type only.
+        result = {
+            "status": "CRASHED",
+            "detail": f"the trusted worker failed to evaluate the case ({type(error).__name__})",
+            "missing_module": None,
+            "participant_cpu_s": None,
+            "worker_error": "".join(traceback.format_exception(error)),
+        }
     Path(result_path).write_text(json.dumps(result), encoding="utf-8")
     sys.__stdout__.flush()
     sys.__stderr__.flush()

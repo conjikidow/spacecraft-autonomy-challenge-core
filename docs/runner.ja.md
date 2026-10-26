@@ -101,6 +101,7 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 | `stdout`，`stderr` | 取得した出力 |
 | `duration_s` | 評価ケースの実時間（秒） |
 | `participant_cpu_s` | 参加者のプロセスの CPU 時間（秒，下記を参照），または `None` |
+| `worker_error` | 信頼された実行プロセス自体の失敗のトレースバック，または `None` |
 
 | `CaseStatus` | 意味 |
 |---|---|
@@ -108,6 +109,10 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 | `LOAD_ERROR` | `submission/strategy.py:MyStrategy` をインポートまたはインスタンス化できなかった |
 | `CRASHED` | 実行が評価指標を生成しなかった。戦略が `SystemExit` や `KeyboardInterrupt` を送出した，そのプロセスが終了した，プロトコルに違反した，または信頼された実行プロセスが評価ケースの評価に失敗した |
 | `TIMEOUT` | 評価ケースが `timeout_s` を超えた |
+
+`ScenarioProvider` が例外を送出した場合など，信頼された実行プロセス自体が失敗した場合は，
+そのトレースバックに `ScenarioProvider` や評価ケースのデータが現れうるため，`detail` には例外の型だけを示します。
+トレースバックは，評価を実行する側のために `worker_error` に記録されます。
 
 `to_dict()` は JSON に変換できるデータを返し，`CaseOutcome.from_dict` はその逆変換です。
 `from_dict` は，結果を表さないデータに対して `ValueError` を送出します。
@@ -125,8 +130,8 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 - Linux では，参加者のプロセスが起動したプロセスは，参加者のプロセスが終了する前に終了し，参加者のプロセス自身または含まれる別のプロセスによって待たれた場合にだけ含まれます。
   参加者のプロセスが終了したときにまだ実行中のプロセスは含まれません。
 
-`LOAD_ERROR`，`CRASHED`，`TIMEOUT` の評価ケース，実行の後 5 秒以内に参加者のプロセスが終了しない場合，
-`os.wait4` がないプラットフォームでは `None` です。
+`LOAD_ERROR`，`CRASHED`，`TIMEOUT` の評価ケースでは `None` です。
+実行の後 5 秒以内に参加者のプロセスが終了しない場合と，`os.wait4` がないプラットフォームでも `None` です。
 
 ## 時間の上限と後始末
 

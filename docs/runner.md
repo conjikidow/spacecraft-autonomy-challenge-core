@@ -104,6 +104,7 @@ A `CaseOutcome` has these fields:
 | `stdout`, `stderr` | The captured output |
 | `duration_s` | Wall-clock time of the case, in seconds |
 | `participant_cpu_s` | CPU time of the participant process, in seconds (see below), or `None` |
+| `worker_error` | The traceback of a failure of the trusted worker itself, or `None` |
 
 | `CaseStatus` | Meaning |
 |---|---|
@@ -111,6 +112,10 @@ A `CaseOutcome` has these fields:
 | `LOAD_ERROR` | `submission/strategy.py:MyStrategy` could not be imported or instantiated |
 | `CRASHED` | The run produced no metrics: the strategy raised `SystemExit` or `KeyboardInterrupt`, its process exited or broke the protocol, or the trusted worker failed to evaluate the case |
 | `TIMEOUT` | The case exceeded `timeout_s` |
+
+When the trusted worker itself fails, for example because the scenario provider raises an exception,
+`detail` names only the type of the exception, since its traceback may show the provider and data of the case.
+The traceback is in `worker_error`, for whoever runs the evaluation.
 
 `to_dict()` returns JSON-serializable data, and `CaseOutcome.from_dict` is its inverse.
 `from_dict` raises `ValueError` for data that does not describe an outcome.

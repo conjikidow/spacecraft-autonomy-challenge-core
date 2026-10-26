@@ -374,8 +374,9 @@ def test_worker_failures_become_structured_results(make_submission):
     broken = case("broken", 1, {"type": "NoSuchModifier"})
     outcome = run_case(make_submission({"strategy.py": DECLARE_AT_START}).root, broken, PROVIDER)
     assert outcome.status is CaseStatus.CRASHED
-    assert outcome.detail.startswith("the trusted worker failed to evaluate the case:")
-    assert "KeyError: 'NoSuchModifier'" in outcome.detail
+    assert outcome.detail == "the trusted worker failed to evaluate the case (KeyError)"
+    assert "NoSuchModifier" not in outcome.detail + outcome.stdout + outcome.stderr
+    assert "KeyError: 'NoSuchModifier'" in outcome.worker_error
 
 
 def test_a_helper_outside_the_session_holding_the_output_does_not_block(make_submission):
@@ -499,7 +500,19 @@ def test_outcomes_round_trip_through_json(make_submission):
 
 @pytest.mark.parametrize(
     "change",
-    [{"status": "PASSED"}, {"metrics": [1, 2]}, {"duration_s": None}, {"participant_cpu_s": "fast"}],
+    [
+        {"status": "PASSED"},
+        {"metrics": [1, 2]},
+        {"duration_s": None},
+        {"duration_s": "1.5"},
+        {"duration_s": True},
+        {"participant_cpu_s": "fast"},
+        {"case_id": None},
+        {"detail": 3},
+        {"stdout": []},
+        {"missing_module": 1},
+        {"worker_error": 1},
+    ],
 )
 def test_malformed_outcomes_are_rejected(change):
     data = {
@@ -524,19 +537,48 @@ def test_malformed_outcomes_are_rejected(change):
 def test_output_of_the_scenario_provider_does_not_reach_the_participant_output(make_submission):
     provider = ScenarioProvider("judge_test_provider:noisy", PROVIDER.paths)
     printing = """
-import sys
+    import sys
 
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_ops_challenge import DeclareCompletion, Strategy
 
 
-class MyStrategy(Strategy):
-    def initialize(self, brief, telemetry, commander):
-        print("strategy stdout")
-        print("strategy stderr", file=sys.stderr)
-        commander.execute(DeclareCompletion())
-"""
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print("strategy stdout")
+            print("strategy stderr", file=sys.stderr)
+            commander.execute(DeclareCompletion())
+    """
     outcome = run_case(make_submission({"strategy.py": printing}).root, CASES[0], provider)
     assert outcome.status is CaseStatus.COMPLETED
     assert "strategy stdout" in outcome.stdout
     assert "strategy stderr" in outcome.stderr
     assert "secret" not in outcome.stdout + outcome.stderr
+
+
+def test_a_participant_that_does_not_exit_after_the_run_reports_no_cpu_time(make_submission):
+    lingering = """
+    import time
+
+    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_ops_challenge.judge import protocol
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            commander.execute(DeclareCompletion())
+            # Never notice that the trusted worker closed the connection after the run.
+            protocol.Channel.receive = lambda self: time.sleep(60)
+    """
+    outcome = run_case(make_submission({"strategy.py": lingering}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED
+    assert outcome.participant_cpu_s is None
+    assert 5.0 <= outcome.duration_s < 15.0
+
+
+def test_a_scenario_provider_that_exits_still_leaves_a_result(make_submission):
+    provider = ScenarioProvider("judge_test_provider:exiting", PROVIDER.paths)
+    outcome = run_case(make_submission({"strategy.py": DECLARE_AT_START}).root, CASES[0], provider)
+    assert outcome.status is CaseStatus.CRASHED
+    assert outcome.detail == "the trusted worker failed to evaluate the case (SystemExit)"
+    assert "bad configuration" in outcome.worker_error
+    assert "bad configuration" not in outcome.stdout + outcome.stderr
