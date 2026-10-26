@@ -78,6 +78,7 @@ env = None if overlay is None else overlay.environment()
 - `spacecraft-operations-challenge-core` の要件は，取得元によらず `JUDGE_CONTROLLED` のままです。
   環境マーカーが偽の要件も `NOT_APPLICABLE` のままです。
 - `[project] dependencies` にないパッケージの項目は無視します。
+- `foo_bar` と `Foo-Bar` のように，正規化すると同じパッケージになる名前の項目が2つあると，`DependencyError` を送出します。
 
 ## `Overlay` へのインストール
 

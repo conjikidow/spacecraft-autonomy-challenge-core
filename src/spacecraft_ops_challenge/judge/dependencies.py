@@ -199,7 +199,13 @@ def parse_sources(data: bytes) -> dict[str, object]:
         sources = sources.get(key, {})
         if not isinstance(sources, dict):
             raise DependencyError("[tool.uv.sources] of the participant pyproject.toml must be a table")
-    return {canonicalize_name(name): source for name, source in sources.items()}
+    by_name: dict[str, object] = {}
+    for name, source in sources.items():
+        canonical = canonicalize_name(name)
+        if canonical in by_name:
+            raise DependencyError(f"[tool.uv.sources] of the participant pyproject.toml names {canonical!r} twice")
+        by_name[canonical] = source
+    return by_name
 
 
 class _UnsupportedSourceError(Exception):
@@ -213,7 +219,7 @@ _LOCAL_ADVICE = "put that code under submission/ or publish the package"
 
 def _describe(source: Mapping[str, Any]) -> str:
     """`source` written as a TOML inline table."""
-    return "{ " + ", ".join(f"{key} = {json.dumps(value)}" for key, value in source.items()) + " }"
+    return "{ " + ", ".join(f"{key} = {json.dumps(value, default=str)}" for key, value in source.items()) + " }"
 
 
 _URL_UNSAFE = frozenset(" \t\n;#")

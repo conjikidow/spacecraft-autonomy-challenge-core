@@ -782,3 +782,27 @@ def test_a_marker_that_cannot_be_evaluated_is_unsupported():
     decision = decide(Requirement("lib; python_version ~= 'abc'"), {}.get)
     assert decision.decision is Decision.UNSUPPORTED
     assert "its environment marker cannot be evaluated" in decision.reason
+
+
+def test_sources_that_name_a_package_twice_are_rejected():
+    pyproject = b"""[project]
+dependencies = ["foo-bar"]
+
+[tool.uv.sources]
+foo_bar = { git = "https://example.com/a.git" }
+Foo-Bar = { git = "https://example.com/b.git" }
+"""
+    with pytest.raises(DependencyError, match="names 'foo-bar' twice"):
+        parse_sources(pyproject)
+
+
+def test_sources_with_toml_dates_are_unsupported():
+    pyproject = b"""[project]
+dependencies = ["lib"]
+
+[tool.uv.sources]
+lib = { git = 2026-01-01 }
+"""
+    (decision,) = plan_of(pyproject, {}.get).decisions
+    assert decision.decision is Decision.UNSUPPORTED
+    assert 'git = "2026-01-01"' in decision.reason

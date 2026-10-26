@@ -81,6 +81,7 @@ Without the source, the name alone could resolve to an unrelated package of the 
 - The core requirement stays `JUDGE_CONTROLLED` whatever its source,
   and a requirement whose marker is false stays `NOT_APPLICABLE`.
 - Entries for packages that `[project] dependencies` does not name are ignored.
+- Two entries whose names normalize to the same package, such as `foo_bar` and `Foo-Bar`, raise `DependencyError`.
 
 ## Installing into the `Overlay`
 
