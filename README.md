@@ -96,6 +96,7 @@ With `--json`, anything the strategy prints goes to standard error, so standard 
 | 0 | The run finished, whether or not the target was reached |
 | 1 | The strategy raised an exception or made an invalid timeline request during the run |
 | 2 | Usage error, such as a strategy or scenario that cannot be found |
+| 130 | Interrupted, for example with Ctrl-C |
 
 ### `pack` and `check`
 

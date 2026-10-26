@@ -96,6 +96,7 @@ spacecraft-ops-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML]
 | 0 | シミュレーションが終了した（目標に到達したかどうかは問わない） |
 | 1 | シミュレーション中に，戦略が例外を送出したか，タイムラインに不正な要求をした |
 | 2 | 使い方の誤り（戦略やシナリオが見つからない場合など） |
+| 130 | Ctrl-C などによる中断 |
 
 ### `pack` と `check`
 
