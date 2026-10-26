@@ -9,7 +9,7 @@ import pytest
 from judge_support import DECLARE_AT_START
 
 from spacecraft_ops_challenge.challenge import scenario_names
-from spacecraft_ops_challenge.cli import EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, main
+from spacecraft_ops_challenge.cli import EXIT_INTERRUPTED, EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, main
 from spacecraft_ops_challenge.judge.reporting import EvaluationResult
 from spacecraft_ops_challenge.judge.submission import build_submission
 
@@ -73,7 +73,8 @@ def test_pack_reports_an_invalid_project(tmp_path, capsys):
 def test_check_runs_the_public_scenarios_on_a_project(project, capsys):
     assert main(["check", str(project)]) == EXIT_OK
     captured = capsys.readouterr()
-    assert f"[2/2] {scenario_names()[1]}: COMPLETED (score " in captured.err
+    total = len(scenario_names())
+    assert f"[{total}/{total}] {scenario_names()[-1]}: COMPLETED (score " in captured.err
     assert "Score:" in captured.out
     assert "COMPLETION_DECLARED" in captured.out
     assert "Problems" not in captured.out
@@ -87,7 +88,7 @@ def test_check_reads_an_archive_and_prints_json(project, tmp_path, capsys):
     result = EvaluationResult.from_json(captured.out)
     assert result.case_ids == tuple(scenario_names())
     assert result.submission_sha256 == hashlib.sha256(archive.read_bytes()).hexdigest()
-    assert "[1/2]" in captured.err
+    assert f"[1/{len(scenario_names())}]" in captured.err
 
 
 def test_check_exits_with_failure_for_a_strategy_that_raises(tmp_path, capsys):
@@ -134,3 +135,20 @@ def test_importing_the_cli_does_not_import_the_evaluation_modules():
     )
     output = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
     assert output.strip() == "[]"
+
+
+def test_an_interrupted_check_exits_130_without_a_traceback(project, capsys, monkeypatch):
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("spacecraft_ops_challenge.judge.judging.check_submission", interrupted)
+    assert main(["check", str(project)]) == EXIT_INTERRUPTED
+    assert capsys.readouterr().err.strip().endswith("interrupted")
+
+
+def test_the_timeout_help_names_the_default(capsys):
+    from spacecraft_ops_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
+
+    with pytest.raises(SystemExit):
+        main(["check", "--help"])
+    assert f"default: {DEFAULT_CASE_TIMEOUT_S:g}" in capsys.readouterr().out

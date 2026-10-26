@@ -126,6 +126,7 @@ and the last lines that the strategy printed to standard output and standard err
 | 0 | `pack` wrote the archive; `check` completed every case without a strategy error or an invalid command, whatever the scores |
 | 1 | `check` only: a case did not load, crashed, or timed out, or its run ended with a strategy error or an invalid command |
 | 2 | Usage error, such as an invalid project or archive, packages that cannot be reproduced, an invalid scoring configuration, or a file that cannot be read or written |
+| 130 | Interrupted, for example with Ctrl-C; the processes of the running case are stopped |
 
 ## Documentation
 

@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 EXIT_OK = 0
 EXIT_STRATEGY_FAILURE = 1
 EXIT_USAGE = 2
+EXIT_INTERRUPTED = 130
 
 _FAILURE_REASONS = frozenset({TerminationReason.STRATEGY_ERROR, TerminationReason.INVALID_COMMAND})
 
@@ -358,4 +359,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point of the `spacecraft-ops-challenge` command."""
     args = build_parser().parse_args(argv)
-    return args.handler(args)
+    try:
+        return args.handler(args)
+    except KeyboardInterrupt:
+        print("interrupted", file=sys.stderr)
+        return EXIT_INTERRUPTED
