@@ -21,6 +21,7 @@ from spacecraft_ops_challenge.judge.dependencies import (
     RequirementDecision,
     base_constraints,
     decide,
+    find_uv,
     install_command,
     install_overlay,
     installed_distribution,
@@ -694,7 +695,7 @@ def test_install_overlay_timeout(tmp_path):
 
 
 def test_missing_uv_is_a_clear_error(monkeypatch):
-    monkeypatch.setattr(dependencies.shutil, "which", lambda name: None)
+    monkeypatch.setattr(dependencies.shutil, "which", lambda name, path=None: None)
     with pytest.raises(DependencyError, match="requires uv"):
         dependencies.find_uv()
 
@@ -862,3 +863,18 @@ def test_installer_files_of_targets_in_the_same_directory_are_separate(tmp_path)
     first, second = (call["cwd"] for call in installer.calls)
     assert first != second
     assert [call["requirements"] for call in installer.calls] == ["a\n", "b\n"]
+
+
+def test_unparsable_urls_are_unsupported():
+    decision = decide(Requirement("x @ https://[bad"), {}.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "its URL cannot be parsed" in decision.reason
+
+
+def test_uv_is_found_on_the_path_of_the_given_environment(tmp_path):
+    uv = tmp_path / "uv"
+    uv.write_text("#!/bin/sh\n")
+    uv.chmod(0o755)
+    assert find_uv({"PATH": str(tmp_path)}) == str(uv)
+    with pytest.raises(DependencyError, match="requires uv"):
+        find_uv({"PATH": str(tmp_path / "nowhere")})

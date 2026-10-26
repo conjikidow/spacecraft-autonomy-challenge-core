@@ -90,8 +90,9 @@ Without the source, the name alone could resolve to an unrelated package of the 
 The `INSTALL` requirements are installed once per submission with `uv pip install --target` into a new directory.
 `install_overlay` does this, and `resolve_dependencies` calls it only when there is something to install.
 uv runs with `--no-config`, so configuration files around the directory do not change the installation.
-It runs with the environment variables given as `env`, or those of the current process by default,
-in a temporary directory next to the target that holds its requirement files and is removed afterwards.
+uv is looked up on the `PATH` of the environment variables given as `env`, or those of the current process by default,
+and runs with them, in a temporary directory next to the target that holds its requirement files
+and is removed afterwards.
 
 - The first attempt is constrained to the versions of the packages that the evaluating environment installed from an index
   (`base_constraints`), so the `Overlay` does not shadow them with other versions.

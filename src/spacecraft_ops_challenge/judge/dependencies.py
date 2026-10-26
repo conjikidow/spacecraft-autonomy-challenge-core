@@ -472,6 +472,11 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
         return _decision(Decision.UNSUPPORTED, f"its environment marker cannot be evaluated: {error}")
     if not applicable:
         return _decision(Decision.NOT_APPLICABLE, "its environment marker is false for the evaluating Python")
+    if requirement.url:
+        try:
+            urlsplit(requirement.url)
+        except ValueError as error:  # e.g. an invalid IPv6 host
+            return _decision(Decision.UNSUPPORTED, f"its URL cannot be parsed: {error}")
     installed = environment(name)
     if name == CORE_DISTRIBUTION:
         return _decision(Decision.JUDGE_CONTROLLED, _core_reason(requirement, installed))
@@ -554,9 +559,9 @@ def base_constraints(
     return tuple(pins[name] for name in sorted(pins))
 
 
-def find_uv() -> str:
-    """Path of the `uv` executable used to install the overlay."""
-    uv = shutil.which("uv")
+def find_uv(env: Mapping[str, str] | None = None) -> str:
+    """Path of the `uv` executable used to install the overlay, looked up on the `PATH` of `env` if given."""
+    uv = shutil.which("uv", path=None if env is None else env.get("PATH", ""))
     if uv is None:
         raise DependencyError("installing participant packages requires uv, which is not on PATH")
     return uv
@@ -650,7 +655,7 @@ def install_overlay(
     # directory never read each other's files.
     with tempfile.TemporaryDirectory(prefix=f".{target.name}-install-", dir=target.parent) as private:
         workdir = Path(private)
-        uv = find_uv() if uv is None else uv
+        uv = find_uv(env) if uv is None else uv
         requirements_file = workdir / "overlay-requirements.txt"
         requirements_file.write_text("\n".join(requirements) + "\n", encoding="utf-8")
         if constraints is None:
