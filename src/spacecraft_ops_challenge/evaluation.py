@@ -32,6 +32,11 @@ class RunMetrics:
     completion_declared_time_s: float | None
     """Time at which completion was declared, otherwise `None`."""
     time_limit_s: float
+    decision_period_s: float
+    nominal_battery_capacity_wh: float
+    """Battery capacity of the published nominal model, not of the actual spacecraft."""
+    min_battery_energy_limit_wh: float
+    """Safety limit on the battery energy."""
     min_battery_energy_wh: float
     min_propulsion_temperature_c: float
     max_propulsion_temperature_c: float
@@ -53,6 +58,9 @@ class RunMetrics:
             "delta_v_error_mps": self.delta_v_error_mps,
             "completion_declared_time_s": self.completion_declared_time_s,
             "time_limit_s": self.time_limit_s,
+            "decision_period_s": self.decision_period_s,
+            "nominal_battery_capacity_wh": self.nominal_battery_capacity_wh,
+            "min_battery_energy_limit_wh": self.min_battery_energy_limit_wh,
             "min_battery_energy_wh": self.min_battery_energy_wh,
             "min_propulsion_temperature_c": self.min_propulsion_temperature_c,
             "max_propulsion_temperature_c": self.max_propulsion_temperature_c,
@@ -65,18 +73,21 @@ def evaluate(result: RunResult) -> RunMetrics:
     states = (*result.trajectory, result.final_state)
     reason = result.termination.reason
     completion_declared = reason is TerminationReason.COMPLETION_DECLARED
-    scenario = result.scenario
+    problem = result.scenario.problem
     return RunMetrics(
         termination_reason=reason,
         end_time_s=result.termination.time_s,
         completion_declared=completion_declared,
         safe=not result.safety_violations,
         safety_violations=result.safety_violations,
-        target_delta_v_mps=scenario.problem.target_delta_v_mps,
+        target_delta_v_mps=problem.target_delta_v_mps,
         delta_v_mps=result.final_state.delta_v_mps,
-        delta_v_error_mps=result.final_state.delta_v_mps - scenario.problem.target_delta_v_mps,
+        delta_v_error_mps=result.final_state.delta_v_mps - problem.target_delta_v_mps,
         completion_declared_time_s=result.termination.time_s if completion_declared else None,
-        time_limit_s=scenario.problem.time_limit_s,
+        time_limit_s=problem.time_limit_s,
+        decision_period_s=problem.decision_period_s,
+        nominal_battery_capacity_wh=problem.parameters.battery_capacity_wh,
+        min_battery_energy_limit_wh=problem.limits.min_battery_energy_wh,
         min_battery_energy_wh=min(state.battery_energy_wh for state in states),
         min_propulsion_temperature_c=min(state.propulsion_temperature_c for state in states),
         max_propulsion_temperature_c=max(state.propulsion_temperature_c for state in states),
