@@ -2,7 +2,8 @@
 
 The trusted case worker keeps the case, its scenario, and the simulator. The participant's code runs in a child
 process that only receives participant-visible data over a dedicated socket (see `protocol`). Its standard
-output and standard error are those of the case worker, which the runner captures.
+output and standard error are the descriptors given as `output`, which the case worker sets to the pipes that the
+runner captures.
 """
 
 import os
