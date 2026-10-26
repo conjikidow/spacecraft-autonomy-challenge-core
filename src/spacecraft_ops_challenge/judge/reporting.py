@@ -16,13 +16,10 @@ from spacecraft_ops_challenge import __version__ as core_version
 from spacecraft_ops_challenge.judge.dependencies import DependencyReport
 from spacecraft_ops_challenge.judge.judging import SubmissionEvaluation
 from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
-from spacecraft_ops_challenge.judge.scoring import CaseScore, ScoringConfig, score_case, suite_score
-from spacecraft_ops_challenge.results import TerminationReason
+from spacecraft_ops_challenge.judge.scoring import STRATEGY_FAILURES, CaseScore, ScoringConfig, score_case, suite_score
 
 RESULT_FORMAT = "spacecraft-operations-challenge/result"
 RESULT_FORMAT_VERSION = 1
-
-_STRATEGY_FAILURES = frozenset({TerminationReason.STRATEGY_ERROR.value, TerminationReason.INVALID_COMMAND.value})
 
 
 class ResultFormatError(ValueError):
@@ -41,6 +38,13 @@ def _optional_float(value: object) -> float | None:
     if not isinstance(value, int | float) or isinstance(value, bool) or not math.isfinite(value):
         raise TypeError(f"expected a finite number or None, got {value!r}")
     return float(value)
+
+
+def _score(value: object) -> float:
+    score = _float(value)
+    if not 0 <= score <= 100:  # also rejects NaN
+        raise TypeError(f"a suite score is between 0 and 100, got {value!r}")
+    return score
 
 
 def _float(value: object) -> float:
@@ -109,7 +113,7 @@ class SuiteSummary:
                 median_abs_delta_v_error_safe_declared_mps=_optional_float(
                     data["median_abs_delta_v_error_safe_declared_mps"]
                 ),
-                score=_float(data["score"]),
+                score=_score(data["score"]),
             )
         except (KeyError, TypeError, OverflowError) as error:
             raise ValueError(f"not a suite summary: {error!r}") from None
@@ -138,7 +142,7 @@ def summarize(outcomes: Iterable[CaseOutcome], scoring: ScoringConfig | None = N
         safe=sum(1 for m in metrics if m["safe"]),
         completion_declared=sum(1 for m in metrics if m["completion_declared"]),
         safe_and_completion_declared=len(safe_declared),
-        strategy_failures=sum(1 for m in metrics if m["termination_reason"] in _STRATEGY_FAILURES),
+        strategy_failures=sum(1 for m in metrics if m["termination_reason"] in STRATEGY_FAILURES),
         termination_reasons=dict(sorted(Counter(m["termination_reason"] for m in metrics).items())),
         statuses=dict(sorted(Counter(outcome.status.value for outcome in outcomes).items())),
         mean_abs_delta_v_error_mps=mean,
@@ -230,7 +234,7 @@ def problem_outcomes(outcomes: Iterable[CaseOutcome]) -> tuple[CaseOutcome, ...]
         o
         for o in outcomes
         if o.status is not CaseStatus.COMPLETED
-        or (o.metrics is not None and o.metrics["termination_reason"] in _STRATEGY_FAILURES)
+        or (o.metrics is not None and o.metrics["termination_reason"] in STRATEGY_FAILURES)
     )
 
 
@@ -262,12 +266,18 @@ _METRIC_TYPES: Mapping[str, type | tuple[type, ...]] = {
     "min_propulsion_temperature_c": (int, float),
     "max_propulsion_temperature_c": (int, float),
     "max_abs_wheel_momentum_nms": (int, float),
+    "target_delta_v_mps": (int, float),
+    "completion_declared_time_s": (int, float, type(None)),
+    "time_limit_s": (int, float),
+    "decision_period_s": (int, float),
+    "nominal_battery_capacity_wh": (int, float),
+    "min_battery_energy_limit_wh": (int, float),
 }
-"""Metrics that the report functions read, with their JSON types."""
+"""Metrics that the report and scoring functions read, with their JSON types."""
 
 
 def _outcome(data: Mapping[str, Any]) -> CaseOutcome:
-    """`CaseOutcome.from_dict`, which also checks the metrics that the report functions read."""
+    """`CaseOutcome.from_dict`, which also checks the metrics that the report and scoring functions read."""
     outcome = CaseOutcome.from_dict(data)
     if (outcome.metrics is not None) != (outcome.status is CaseStatus.COMPLETED):
         raise ValueError(f"case {outcome.case_id!r} has metrics if and only if it is COMPLETED")

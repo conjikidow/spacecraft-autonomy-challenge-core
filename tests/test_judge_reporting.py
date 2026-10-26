@@ -294,6 +294,13 @@ _DELETE = object()
         (("cases", 0, "score", "value"), 1.5),
         (("cases", 0, "score", "gate"), True),
         (("cases", 0, "score", "cpu_time"), _DELETE),
+        (("cases", 0, "metrics", "decision_period_s"), _DELETE),
+        (("cases", 0, "metrics", "time_limit_s"), "x"),
+        (("cases", 0, "metrics", "nominal_battery_capacity_wh"), None),
+        (("cases", 0, "metrics", "completion_declared_time_s"), "soon"),
+        (("summary", "score"), -5),
+        (("summary", "score"), 150),
+        (("summary", "score"), float("nan")),
     ],
 )
 def test_malformed_documents_are_rejected(path, value):

@@ -21,7 +21,8 @@ from spacecraft_ops_challenge.results import TerminationReason
 SCORING_CONFIG_VERSION = 1
 
 _WEIGHT_SUM_TOLERANCE = 1e-9
-_STRATEGY_FAILURES = frozenset({TerminationReason.STRATEGY_ERROR.value, TerminationReason.INVALID_COMMAND.value})
+STRATEGY_FAILURES = frozenset({TerminationReason.STRATEGY_ERROR.value, TerminationReason.INVALID_COMMAND.value})
+"""Termination reasons of runs that ended because of the strategy, as their string values."""
 
 
 class ScoringConfigError(ValueError):
@@ -223,8 +224,8 @@ def _clip(value: float) -> float:
 def score_case(outcome: CaseOutcome, config: ScoringConfig) -> CaseScore:
     """Score of `outcome` under `config`.
 
-    It reads the metrics and the participant CPU time of the outcome only. Every factor and term is computed even
-    when the gate is 0, so that the score can be explained.
+    It reads the status, the metrics, and the participant CPU time of the outcome only. Every factor and term is
+    computed even when the gate is 0, so that the score can be explained.
     """
     m = outcome.metrics
     if m is None:
@@ -232,14 +233,17 @@ def score_case(outcome: CaseOutcome, config: ScoringConfig) -> CaseScore:
     gate = (
         outcome.status is CaseStatus.COMPLETED
         and m["safe"] is True
-        and m["termination_reason"] not in _STRATEGY_FAILURES
+        and m["termination_reason"] not in STRATEGY_FAILURES
     )
     tolerance_mps = config.accuracy.tolerance_fraction * m["target_delta_v_mps"]
     error_mps = abs(m["delta_v_error_mps"])
     accuracy = max(0.0, 1 - error_mps / tolerance_mps) if tolerance_mps > 0 else float(error_mps == 0)
     declared = m["completion_declared"] is True
     declaration = 1.0 if declared else config.declaration.undeclared_factor
-    completion_time = _clip(1 - m["completion_declared_time_s"] / m["time_limit_s"]) if declared else 0.0
+    declared_at_s, time_limit_s = m["completion_declared_time_s"], m["time_limit_s"]
+    completion_time = (
+        _clip(1 - declared_at_s / time_limit_s) if declared and declared_at_s is not None and time_limit_s > 0 else 0.0
+    )
     battery_span_wh = m["nominal_battery_capacity_wh"] - m["min_battery_energy_limit_wh"]
     battery_margin = (
         _clip((m["min_battery_energy_wh"] - m["min_battery_energy_limit_wh"]) / battery_span_wh)
@@ -247,7 +251,7 @@ def score_case(outcome: CaseOutcome, config: ScoringConfig) -> CaseScore:
         else 0.0
     )
     cpu_s = outcome.participant_cpu_s
-    if cpu_s is None:
+    if cpu_s is None or m["decision_period_s"] <= 0:
         cpu_time = 0.0
     elif cpu_s <= 0:
         cpu_time = 1.0

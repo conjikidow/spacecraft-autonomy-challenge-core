@@ -330,3 +330,16 @@ def test_case_scores_round_trip_and_reject_malformed_data():
         CaseScore.from_dict(data)
     with pytest.raises(ValueError, match="not a case score"):
         CaseScore.from_dict([])
+
+
+@pytest.mark.parametrize(
+    ("overrides", "term"),
+    [
+        ({"time_limit_s": 0.0}, "completion_time"),
+        ({"completion_declared_time_s": None}, "completion_time"),
+        ({"decision_period_s": 0.0}, "cpu_time"),
+    ],
+)
+def test_degenerate_metrics_give_no_credit_instead_of_failing(overrides, term):
+    score = score_case(outcome(metrics(**overrides)), CONFIG)
+    assert getattr(score, term) == 0.0

@@ -3,7 +3,7 @@
 [English](scoring.md) | **日本語**
 
 このページでは，評価した評価ケースと `Suite` の得点の計算方法（`spacecraft_ops_challenge.judge.scoring`）について説明します。
-得点は，評価ケースの実行の評価指標（[評価](evaluation.ja.md)を参照），参加者のプロセスの CPU 時間（[評価ケースの実行](runner.ja.md)を参照），得点の設定だけから決まります。
+得点は，評価ケースの状態と実行の評価指標（[評価](evaluation.ja.md)を参照），参加者のプロセスの CPU 時間（[評価ケースの実行](runner.ja.md)を参照），得点の設定だけから決まります。
 
 ```python
 from pathlib import Path

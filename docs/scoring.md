@@ -3,7 +3,7 @@
 **English** | [日本語](scoring.ja.md)
 
 This page describes how evaluated cases and suites are scored (`spacecraft_ops_challenge.judge.scoring`).
-A score depends only on the run metrics of a case (see [Evaluation](evaluation.md)),
+A score depends only on the status and the run metrics of a case (see [Evaluation](evaluation.md)),
 the CPU time of its participant process (see [Running Cases](runner.md)), and a scoring configuration.
 
 ```python
