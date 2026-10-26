@@ -408,7 +408,10 @@ def _core_reason(requirement: Requirement, core: InstalledDistribution | None) -
     if core is None:
         return "the evaluating environment supplies its own core package"
     if requirement.url:
-        matches = core.direct_url is not None and _installed_from(requirement.url, core.direct_url)
+        try:
+            matches = core.direct_url is not None and _installed_from(requirement.url, core.direct_url)
+        except ValueError:  # a URL that cannot be parsed matches nothing
+            matches = False
     else:
         matches = _satisfies(requirement, core)
     verdict = "matches" if matches else "differs from"
@@ -472,14 +475,14 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
         return _decision(Decision.UNSUPPORTED, f"its environment marker cannot be evaluated: {error}")
     if not applicable:
         return _decision(Decision.NOT_APPLICABLE, "its environment marker is false for the evaluating Python")
+    installed = environment(name)
+    if name == CORE_DISTRIBUTION:
+        return _decision(Decision.JUDGE_CONTROLLED, _core_reason(requirement, installed))
     if requirement.url:
         try:
             urlsplit(requirement.url)
         except ValueError as error:  # e.g. an invalid IPv6 host
             return _decision(Decision.UNSUPPORTED, f"its URL cannot be parsed: {error}")
-    installed = environment(name)
-    if name == CORE_DISTRIBUTION:
-        return _decision(Decision.JUDGE_CONTROLLED, _core_reason(requirement, installed))
 
     if requirement.url:
         url = urlsplit(requirement.url)
@@ -561,7 +564,8 @@ def base_constraints(
 
 def find_uv(env: Mapping[str, str] | None = None) -> str:
     """Path of the `uv` executable used to install the overlay, looked up on the `PATH` of `env` if given."""
-    uv = shutil.which("uv", path=None if env is None else env.get("PATH", ""))
+    # The search path that subprocesses with `env` use, including the default when it has no PATH.
+    uv = shutil.which("uv", path=os.pathsep.join(os.get_exec_path(env)))
     if uv is None:
         raise DependencyError("installing participant packages requires uv, which is not on PATH")
     return uv

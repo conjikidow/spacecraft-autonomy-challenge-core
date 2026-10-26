@@ -48,6 +48,7 @@ Each requirement gets one `Decision` against the evaluating environment:
   Otherwise it is installed if the file exists, and is `UNSUPPORTED` if not.
 - A direct reference by a relative path, such as `helper @ ../helper`, is `UNSUPPORTED`,
   because the path would be resolved against the evaluating machine instead of the participant's project.
+- A direct reference whose URL cannot be parsed is `UNSUPPORTED`, except for the core package.
 - URL requirements match only with the same subdirectory.
 - For an installed package that lacks the dependencies of a requested extra, only those dependencies are installed.
   Dependencies of extras are decided like any other requirement.

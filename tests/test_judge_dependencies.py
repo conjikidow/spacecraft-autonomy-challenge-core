@@ -878,3 +878,12 @@ def test_uv_is_found_on_the_path_of_the_given_environment(tmp_path):
     assert find_uv({"PATH": str(tmp_path)}) == str(uv)
     with pytest.raises(DependencyError, match="requires uv"):
         find_uv({"PATH": str(tmp_path / "nowhere")})
+
+
+def test_a_core_reference_with_an_unparsable_url_stays_judge_controlled():
+    core = InstalledDistribution(
+        "spacecraft-operations-challenge-core", "0.2.0", direct_url={"url": "https://example.com/core.git"}
+    )
+    decision = decide(Requirement("spacecraft-operations-challenge-core @ https://[bad"), {core.name: core}.get)
+    assert decision.decision is Decision.JUDGE_CONTROLLED
+    assert "differs from" in decision.reason
