@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 from judge_support import PROVIDER, case
 
@@ -6,6 +8,14 @@ from spacecraft_ops_challenge.judge import public_scenarios
 from spacecraft_ops_challenge.judge.cases import CaseError, EvaluationCase, ScenarioProvider, Suite
 from spacecraft_ops_challenge.modifiers import ThrusterEfficiency
 from spacecraft_ops_challenge.scenario import Scenario
+
+
+@pytest.fixture(autouse=True)
+def _restore_import_state(monkeypatch):
+    """Undo what loading a provider adds to the import path and the module cache."""
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    yield
+    sys.modules.pop("judge_test_provider", None)
 
 
 def module_level_factory(payload):
@@ -91,6 +101,8 @@ def test_provider_errors_are_case_errors():
         ScenarioProvider("no_such_module:f").load()
     with pytest.raises(CaseError, match="cannot import"):
         ScenarioProvider("judge_test_provider:missing", paths).load()
+    with pytest.raises(CaseError, match="is not callable"):
+        ScenarioProvider("judge_test_provider:TYPES", paths).load()
     with pytest.raises(CaseError, match="returned str for case 'x'"):
         ScenarioProvider("judge_test_provider:not_a_scenario", paths).build(case("x"))
     with pytest.raises(CaseError, match="failed for case 'x': RuntimeError"):

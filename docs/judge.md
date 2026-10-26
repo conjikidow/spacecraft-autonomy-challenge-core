@@ -1,4 +1,4 @@
-# Evaluating Submissions
+# Evaluation Cases
 
 **English** | [日本語](judge.ja.md)
 
@@ -46,7 +46,7 @@ The name of the suite is not part of the fingerprint.
 
 ## Scenario Providers
 
-A scenario provider is a module-level function that takes a payload and returns a core `Scenario`
+A scenario provider is a module-level function that takes a payload and returns a `Scenario`
 (see [Simulation](simulation.md)).
 A `ScenarioProvider` names it as `module:function`.
 Its `paths` are directories added to the import path when the provider is loaded, for code that is not installed;
@@ -54,13 +54,13 @@ they are stored as absolute paths.
 
 | Name | Meaning |
 |---|---|
-| `ScenarioProvider.from_callable(function)` | The provider of a module-level function, with the directory of its top-level package as `paths` |
+| `ScenarioProvider.from_callable(function)` | The provider of a module-level function, with the directory that contains its top-level package as `paths` |
 | `load()` | Imports the function, with `paths` appended to the import path of the current process |
 | `build(case)` | The scenario of `case`; `CaseError` if the function does not return a `Scenario` |
 | `check(cases)` | Builds the scenario of every case once, so that a broken provider fails early |
 | `to_dict()` | `{"target": ..., "paths": [...]}`; `ScenarioProvider.from_dict` is its inverse |
 
-`load` raises `CaseError` if the module or the function cannot be imported, or if the target is not callable.
+`load` raises `CaseError` if the module or the function is not found, or if the target is not callable.
 `check` also turns any other exception of the provider into a `CaseError` that names the failing case.
 A target that does not have the form `module:function` raises `CaseError`,
 and so does `from_callable` for a function that is not defined at the top level of an importable module,

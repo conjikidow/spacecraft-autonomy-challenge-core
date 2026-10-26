@@ -1,7 +1,7 @@
-"""Evaluation cases, suites, and the scenario providers that turn cases into core scenarios.
+"""Evaluation cases, suites, and the scenario providers that turn cases into scenarios.
 
 A case is an id plus an opaque JSON payload. Only a scenario provider, a function that maps a payload to
-a core `Scenario`, gives the payload its meaning; to everything else, the payload is opaque.
+a `Scenario`, gives the payload its meaning; to everything else, the payload is opaque.
 """
 
 import hashlib

@@ -1,4 +1,4 @@
-# 提出物の評価
+# 評価ケース
 
 [English](judge.md) | **日本語**
 
@@ -19,32 +19,32 @@ scenario = provider.build(suite.cases[0])
 
 ## 評価ケース
 
-`EvaluationCase` は，ID と，JSON データの辞書であるペイロードの組です。
-ペイロードの意味を解釈するのは `ScenarioProvider` だけで，それ以外にとってペイロードは中身を問わないデータです。
+`EvaluationCase` は，ID と，JSON データの辞書である `payload` の組です。
+`payload` の意味を解釈するのは `ScenarioProvider` だけで，それ以外にとって `payload` は中身を問わないデータです。
 
 - `EvaluationCase.of(case_id, payload)` は，JSON に変換できる辞書から評価ケースを作成します。
 - `EvaluationCase(case_id, payload_json)` は，JSON 文字列から評価ケースを作成します。
-- `payload` はペイロードの新しいコピーを返します。これを変更しても評価ケースは変わりません。
+- `payload` は内容の新しいコピーを返します。これを変更しても評価ケースは変わりません。
 - `to_dict()` は `{"id": ..., "payload": ...}` を返し，`EvaluationCase.from_dict` はその逆変換です。
 
 ID は空でない文字列でなければなりません。
-ペイロードは有限の値からなる JSON データの辞書でなければならず，`NaN` と無限大は拒否されます。
+`payload`は有限の値からなる JSON データの辞書でなければならず，`NaN` と無限大は拒否されます。
 
-ペイロードは，キーを整列し空白を除いた正規形の JSON として `payload_json` に格納されます。
-そのため，評価ケースは不変かつハッシュ可能で，ID とペイロードが等しい2つの評価ケースは，キーの順序によらず等しくなります。
+`payload`は，キーを整列し空白を除いた正規形の JSON として `payload_json` に格納されます。
+そのため，評価ケースは不変かつハッシュ可能で，ID と`payload`が等しい2つの評価ケースは，キーの順序によらず等しくなります。
 
 ## `Suite`
 
 `Suite` は，名前の付いた，順序のある評価ケースの集まりです。
 評価ケースの ID は重複してはなりません。
 
-`fingerprint` は，評価ケースの ID とペイロードを正規形の JSON にしたものの SHA-256 を，16進数の文字列で表したものです。
+`fingerprint` は，評価ケースの ID と`payload`を正規形の JSON にしたものの SHA-256 を，16進数の文字列で表したものです。
 評価ケースの内容を明かさずに，順序を含めて評価ケースを正確に識別できます。
 `Suite` の名前は `fingerprint` に含まれません。
 
 ## `ScenarioProvider`
 
-シナリオを作成する関数は，ペイロードを受け取ってコアの `Scenario`（[シミュレーション](simulation.ja.md)を参照）を返す，モジュールのトップレベルで定義された関数です。
+シナリオを作成する関数は，`payload` を受け取って `Scenario`（[シミュレーション](simulation.ja.md)を参照）を返す，モジュールのトップレベルで定義された関数です。
 `ScenarioProvider` は，この関数を `module:function` の形式で指定します。
 `paths` は，インストールされていないコードのために，関数を読み込むときにインポートパスへ追加するディレクトリで，絶対パスとして格納されます。
 
@@ -56,7 +56,7 @@ ID は空でない文字列でなければなりません。
 | `check(cases)` | すべての評価ケースのシナリオを1回ずつ作成し，壊れた `ScenarioProvider` を早い段階で検出します |
 | `to_dict()` | `{"target": ..., "paths": [...]}`。`ScenarioProvider.from_dict` はその逆変換です |
 
-`load` は，モジュールや関数をインポートできない場合と，指定先が呼び出し可能でない場合に `CaseError` を送出します。
+`load` は，モジュールや関数が見つからない場合と，指定先が呼び出し可能でない場合に `CaseError` を送出します。
 `check` は，関数が送出したそれ以外の例外も，失敗した評価ケースを示す `CaseError` に変換します。
 `module:function` の形式でない指定先に対しては `CaseError` が送出されます。
 `from_callable` も，`__main__` で定義された関数など，
@@ -74,6 +74,6 @@ scenarios = [PROVIDER.build(case) for case in suite.cases]
 ```
 
 - `PROVIDER` は，`spacecraft_ops_challenge.judge.public_scenarios:build_scenario` を指定する `ScenarioProvider` です。
-- ペイロードは `{"scenario": name}` または `{"scenario": name, "seed": seed}` です。
+- `payload`は `{"scenario": name}` または `{"scenario": name, "seed": seed}` です。
   `name` は `scenario_names()` のいずれかで，`seed` が `None` でなければシナリオのシードを置き換えます。
-- `public_suite()` は，公開シナリオごとに1つの評価ケースを持つ `Suite` `public` を返します。評価ケースの ID はシナリオ名です。
+- `public_suite()` は，公開シナリオごとに1つの評価ケースを持つ 名前が `public` の `Suite` を返します。評価ケースの ID はシナリオ名です。
