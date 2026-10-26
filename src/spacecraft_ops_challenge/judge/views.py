@@ -149,7 +149,7 @@ def dependencies_view(report: DependencyReport) -> mo.Html:
     summary = (
         f"Installed for this submission only: {', '.join(f'`{r}`' for r in installed)}."
         if installed
-        else "The evaluating environment already provides every package."
+        else "Nothing was installed for this submission; the table shows why for each requirement."
     )
     return mo.vstack(
         [

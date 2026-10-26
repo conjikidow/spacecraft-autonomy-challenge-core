@@ -146,7 +146,7 @@ def test_dependencies_view_with_a_plan():
 def test_dependencies_view_with_nothing_to_install():
     plan = DependencyPlan((RequirementDecision("numpy", "numpy", Decision.SATISFIED, "installed"),))
     html = dependencies_view(DependencyReport(plan)).text
-    assert "already provides every package" in html
+    assert "Nothing was installed for this submission" in html
     assert "Installer output" not in html
 
 
