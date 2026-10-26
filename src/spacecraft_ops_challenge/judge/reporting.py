@@ -1,7 +1,7 @@
 """Aggregate statistics, report rows, and the result document of an evaluation.
 
-Reports carry metrics only. No success policy, score, or pass threshold is applied, and no case payloads are
-included: cases are identified by their ids, suites by a fingerprint.
+Reports carry metrics and the scores of `spacecraft_ops_challenge.judge.scoring`. No pass threshold is applied, and
+no case payloads are included: cases are identified by their ids, suites by a fingerprint.
 """
 
 import json
@@ -16,6 +16,7 @@ from spacecraft_ops_challenge import __version__ as core_version
 from spacecraft_ops_challenge.judge.dependencies import DependencyReport
 from spacecraft_ops_challenge.judge.judging import SubmissionEvaluation
 from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_ops_challenge.judge.scoring import CaseScore, ScoringConfig, score_case, suite_score
 from spacecraft_ops_challenge.results import TerminationReason
 
 RESULT_FORMAT = "spacecraft-operations-challenge/result"
@@ -39,6 +40,12 @@ def _optional_float(value: object) -> float | None:
         return None
     if not isinstance(value, int | float) or isinstance(value, bool) or not math.isfinite(value):
         raise TypeError(f"expected a finite number or None, got {value!r}")
+    return float(value)
+
+
+def _float(value: object) -> float:
+    if not isinstance(value, int | float) or isinstance(value, bool):
+        raise TypeError(f"expected a number, got {value!r}")
     return float(value)
 
 
@@ -70,6 +77,8 @@ class SuiteSummary:
     mean_abs_delta_v_error_safe_declared_mps: float | None
     """Over runs that were safe and declared completion, or `None` without any."""
     median_abs_delta_v_error_safe_declared_mps: float | None
+    score: float
+    """Score of the suite from 0 to 100 (see `suite_score`)."""
 
     def to_dict(self) -> dict[str, Any]:
         """JSON-serializable dictionary of the summary."""
@@ -100,6 +109,7 @@ class SuiteSummary:
                 median_abs_delta_v_error_safe_declared_mps=_optional_float(
                     data["median_abs_delta_v_error_safe_declared_mps"]
                 ),
+                score=_float(data["score"]),
             )
         except (KeyError, TypeError, OverflowError) as error:
             raise ValueError(f"not a suite summary: {error!r}") from None
@@ -111,9 +121,10 @@ def _mean_median(values: Sequence[float]) -> tuple[float | None, float | None]:
     return statistics.fmean(values), statistics.median(values)
 
 
-def summarize(outcomes: Iterable[CaseOutcome]) -> SuiteSummary:
-    """Aggregate the outcomes of one suite."""
+def summarize(outcomes: Iterable[CaseOutcome], scoring: ScoringConfig | None = None) -> SuiteSummary:
+    """Aggregate the outcomes of one suite, scored with `scoring`, `ScoringConfig.default()` if it is `None`."""
     outcomes = tuple(outcomes)
+    scoring = ScoringConfig.default() if scoring is None else scoring
     metrics = [outcome.metrics for outcome in outcomes if outcome.metrics is not None]
     safe_declared = [m for m in metrics if m["safe"] and m["completion_declared"]]
     errors = [abs(m["delta_v_error_mps"]) for m in metrics]
@@ -134,6 +145,7 @@ def summarize(outcomes: Iterable[CaseOutcome]) -> SuiteSummary:
         median_abs_delta_v_error_mps=median,
         mean_abs_delta_v_error_safe_declared_mps=mean_safe_declared,
         median_abs_delta_v_error_safe_declared_mps=median_safe_declared,
+        score=suite_score(score_case(outcome, scoring) for outcome in outcomes),
     )
 
 
@@ -144,6 +156,7 @@ def summary_rows(summary: SuiteSummary) -> list[dict[str, str]]:
         return "-" if value is None else f"{value:.4f} m/s"
 
     rows = [
+        ("Score", f"{summary.score:.2f}"),
         ("Cases", str(summary.cases)),
         ("Completed runs", str(summary.completed)),
         ("Not completed (load error, crash, timeout)", str(summary.not_completed)),
@@ -164,12 +177,15 @@ def _yes_no(value: bool) -> str:
     return "yes" if value else "no"
 
 
-def case_rows(outcomes: Iterable[CaseOutcome]) -> list[dict[str, str]]:
-    """Human-readable per-case metric rows for a table. Cases without metrics show their status only."""
+def case_rows(outcomes: Iterable[CaseOutcome], scores: Iterable[CaseScore]) -> list[dict[str, str]]:
+    """Human-readable per-case rows of scores and metrics for a table, with `scores` in the order of `outcomes`.
+
+    Cases without metrics show their status and score only.
+    """
     rows = []
-    for outcome in outcomes:
+    for outcome, score in zip(outcomes, scores, strict=True):
         m = outcome.metrics
-        row = {"Case": outcome.case_id, "Status": outcome.status.value}
+        row = {"Case": outcome.case_id, "Status": outcome.status.value, "Score": f"{score.value:.4f}"}
         if m is None:
             row |= dict.fromkeys(
                 (
@@ -295,8 +311,8 @@ class EvaluationResult:
     Cases appear by id and the suite by its fingerprint; case payloads are left out. `to_dict` and `to_json`
     produce the result document, and `from_dict` and `from_json` read it back. A document may have been filtered
     before it was handed over: `participant` may be `None`, `outcomes` may cover only some of `case_ids`, and the
-    captured output and details may be empty. `summary` is stored with the document and never recomputed from
-    `outcomes`.
+    captured output and details may be empty. `summary`, including the suite score, and `scores` are stored with
+    the document and never recomputed from `outcomes`.
     """
 
     participant: str | None
@@ -313,12 +329,16 @@ class EvaluationResult:
     started_at: str
     """UTC start time in ISO 8601 format."""
     finished_at: str
+    scoring: ScoringConfig
+    """Configuration that scored the outcomes."""
     summary: SuiteSummary
     outcomes: tuple[CaseOutcome, ...]
+    scores: tuple[CaseScore, ...]
+    """Score of each outcome, in the order of `outcomes`."""
 
     @classmethod
     def from_evaluation(cls, evaluation: SubmissionEvaluation, *, participant: str | None = None) -> "EvaluationResult":
-        """The record of `evaluation`, with the summary of all its outcomes."""
+        """The record of `evaluation`, with the summary and the scores of all its outcomes."""
         return cls(
             participant=participant,
             submission_sha256=evaluation.submission_sha256,
@@ -330,8 +350,10 @@ class EvaluationResult:
             core_version=core_version,
             started_at=evaluation.started_at,
             finished_at=evaluation.finished_at,
-            summary=summarize(evaluation.outcomes),
+            scoring=evaluation.scoring,
+            summary=summarize(evaluation.outcomes, evaluation.scoring),
             outcomes=evaluation.outcomes,
+            scores=tuple(score_case(outcome, evaluation.scoring) for outcome in evaluation.outcomes),
         )
 
     def to_dict(self, *, include_worker_errors: bool = False) -> dict[str, Any]:
@@ -350,8 +372,12 @@ class EvaluationResult:
             "core_version": self.core_version,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
+            "scoring": self.scoring.to_dict(),
             "summary": self.summary.to_dict(),
-            "cases": [_case_dict(o, include_worker_errors=include_worker_errors) for o in self.outcomes],
+            "cases": [
+                _case_dict(outcome, include_worker_errors=include_worker_errors) | {"score": score.to_dict()}
+                for outcome, score in zip(self.outcomes, self.scores, strict=True)
+            ],
         }
 
     @classmethod
@@ -372,7 +398,8 @@ class EvaluationResult:
             cases = data["cases"]
             if not isinstance(cases, list):
                 raise TypeError(f"cases must be a list, got {cases!r}")
-            outcomes = tuple(_outcome(_mapping(case)) for case in cases)
+            cases = [_mapping(case) for case in cases]
+            outcomes = tuple(_outcome(case) for case in cases)
             _check_case_ids(_strings(suite["case_ids"]), outcomes)
             return cls(
                 participant=None if participant is None else _string(participant),
@@ -385,8 +412,10 @@ class EvaluationResult:
                 core_version=_string(data["core_version"]),
                 started_at=_string(data["started_at"]),
                 finished_at=_string(data["finished_at"]),
+                scoring=ScoringConfig.from_dict(_mapping(data["scoring"])),
                 summary=SuiteSummary.from_dict(_mapping(data["summary"])),
                 outcomes=outcomes,
+                scores=tuple(CaseScore.from_dict(_mapping(case["score"])) for case in cases),
             )
         except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as error:
             raise ResultFormatError(f"malformed result document: {error!r}") from None

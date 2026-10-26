@@ -20,6 +20,7 @@ from spacecraft_ops_challenge.judge.reporting import (
     summary_rows,
 )
 from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_ops_challenge.judge.scoring import ScoringConfig, score_case, suite_score
 
 
 def metrics(reason="COMPLETION_DECLARED", *, safe=True, error=0.0):
@@ -80,7 +81,17 @@ def test_summary_counts_and_statistics():
     assert summary.median_abs_delta_v_error_mps == pytest.approx(2.0)
     assert summary.mean_abs_delta_v_error_safe_declared_mps == pytest.approx(0.2)
     assert summary.median_abs_delta_v_error_safe_declared_mps == pytest.approx(0.2)
+    assert summary.score == suite_score(score_case(o, ScoringConfig.default()) for o in OUTCOMES)
+    assert 0 < summary.score < 100
     assert SuiteSummary.from_dict(json.loads(json.dumps(summary.to_dict()))) == summary
+
+
+def test_summary_score_uses_the_given_configuration():
+    data = ScoringConfig.default().to_dict()
+    data["accuracy"]["tolerance_fraction"] = 1.0
+    wide = summarize(OUTCOMES, ScoringConfig.from_dict(data))
+    assert wide.score > summarize(OUTCOMES).score
+    assert {row["Statistic"]: row["Value"] for row in summary_rows(wide)}["Score"] == f"{wide.score:.2f}"
 
 
 def test_summary_without_completed_runs_has_no_statistics():
@@ -91,6 +102,7 @@ def test_summary_without_completed_runs_has_no_statistics():
     rows = {row["Statistic"]: row["Value"] for row in summary_rows(summary)}
     assert rows["Mean |delta-v error|, completed runs"] == "-"
     assert rows["Not completed (load error, crash, timeout)"] == "1"
+    assert rows["Score"] == "0.00"
 
 
 @pytest.mark.parametrize(
@@ -101,6 +113,8 @@ def test_summary_without_completed_runs_has_no_statistics():
         {"statuses": ["COMPLETED"]},
         {"termination_reasons": {"TIME_LIMIT": 1.5}},
         {"mean_abs_delta_v_error_mps": "0.1"},
+        {"score": None},
+        {"score": "50"},
     ],
 )
 def test_malformed_summaries_are_rejected(change):
@@ -115,8 +129,13 @@ def test_incomplete_summaries_are_rejected():
         SuiteSummary.from_dict(data)
 
 
+SCORES = tuple(score_case(o, ScoringConfig.default()) for o in OUTCOMES)
+
+
 def test_case_rows_show_metrics_and_never_a_verdict():
-    rows = case_rows(OUTCOMES)
+    rows = case_rows(OUTCOMES, SCORES)
+    assert [row["Score"] for row in rows] == [f"{score.value:.4f}" for score in SCORES]
+    assert rows[5]["Score"] == "0.0000"
     assert rows[0]["Delta-v error [m/s]"] == "+0.1000"
     assert rows[0]["CPU [s]"] == "0.25"
     assert rows[3]["Safe"] == "no"
@@ -127,6 +146,8 @@ def test_case_rows_show_metrics_and_never_a_verdict():
     text = json.dumps(rows).upper()
     assert "PASS" not in text
     assert "FAIL" not in text
+    with pytest.raises(ValueError, match="shorter"):
+        case_rows(OUTCOMES, SCORES[:-1])
 
 
 def test_problem_outcomes_and_missing_modules():
@@ -143,12 +164,15 @@ EVALUATION = SubmissionEvaluation(
     dependencies=DependencyReport(plan=None),
     started_at="2026-01-01T00:00:00+00:00",
     finished_at="2026-01-01T00:01:00+00:00",
+    scoring=ScoringConfig.default(),
 )
 
 
 def test_result_records_the_evaluation_without_payloads():
     result = EvaluationResult.from_evaluation(EVALUATION, participant="Team A")
     assert result.summary == summarize(OUTCOMES)
+    assert result.scoring == ScoringConfig.default()
+    assert result.scores == SCORES
     assert result.case_ids == ("a", "b", "c", "d", "e", "f", "g")
     document = result.to_dict()
     assert list(document) == [
@@ -161,6 +185,7 @@ def test_result_records_the_evaluation_without_payloads():
         "core_version",
         "started_at",
         "finished_at",
+        "scoring",
         "summary",
         "cases",
     ]
@@ -169,7 +194,10 @@ def test_result_records_the_evaluation_without_payloads():
     assert document["submission"] == {"sha256": "0" * 64, "skipped_entries": ["README.md"]}
     assert document["suite"]["fingerprint"] == SUITE.fingerprint
     assert "aaa" not in json.dumps(document)
-    assert "score" not in json.dumps(document).lower()
+    assert document["scoring"] == ScoringConfig.default().to_dict()
+    assert document["summary"]["score"] == result.summary.score
+    assert [case["score"] for case in document["cases"]] == [score.to_dict() for score in SCORES]
+    assert [case["score"]["value"] for case in document["cases"]][4:] == [0.0, 0.0, 0.0]
     assert EvaluationResult.from_evaluation(EVALUATION).participant is None
 
 
@@ -202,6 +230,8 @@ def test_filtered_documents_load_and_keep_their_stored_summary():
     assert all(o.stdout == o.stderr == o.detail == "" for o in loaded.outcomes)
     assert loaded.case_ids == result.case_ids
     assert loaded.summary == result.summary != summarize(loaded.outcomes)
+    assert loaded.summary.score == result.summary.score != summarize(loaded.outcomes).score
+    assert loaded.scores == result.scores[:2]
     assert loaded.to_dict(include_worker_errors=True) == document
 
 
@@ -253,6 +283,17 @@ _DELETE = object()
         (("cases", 0), "a"),
         (("cases", 0, "status"), "PASSED"),
         (("cases", 0, "stdout"), _DELETE),
+        (("scoring",), _DELETE),
+        (("scoring",), None),
+        (("scoring", "version"), 2),
+        (("scoring", "weights", "base"), 0.5),
+        (("scoring", "weights", "extra"), 0.0),
+        (("summary", "score"), _DELETE),
+        (("cases", 0, "score"), _DELETE),
+        (("cases", 0, "score"), 0.5),
+        (("cases", 0, "score", "value"), 1.5),
+        (("cases", 0, "score", "gate"), True),
+        (("cases", 0, "score", "cpu_time"), _DELETE),
     ],
 )
 def test_malformed_documents_are_rejected(path, value):

@@ -13,7 +13,7 @@ from spacecraft_ops_challenge.judge.reporting import EvaluationResult
 
 evaluation = check_submission(Path("submission.zip").read_bytes())
 result = EvaluationResult.from_evaluation(evaluation, participant="example")
-print(result.summary)
+print(result.summary.score)
 Path("result.json").write_text(result.to_json(), encoding="utf-8")
 ```
 
@@ -40,6 +40,7 @@ Both take these keyword arguments:
 | Argument | Meaning |
 |---|---|
 | `timeout_s` | Wall-clock limit of one case (default `DEFAULT_CASE_TIMEOUT_S`, 300 s) |
+| `scoring` | `ScoringConfig` that scores the outcomes (default `None`, which means `ScoringConfig.default()`; see [Scoring](scoring.md)) |
 | `on_status` | Called with a short progress message before the packages are prepared and before the cases run |
 | `on_case_done` | Called with each `CaseOutcome` as soon as it is available |
 
@@ -57,10 +58,12 @@ Both return a `SubmissionEvaluation` with these fields:
 | `skipped_entries` | Archive entries that were not extracted: those outside `submission/`, except `pyproject.toml` |
 | `dependencies` | The `DependencyReport` of the participant's packages |
 | `started_at`, `finished_at` | UTC times in ISO 8601 format, to the second |
+| `scoring` | The `ScoringConfig` that scores the outcomes |
 
 ## Summary Statistics
 
-`summarize(outcomes)` returns a `SuiteSummary` over the outcomes of one suite:
+`summarize(outcomes, scoring=None)` returns a `SuiteSummary` over the outcomes of one suite,
+scored with `scoring` or, if it is `None`, with `ScoringConfig.default()`:
 
 | Field | Meaning |
 |---|---|
@@ -75,25 +78,28 @@ Both return a `SubmissionEvaluation` with these fields:
 | `statuses` | Number of cases per `CaseStatus` |
 | `mean_abs_delta_v_error_mps`, `median_abs_delta_v_error_mps` | Mean and median of the absolute delta-v error over completed runs, or `None` without any |
 | `mean_abs_delta_v_error_safe_declared_mps`, `median_abs_delta_v_error_safe_declared_mps` | The same over runs that were safe and declared completion, or `None` without any |
+| `score` | Suite score from 0 to 100 (see [Scoring](scoring.md)) |
 
 `to_dict()` returns JSON-serializable data, and `SuiteSummary.from_dict` is its inverse;
 `from_dict` raises `ValueError` for data that does not describe a summary.
 
-For display in a table, `summary_rows(summary)` and `case_rows(outcomes)` return rows of human-readable strings.
-`case_rows` has one row per case with its status, termination reason, main metrics, wall-clock duration,
-and CPU time of the participant process; a value that is not available shows as `-`.
+For display in a table, `summary_rows(summary)` and `case_rows(outcomes, scores)` return rows of human-readable strings.
+`summary_rows` starts with the suite score.
+`case_rows` takes the `CaseScore` of each outcome in the same order and has one row per case with its status, score,
+termination reason, main metrics, wall-clock duration, and CPU time of the participant process;
+a value that is not available shows as `-`.
 `problem_outcomes(outcomes)` returns the outcomes worth a closer look:
 cases that did not complete and completed runs that ended with a strategy failure.
 `missing_modules(outcomes)` returns the sorted names of the modules that the submission failed to import.
 
-No score, success policy, or pass threshold is applied anywhere:
-the summary and the rows report counts and metrics only.
+No pass threshold is applied anywhere: the summary and the rows report scores, counts, and metrics only.
 
 ## Result Documents
 
 An `EvaluationResult` is the record of one evaluation, complete enough to aggregate results without rerunning them.
 `EvaluationResult.from_evaluation(evaluation, participant=None)` creates it from a `SubmissionEvaluation`,
-with `summarize` over all its outcomes as `summary` and the version of this package as `core_version`.
+with `summarize` over all its outcomes as `summary`, the `CaseScore` of each outcome as `scores`,
+the `scoring` configuration of the evaluation, and the version of this package as `core_version`.
 `participant` is an optional name for whoever submitted the archive.
 
 The record identifies cases only by their ids and the suite by its fingerprint: case payloads are never included.
@@ -118,8 +124,9 @@ The document is a JSON object with these keys:
 | `suite` | `{"name": ..., "fingerprint": ..., "case_ids": [...]}` with the ids of every case of the suite, in order |
 | `core_version` | The version of this package that ran the evaluation |
 | `started_at`, `finished_at` | UTC times in ISO 8601 format |
-| `summary` | `SuiteSummary.to_dict()` |
-| `cases` | `CaseOutcome.to_dict()` of each outcome (see [Running Cases](runner.md)), without `worker_error` unless `include_worker_errors` is true |
+| `scoring` | `ScoringConfig.to_dict()` of the configuration that scored the outcomes |
+| `summary` | `SuiteSummary.to_dict()`, including the suite score as `score` |
+| `cases` | `CaseOutcome.to_dict()` of each outcome (see [Running Cases](runner.md)) with its `CaseScore.to_dict()` added as `score`, without `worker_error` unless `include_worker_errors` is true |
 
 A document may have been filtered before it is loaded, for example to leave out details for another reader.
 Besides `worker_error`, the installer commands and output in `dependencies` show paths of the evaluating machine.
@@ -127,14 +134,15 @@ Besides `worker_error`, the installer commands and output in `dependencies` show
 empty strings for `stdout`, `stderr`, and `detail`, and cases without `worker_error`.
 The `cases` must still be distinct cases of the suite, in the order of `case_ids`,
 with metrics exactly for `COMPLETED` cases, and the counts of the summary must not be negative.
-The stored `summary` is authoritative: it is read as it is and never recomputed from `cases`.
+The stored `summary` and case scores are authoritative: they are read as they are and never recomputed from `cases`.
 
 `from_dict` and `from_json` raise `ResultFormatError`, a subclass of `ValueError`,
 for a document of another `format` or `format_version`, for text that is not JSON, for numbers that are not finite,
-and for missing keys or values of the wrong type in the document, its `summary`, its `cases`,
+and for missing keys or values of the wrong type in the document, its `summary`, its `cases`, their scores,
 and the metrics of the cases that the report functions read.
+`scoring` must be a valid scoring configuration (see [Scoring](scoring.md)).
 The dependency report is checked for its structure only.
-Keys that the format does not define are ignored.
+Keys that the format does not define are ignored, except in `scoring`, where they are rejected.
 
 Loading a document and calling `to_dict()` again gives the same document,
 with `include_worker_errors=True` if the document has `worker_error` in its cases.

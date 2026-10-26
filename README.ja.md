@@ -103,6 +103,7 @@ spacecraft-ops-challenge scenarios
 - [参加者のパッケージ](docs/dependencies.ja.md)：提出物が必要とするパッケージの uv による再現
 - [評価ケースの実行](docs/runner.ja.md)：信頼されたプロセスと参加者のプロセスに分けた，評価ケースごとの提出物の実行
 - [提出物の評価](docs/evaluating.ja.md)：提出アーカイブの評価，集計統計，JSON の結果文書
+- [得点](docs/scoring.ja.md)：得点の計算式とその設定
 
 ## 開発
 
