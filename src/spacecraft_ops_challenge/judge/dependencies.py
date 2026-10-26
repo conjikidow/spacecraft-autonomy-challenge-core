@@ -13,6 +13,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -20,7 +21,7 @@ from enum import StrEnum
 from importlib import metadata
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlsplit, urlunsplit
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 from urllib.request import url2pathname
 
 from packaging.markers import Marker
@@ -169,8 +170,8 @@ class DependencyPlan:
 def _load_pyproject(data: bytes) -> dict[str, Any]:
     try:
         return tomllib.loads(data.decode("utf-8"))
-    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
-        raise DependencyError(f"the participant pyproject.toml cannot be read: {error}") from error
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError, RecursionError) as error:
+        raise DependencyError(f"the participant pyproject.toml cannot be read: {error!r}") from error
 
 
 def parse_requirements(data: bytes) -> tuple[Requirement, ...]:
@@ -185,7 +186,7 @@ def parse_requirements(data: bytes) -> tuple[Requirement, ...]:
     for entry in dependencies:
         try:
             requirements.append(Requirement(entry))
-        except InvalidRequirement as error:
+        except (InvalidRequirement, RecursionError) as error:
             raise DependencyError(
                 f"invalid requirement {entry!r} in the participant pyproject.toml: {error}"
             ) from error
@@ -269,7 +270,7 @@ def _apply_source(requirement: Requirement, source: object) -> Requirement:
         raise _UnsupportedSourceError("is not a table")
     try:
         return _apply_source_table(requirement, source)
-    except (ValueError, KeyError) as error:  # invalid markers or requirements, markers that cannot be evaluated
+    except (ValueError, KeyError, RecursionError) as error:  # invalid or unevaluable markers or requirements
         raise _UnsupportedSourceError(f"{_describe(source)} is invalid: {error}") from None
     except _UnsupportedSourceError as error:
         raise _UnsupportedSourceError(f"{_describe(source)} {error}") from None
@@ -327,7 +328,7 @@ def _installed_from_local_file(distribution: InstalledDistribution) -> bool:
 
 
 def _local_path(url: str) -> Path:
-    return Path(url2pathname(unquote(urlsplit(url).path)))
+    return Path(url2pathname(urlsplit(url).path))
 
 
 def _satisfies(requirement: Requirement, distribution: InstalledDistribution) -> bool:
@@ -489,7 +490,11 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
                 return _installed(
                     installed, f"a local package already installed in the evaluating environment ({installed.version})"
                 )
-            if not _local_path(requirement.url).exists():
+            try:
+                present = _local_path(requirement.url).exists()
+            except OSError as error:  # e.g. a directory that the evaluating user cannot read
+                return _decision(Decision.UNSUPPORTED, f"a local file that cannot be read here: {error}")
+            if not present:
                 return _decision(
                     Decision.UNSUPPORTED,
                     "a local file of the participant's machine that the evaluating machine does not have; "
@@ -631,7 +636,7 @@ def install_overlay(
     """Install `requirements` into the new directory `target` without touching the evaluating environment.
 
     The installation is first constrained to the versions of the environment's packages (default:
-    `base_constraints`), and retried without them if that cannot be resolved. The requirements in `keep`, which
+    `base_constraints`), and retried without them if that fails. The requirements in `keep`, which
     the participant's `pyproject.toml` also states, constrain both attempts, so the overlay never violates them.
     The overlay must not provide the distributions named in `preserve`, which are installed from a URL. Raises
     `DependencyError` if the installation fails or would replace the core package.
@@ -641,64 +646,67 @@ def install_overlay(
     # Absolute, because the installer runs in `workdir` and would resolve relative paths against it again.
     target = Path(target).resolve()
     target.mkdir(parents=True)
-    workdir = target.parent
-    uv = find_uv() if uv is None else uv
-    requirements_file = workdir / "overlay-requirements.txt"
-    requirements_file.write_text("\n".join(requirements) + "\n", encoding="utf-8")
-    if constraints is None:
-        constraints = base_constraints(Requirement(entry).name for entry in requirements)
-    constraints_file = workdir / "overlay-constraints.txt"
-    constraints_file.write_text("".join(f"{pin}\n" for pin in (*keep, *constraints)), encoding="utf-8")
-    kept_file = workdir / "overlay-kept.txt"
-    if keep:
-        kept_file.write_text("".join(f"{requirement}\n" for requirement in keep), encoding="utf-8")
+    # The installer's files and working directory are private to this call, so that calls for targets in the same
+    # directory never read each other's files.
+    with tempfile.TemporaryDirectory(prefix=f".{target.name}-install-", dir=target.parent) as private:
+        workdir = Path(private)
+        uv = find_uv() if uv is None else uv
+        requirements_file = workdir / "overlay-requirements.txt"
+        requirements_file.write_text("\n".join(requirements) + "\n", encoding="utf-8")
+        if constraints is None:
+            constraints = base_constraints(Requirement(entry).name for entry in requirements)
+        constraints_file = workdir / "overlay-constraints.txt"
+        constraints_file.write_text("".join(f"{pin}\n" for pin in (*keep, *constraints)), encoding="utf-8")
+        kept_file = workdir / "overlay-kept.txt"
+        if keep:
+            kept_file.write_text("".join(f"{requirement}\n" for requirement in keep), encoding="utf-8")
 
-    attempts = []
-    for constrained in (True, False):
-        command = install_command(
-            uv,
-            target,
-            requirements_file,
-            python=python,
-            constraints_file=constraints_file if constrained else (kept_file if keep else None),
-        )
-        try:
-            completed = run(
-                command,
-                cwd=workdir,
-                env=None if env is None else dict(env),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=timeout_s,
-                check=False,
+        attempts = []
+        for constrained in (True, False):
+            command = install_command(
+                uv,
+                target,
+                requirements_file,
+                python=python,
+                constraints_file=constraints_file if constrained else (kept_file if keep else None),
             )
-        except subprocess.TimeoutExpired as error:
-            raise DependencyError(f"installing participant packages took longer than {timeout_s:g} s") from error
-        attempts.append(InstallAttempt(tuple(command), completed.returncode, completed.stdout or ""))
-        if completed.returncode == 0:
-            break
-        shutil.rmtree(target)
-        target.mkdir()
-    else:
-        raise DependencyError(f"installing participant packages failed:\n{attempts[-1].output}")
-    shadowed = sorted({entry.name.split(".")[0] for entry in target.iterdir()} & PROTECTED_MODULES)
-    if shadowed:
-        raise DependencyError(
-            f"the participant packages would replace modules of the core package: {', '.join(shadowed)}"
-        )
-    installed = {
-        canonicalize_name(entry.name.removesuffix(".dist-info").rpartition("-")[0])
-        for entry in target.glob("*.dist-info")
-    }
-    replaced = sorted(installed & {canonicalize_name(name) for name in preserve})
-    if replaced:
-        raise DependencyError(
-            "the participant packages would replace packages that the participant's pyproject.toml names by URL "
-            f"and the evaluating environment already has from it: {', '.join(replaced)}"
-        )
-    return Overlay(target, tuple(attempts))
+            try:
+                completed = run(
+                    command,
+                    cwd=workdir,
+                    env=None if env is None else dict(env),
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    timeout=timeout_s,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as error:
+                raise DependencyError(f"installing participant packages took longer than {timeout_s:g} s") from error
+            attempts.append(InstallAttempt(tuple(command), completed.returncode, completed.stdout or ""))
+            if completed.returncode == 0:
+                break
+            shutil.rmtree(target)
+            target.mkdir()
+        else:
+            raise DependencyError(f"installing participant packages failed:\n{attempts[-1].output}")
+        shadowed = sorted({entry.name.split(".")[0] for entry in target.iterdir()} & PROTECTED_MODULES)
+        if shadowed:
+            raise DependencyError(
+                f"the participant packages would replace modules of the core package: {', '.join(shadowed)}"
+            )
+        installed = {
+            canonicalize_name(entry.name.removesuffix(".dist-info").rpartition("-")[0])
+            for entry in target.glob("*.dist-info")
+        }
+        replaced = sorted(installed & {canonicalize_name(name) for name in preserve})
+        if replaced:
+            raise DependencyError(
+                "the participant packages would replace packages that the participant's pyproject.toml names by URL "
+                f"and the evaluating environment already has from it: {', '.join(replaced)}"
+            )
+        return Overlay(target, tuple(attempts))
 
 
 @dataclass(frozen=True, slots=True)

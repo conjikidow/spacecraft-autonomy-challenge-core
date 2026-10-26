@@ -605,7 +605,9 @@ def test_install_overlay_constrains_to_the_environment_packages(tmp_path):
     assert call["command"][:4] == ["/bin/uv", "pip", "install", "--target"]
     assert call["requirements"] == "scikit-learn>=1.5\npolars>=1.20\n"
     assert call["constraints"] == "numpy==2.2.6\n"
-    assert call["cwd"] == tmp_path
+    assert call["cwd"].parent == tmp_path
+    assert call["cwd"].name.startswith(".overlay-install-")
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["overlay"]  # the installer's files are removed
     assert call["check"] is False
     assert [attempt.returncode for attempt in overlay.attempts] == [0]
 
@@ -619,7 +621,7 @@ def test_install_overlay_resolves_a_relative_target(tmp_path, monkeypatch):
     (call,) = installer.calls
     command = call["command"]
     assert overlay.path == tmp_path / "work" / "overlay"
-    assert call["cwd"] == tmp_path / "work"
+    assert call["cwd"].parent == tmp_path / "work"
     assert command[command.index("--target") + 1] == str(tmp_path / "work" / "overlay")
     assert Path(command[command.index("--requirements") + 1]).is_absolute()
 
@@ -832,3 +834,31 @@ def test_install_overlay_passes_the_given_environment(tmp_path):
     )
     (call,) = installer.calls
     assert call["env"] == {"A": "1"}
+
+
+def test_local_files_that_cannot_be_checked_are_unsupported(monkeypatch):
+    def denied(self):
+        raise PermissionError(13, "Permission denied", str(self))
+
+    monkeypatch.setattr(Path, "exists", denied)
+    decision = decide(Requirement("helper @ file:///home/someone/helper-0.1-py3-none-any.whl"), {}.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "cannot be read here" in decision.reason
+
+
+def test_deeply_nested_input_is_a_dependency_error():
+    with pytest.raises(DependencyError, match="cannot be read"):
+        parse_requirements(b"x = " + b"[" * 5000 + b"]" * 5000)
+    with pytest.raises(DependencyError):
+        parse_requirements(
+            b'[project]\ndependencies = ["lib; ' + b"(" * 5000 + b"python_version > '3'" + b")" * 5000 + b'"]'
+        )
+
+
+def test_installer_files_of_targets_in_the_same_directory_are_separate(tmp_path):
+    installer = FakeInstaller(0, 0)
+    for name in ("a", "b"):
+        install_overlay([name], tmp_path / name, uv="/bin/uv", python="/py", constraints=[], run=installer)
+    first, second = (call["cwd"] for call in installer.calls)
+    assert first != second
+    assert [call["requirements"] for call in installer.calls] == ["a\n", "b\n"]
