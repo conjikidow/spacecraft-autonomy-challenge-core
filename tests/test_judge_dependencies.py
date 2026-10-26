@@ -372,6 +372,10 @@ spacecraft-operations-challenge-core = {{ git = "{CORE_URL}", tag = "v0.1.2" }}
             "lib[cli] @ git+https://example.com/mono.git@v1#subdirectory=libs/lib",
         ),
         (
+            '{ git = "git+https://example.com/lib.git", tag = "v1" }',
+            "lib[cli] @ git+https://example.com/lib.git@v1",
+        ),
+        (
             '{ url = "https://example.com/lib-1.0.tar.gz" }',
             "lib[cli] @ https://example.com/lib-1.0.tar.gz",
         ),
@@ -452,6 +456,12 @@ lib = { git = "https://example.com/lib.git", tag = "v1" }
         ('{ url = "https://example.com/lib.tar.gz", extra = "cli" }', "has keys that are not supported: extra"),
         ('{ git = "https://example.com/lib.git", tag = 1 }', "has an invalid 'tag'"),
         ('{ git = "https://example.com/lib.git", marker = "nonsense" }', "is invalid"),
+        ('{ git = "https://example.com/lib.git", marker = "python_version ~= \'abc\'" }', "is invalid"),
+        ('{ git = "https://example.com/lib.git", tag = "v1 ; sys_platform == \'none\'" }', "has an invalid 'tag'"),
+        ('{ git = "https://example.com/lib.git", tag = "v1#subdirectory=other" }', "has an invalid 'tag'"),
+        ("{ git = \"https://example.com/lib.git ; sys_platform == 'none'\" }", "has an invalid 'git'"),
+        ('{ git = "https://example.com/lib.git", subdirectory = "a&egg=b" }', "has an invalid 'subdirectory'"),
+        ('{ url = "https://example.com/lib.tar.gz#egg=other" }', "has an invalid 'url'"),
     ],
 )
 def test_unsupported_sources(source, reason):
@@ -735,3 +745,9 @@ def test_decisions_without_constraints_round_trip_exactly():
     assert DependencyPlan.from_dict(plan.to_dict()) == plan
     attempt = InstallAttempt(("uv", "pip"), 2, "error")
     assert InstallAttempt.from_dict(attempt.to_dict()) == attempt
+
+
+def test_a_marker_that_cannot_be_evaluated_is_unsupported():
+    decision = decide(Requirement("lib; python_version ~= 'abc'"), {}.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "its environment marker cannot be evaluated" in decision.reason

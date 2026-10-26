@@ -38,7 +38,7 @@ Each requirement gets one `Decision` against the evaluating environment:
 | `JUDGE_CONTROLLED` | It is `spacecraft-operations-challenge-core` |
 | `SATISFIED` | The installed version and extras satisfy it, or it is installed from the same URL |
 | `INSTALL` | It is missing, its version or extras are not satisfied, or it names another URL |
-| `UNSUPPORTED` | It, its `[tool.uv.sources]` entry, or a dependency of a requested extra cannot be reproduced |
+| `UNSUPPORTED` | It, its `[tool.uv.sources]` entry, or a dependency of a requested extra cannot be reproduced, or its environment marker cannot be evaluated |
 
 - The evaluating environment always uses its own core package,
   and the reason says whether the participant's reference to the core matches it.
@@ -70,6 +70,9 @@ Without the source, the name alone could resolve to an unrelated package of the 
 
 - The rewritten requirement keeps the extras and the environment marker of the original requirement.
   It drops a version specifier, which a URL requirement cannot carry.
+- A `git` URL may start with `git+`.
+  URLs must not contain whitespace, `;`, or `#`, and revisions and subdirectories must not contain `@`, `&`, or `?` either;
+  such an entry is `UNSUPPORTED` rather than turned into a different requirement.
 - An entry with a `marker` applies only if the marker is true for the evaluating interpreter;
   otherwise the requirement is decided as written.
 - The decision of a rewritten requirement names the rewritten requirement, and its reason names the original one.

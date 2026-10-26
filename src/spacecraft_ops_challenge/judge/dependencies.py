@@ -23,7 +23,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlsplit, urlunsplit
 from urllib.request import url2pathname
 
-from packaging.markers import InvalidMarker, Marker
+from packaging.markers import Marker
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import InvalidSpecifier
 from packaging.utils import canonicalize_name
@@ -216,9 +216,18 @@ def _describe(source: Mapping[str, Any]) -> str:
     return "{ " + ", ".join(f"{key} = {json.dumps(value)}" for key, value in source.items()) + " }"
 
 
-def _string(source: Mapping[str, Any], key: str) -> str | None:
+_URL_UNSAFE = frozenset(" \t\n;#")
+_PART_UNSAFE = _URL_UNSAFE | frozenset("@&?")
+
+
+def _string(source: Mapping[str, Any], key: str, unsafe: frozenset[str] = frozenset()) -> str | None:
+    """The string value of `key`, which must not contain the characters `unsafe`, or `None` if it is absent.
+
+    The values become part of a requirement string, where characters such as `;` and `#` would start an
+    environment marker or a URL fragment.
+    """
     value = source.get(key)
-    if value is not None and (not isinstance(value, str) or not value):
+    if value is not None and (not isinstance(value, str) or not value or unsafe.intersection(value)):
         raise _UnsupportedSourceError(f"has an invalid {key!r}")
     return value
 
@@ -227,17 +236,17 @@ def _source_url(source: Mapping[str, Any]) -> str:
     """The PEP 508 URL of a git or URL source."""
     if "git" in source:
         unknown = sorted(source.keys() - _GIT_KEYS)
-        url = f"git+{_string(source, 'git')}"
-        revisions = [revision for key in ("tag", "branch", "rev") if (revision := _string(source, key))]
+        url = f"git+{(_string(source, 'git', _URL_UNSAFE) or '').removeprefix('git+')}"
+        revisions = [revision for key in ("tag", "branch", "rev") if (revision := _string(source, key, _PART_UNSAFE))]
         if len(revisions) > 1:
             raise _UnsupportedSourceError("sets more than one of 'rev', 'tag', and 'branch'")
         url += "".join(f"@{revision}" for revision in revisions)
     else:
         unknown = sorted(source.keys() - _URL_KEYS)
-        url = _string(source, "url") or ""
+        url = _string(source, "url", _URL_UNSAFE) or ""
     if unknown:
         raise _UnsupportedSourceError(f"has keys that are not supported: {', '.join(unknown)}")
-    subdirectory = _string(source, "subdirectory")
+    subdirectory = _string(source, "subdirectory", _PART_UNSAFE)
     return f"{url}#subdirectory={subdirectory}" if subdirectory else url
 
 
@@ -254,7 +263,7 @@ def _apply_source(requirement: Requirement, source: object) -> Requirement:
         raise _UnsupportedSourceError("is not a table")
     try:
         return _apply_source_table(requirement, source)
-    except (InvalidMarker, InvalidRequirement) as error:
+    except ValueError as error:  # InvalidMarker, InvalidRequirement, and markers that cannot be evaluated
         raise _UnsupportedSourceError(f"{_describe(source)} is invalid: {error}") from None
     except _UnsupportedSourceError as error:
         raise _UnsupportedSourceError(f"{_describe(source)} {error}") from None
@@ -278,7 +287,10 @@ def _apply_source_table(requirement: Requirement, source: Mapping[str, Any]) -> 
     url = _source_url(source)
     extras = f"[{','.join(sorted(requirement.extras))}]" if requirement.extras else ""
     marker = f" ; {requirement.marker}" if requirement.marker is not None else ""
-    return Requirement(f"{requirement.name}{extras} @ {url}{marker}")
+    rewritten = Requirement(f"{requirement.name}{extras} @ {url}{marker}")
+    if rewritten.url != url or str(rewritten.marker) != str(requirement.marker):
+        raise _UnsupportedSourceError("cannot be written as a requirement URL")
+    return rewritten
 
 
 def _without_fragment(url: str) -> str:
@@ -438,7 +450,11 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
             return _decision(Decision.INSTALL, reason, missing, constraints, preserved)
         return _decision(Decision.SATISFIED, reason, (), constraints, preserved)
 
-    if requirement.marker is not None and not requirement.marker.evaluate({"extra": ""}):
+    try:
+        applicable = requirement.marker is None or requirement.marker.evaluate({"extra": ""})
+    except ValueError as error:  # a comparison or an environment name that the marker language does not define
+        return _decision(Decision.UNSUPPORTED, f"its environment marker cannot be evaluated: {error}")
+    if not applicable:
         return _decision(Decision.NOT_APPLICABLE, "its environment marker is false for the evaluating Python")
     installed = environment(name)
     if name == CORE_DISTRIBUTION:

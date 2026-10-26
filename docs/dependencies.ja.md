@@ -37,7 +37,7 @@ env = None if overlay is None else overlay.environment()
 | `JUDGE_CONTROLLED` | `spacecraft-operations-challenge-core` である |
 | `SATISFIED` | インストール済みのバージョンと extra が要件を満たす，または同じ URL からインストール済みである |
 | `INSTALL` | 未インストールである，バージョンや extra が満たされていない，または別の URL を指定している |
-| `UNSUPPORTED` | 要件自体，その `[tool.uv.sources]` の項目，または指定した extra の依存関係を再現できない |
+| `UNSUPPORTED` | 要件自体，その `[tool.uv.sources]` の項目，または指定した extra の依存関係を再現できない。または環境マーカーを評価できない |
 
 - 評価する環境は常に自身のコアパッケージを使い，理由には，参加者が指定したコアがそれと一致するかが示されます。
 - 評価する環境にすでにインストールされているローカルの `file://` パッケージは，パスによらず満たされているとみなします。
@@ -68,9 +68,13 @@ env = None if overlay is None else overlay.environment()
 
 - 書き換えた要件は，元の要件の extra と環境マーカーを保ちます。
   URL の要件にはバージョン指定を含められないため，バージョン指定は除かれます。
+- `git` の URL は `git+` で始まっていてもかまいません。
+  URL に空白，`;`，`#` を含む項目と，リビジョンやサブディレクトリにさらに `@`，`&`，`?` を含む項目は，
+  別の要件に書き換えずに `UNSUPPORTED` とします。
 - `marker` を持つ項目は，そのマーカーが評価するインタプリタに対して真の場合にだけ適用し，偽の場合は要件を書かれたとおりに判定します。
 - 書き換えた要件の判定には書き換えた要件が記録され，その理由には元の要件が示されます。
-- コアの要件は，取得元によらず `JUDGE_CONTROLLED` のままです。環境マーカーが偽の要件も `NOT_APPLICABLE` のままです。
+- `spacecraft-operations-challenge-core` の要件は，取得元によらず `JUDGE_CONTROLLED` のままです。
+  環境マーカーが偽の要件も `NOT_APPLICABLE` のままです。
 - `[project] dependencies` にないパッケージの項目は無視します。
 
 ## `Overlay` へのインストール
