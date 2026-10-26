@@ -10,6 +10,7 @@ import os
 import shutil
 import stat
 import zipfile
+import zlib
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import IO
@@ -145,9 +146,14 @@ def build_submission(project_dir: str | Path, *, max_total_bytes: int = DEFAULT_
         raise SubmissionError(f"the submission files exceed {max_total_bytes} bytes")
 
     buffer = io.BytesIO()
+    total_bytes = 0
     with zipfile.ZipFile(buffer, "w") as archive:
         for name in sorted(files):
             data = files[name].read_bytes()
+            # Checked again on what was read, in case a file grew after the sizes were summed.
+            total_bytes += len(data)
+            if total_bytes > max_total_bytes:
+                raise SubmissionError(f"the submission files exceed {max_total_bytes} bytes")
             info = zipfile.ZipInfo(name, date_time=_ENTRY_DATE_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.create_system = _UNIX_SYSTEM
@@ -238,7 +244,7 @@ def extract_submission(
                 # Corrupt contents, such as a bad checksum, show only while reading: leave nothing behind.
                 _clear(root)
                 raise
-    except zipfile.BadZipFile as error:
+    except (zipfile.BadZipFile, zlib.error) as error:
         raise SubmissionError(f"not a valid ZIP archive: {error}") from error
     except (FileExistsError, IsADirectoryError, NotADirectoryError) as error:
         raise SubmissionError(f"conflicting archive entries: {error}") from error

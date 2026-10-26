@@ -213,6 +213,35 @@ def test_corrupt_contents_leave_nothing_behind(tmp_path):
     assert not any((tmp_path / "out").iterdir())
 
 
+def test_corrupt_compressed_data_leaves_nothing_behind(tmp_path):
+    payload = bytes(range(256)) * 40
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr("submission/strategy.py", DECLARE_AT_START)
+        zip_file.writestr("submission/z.bin", payload)
+    archive = bytearray(buffer.getvalue())
+    # Garble the start of the last entry's compressed stream, so that decompressing it fails.
+    with zipfile.ZipFile(io.BytesIO(bytes(archive))) as zip_file:
+        info = zip_file.getinfo("submission/z.bin")
+    data_start = info.header_offset + 30 + len(info.filename.encode()) + len(info.extra)
+    archive[data_start : data_start + 8] = b"\xff" * 8
+    with pytest.raises(SubmissionError, match="not a valid ZIP archive"):
+        extract(tmp_path, bytes(archive))
+    assert not any((tmp_path / "out").iterdir())
+
+
+def test_build_size_limit_is_checked_on_the_data_read(tmp_path, monkeypatch):
+    project = make_project(tmp_path / "project", {"strategy.py": DECLARE_AT_START, "grows.bin": b"x"})
+    read_bytes = Path.read_bytes
+
+    def grown(self):
+        return read_bytes(self) * 1000 if self.name == "grows.bin" else read_bytes(self)
+
+    monkeypatch.setattr(Path, "read_bytes", grown)
+    with pytest.raises(SubmissionError, match="exceed"):
+        build_submission(project, max_total_bytes=500)
+
+
 def make_project(root, files, *, pyproject=None):
     """A project directory with the given files relative to `submission/` and an optional `pyproject.toml`."""
     for name, content in files.items():
