@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import os
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -52,6 +53,8 @@ def evaluate_submission(
     is available. Raises `CaseError` for a broken provider, `SubmissionError` for an invalid archive, and
     `DependencyError` for dependencies that cannot be reproduced.
     """
+    # Taken before the provider runs here, so that what it puts into the environment never reaches the cases.
+    env = dict(os.environ)
     provider.check(suite.cases)
     started_at = _now()
     with tempfile.TemporaryDirectory(prefix="spacecraft-ops-submission-") as scratch:
@@ -62,7 +65,13 @@ def evaluate_submission(
         if on_status is not None:
             on_status("Running cases")
         outcomes = run_suite(
-            submission.root, suite.cases, provider, timeout_s=timeout_s, overlay=overlay, on_case_done=on_case_done
+            submission.root,
+            suite.cases,
+            provider,
+            timeout_s=timeout_s,
+            env=env,
+            overlay=overlay,
+            on_case_done=on_case_done,
         )
     return SubmissionEvaluation(
         suite=suite,

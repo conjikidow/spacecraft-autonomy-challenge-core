@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import tempfile
 
 import pytest
@@ -119,3 +120,24 @@ def test_check_submission_runs_one_case_per_public_scenario():
     assert seen == list(evaluation.outcomes)
     assert all(o.status is CaseStatus.COMPLETED for o in evaluation.outcomes)
     assert all(o.metrics["completion_declared"] for o in evaluation.outcomes)
+
+
+def test_environment_changes_of_the_provider_check_do_not_reach_the_participant(monkeypatch):
+    # Registered as unset, so that the variable that the provider exports is removed after the test.
+    monkeypatch.setenv("JUDGE_TEST_HIDDEN", "")
+    monkeypatch.delenv("JUDGE_TEST_HIDDEN")
+    exporting = ScenarioProvider("judge_test_provider:exporting", PROVIDER.paths)
+    reading = """
+import os
+
+from spacecraft_ops_challenge import DeclareCompletion, Strategy
+
+
+class MyStrategy(Strategy):
+    def initialize(self, brief, telemetry, commander):
+        print("hidden:", os.environ.get("JUDGE_TEST_HIDDEN"))
+        commander.execute(DeclareCompletion())
+"""
+    evaluation = evaluate_submission(zip_bytes({"submission/strategy.py": reading}), SUITE, exporting)
+    assert "JUDGE_TEST_HIDDEN" in os.environ  # the check in this process did export it
+    assert all(outcome.stdout == "hidden: None\n" for outcome in evaluation.outcomes)
