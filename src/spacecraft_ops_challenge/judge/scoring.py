@@ -31,8 +31,15 @@ class ScoringConfigError(ValueError):
 
 def _check_finite(values: Mapping[str, object]) -> None:
     for name, value in values.items():
-        if not isinstance(value, int | float) or isinstance(value, bool) or not math.isfinite(value):
+        if not isinstance(value, int | float) or isinstance(value, bool) or not _finite(value):
             raise ScoringConfigError(f"{name} must be a finite number, got {value!r}")
+
+
+def _finite(value: float) -> bool:
+    try:
+        return math.isfinite(value)
+    except OverflowError:  # an integer too large for a float
+        return False
 
 
 def _check_positive(section: object, *names: str) -> None:

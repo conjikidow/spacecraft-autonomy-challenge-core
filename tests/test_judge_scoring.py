@@ -343,3 +343,8 @@ def test_case_scores_round_trip_and_reject_malformed_data():
 def test_degenerate_metrics_give_no_credit_instead_of_failing(overrides, term):
     score = score_case(outcome(metrics(**overrides)), CONFIG)
     assert getattr(score, term) == 0.0
+
+
+def test_integers_too_large_for_a_float_are_config_errors():
+    with pytest.raises(ScoringConfigError, match="finite number"):
+        ScoringConfig.from_toml(DEFAULT_TOML.replace("tolerance_fraction = 0.1", "tolerance_fraction = 1" + "0" * 400))
