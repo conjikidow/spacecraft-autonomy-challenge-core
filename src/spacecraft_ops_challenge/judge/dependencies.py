@@ -321,6 +321,11 @@ def _installed_from(url: str, direct_url: Mapping[str, Any]) -> bool:
     return _without_fragment(url) in _installed_urls(direct_url) and subdirectories[0] == direct_url.get("subdirectory")
 
 
+def _installed_from_local_file(distribution: InstalledDistribution) -> bool:
+    direct_url = distribution.direct_url or {}
+    return urlsplit(str(direct_url.get("url", ""))).scheme == "file" and "vcs_info" not in direct_url
+
+
 def _local_path(url: str) -> Path:
     return Path(url2pathname(unquote(urlsplit(url).path)))
 
@@ -479,7 +484,8 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
                 "put that code under submission/ or publish the package",
             )
         if url.scheme == "file":
-            if installed is not None:
+            # Only a package that was itself installed from a local file can stand in for another local build.
+            if installed is not None and _installed_from_local_file(installed):
                 return _installed(
                     installed, f"a local package already installed in the evaluating environment ({installed.version})"
                 )

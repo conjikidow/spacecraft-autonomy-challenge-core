@@ -806,3 +806,13 @@ lib = { git = 2026-01-01 }
     (decision,) = plan_of(pyproject, {}.get).decisions
     assert decision.decision is Decision.UNSUPPORTED
     assert 'git = "2026-01-01"' in decision.reason
+
+
+def test_a_package_installed_from_an_index_does_not_stand_in_for_a_local_file(tmp_path):
+    from_index = {"toolkit": InstalledDistribution("toolkit", "1.0")}
+    missing = decide(Requirement("toolkit @ file:///nowhere/toolkit-1.0-py3-none-any.whl"), from_index.get)
+    assert missing.decision is Decision.UNSUPPORTED
+    wheel = tmp_path / "toolkit-1.0-py3-none-any.whl"
+    wheel.write_bytes(b"")
+    present = decide(Requirement(f"toolkit @ {wheel.as_uri()}"), from_index.get)
+    assert present.decision is Decision.INSTALL
