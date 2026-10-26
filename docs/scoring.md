@@ -68,6 +68,7 @@ Some cases need a closer look:
 - $\tau$ counts processes that the participant process starts only as described in [Running Cases](runner.md):
   a process still running when the participant process exits is not counted.
 - If the target delta-v is 0, $a$ is 1 for an error of exactly 0 and 0 otherwise.
+- $t$ is clipped to $[0, 1]$; $t = 0$ if $T \le 0$, and $c = 0$ if $\Delta t \le 0$.
 - If $C_\mathrm{nominal}$ is not above $E_\mathrm{limit}$, $b = 0$.
 
 For a completed run, every factor and term is computed even when the gate is 0, so that a score of 0 can be explained.
