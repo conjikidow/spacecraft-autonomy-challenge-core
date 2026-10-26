@@ -22,7 +22,7 @@ Spacecraft Operations Challenge のための Python パッケージです。
 - Python 3.12 以降
 - [uv](https://docs.astral.sh/uv/)
 
-実行時には Python 標準ライブラリ以外に依存しません。
+実行時に Python 標準ライブラリ以外で依存するのは [packaging](https://packaging.pypa.io/) だけです。
 
 ## インストール
 

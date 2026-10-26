@@ -96,6 +96,9 @@ wheels = [
 name = "spacecraft-operations-challenge-core"
 version = "0.1.2"
 source = { editable = "." }
+dependencies = [
+    { name = "packaging" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -107,6 +110,7 @@ lint = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "packaging", specifier = ">=24.0" }]
 
 [package.metadata.requires-dev]
 dev = [

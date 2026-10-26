@@ -12,7 +12,9 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+  "packaging>=24.0",
+]
 
 [project.scripts]
 spacecraft-ops-challenge = "spacecraft_ops_challenge.cli:main"
