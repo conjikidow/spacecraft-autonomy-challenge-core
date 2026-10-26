@@ -135,8 +135,21 @@ class RemoteCommander:
         return reply["value"]
 
 
+MAX_DETAIL_CHARS = 100_000
+"""Tracebacks sent to the trusted worker keep at most this many characters, from the start and the end."""
+
+
+def _detail(error: BaseException) -> str:
+    """The traceback of `error`, shortened so that its message always fits the protocol's size limit."""
+    text = "".join(traceback.format_exception(error))
+    if len(text) <= MAX_DETAIL_CHARS:
+        return text
+    half = MAX_DETAIL_CHARS // 2
+    return f"{text[:half]}\n... [{len(text) - 2 * half} characters omitted] ...\n{text[-half:]}"
+
+
 def _failure(kind: str, error: BaseException) -> dict[str, Any]:
-    return {"type": "failed", "kind": kind, "detail": "".join(traceback.format_exception(error))}
+    return {"type": "failed", "kind": kind, "detail": _detail(error)}
 
 
 def _callback(channel: Channel, strategy: Strategy, message: dict[str, Any]) -> dict[str, Any]:
@@ -163,7 +176,7 @@ def serve(channel: Channel, submission_root: Path) -> None:
     try:
         strategy = load_strategy(f"{submission_root / STRATEGY_PATH}:{STRATEGY_CLASS}")
     except (StrategyLoadError, SystemExit, KeyboardInterrupt) as error:
-        channel.send({"type": "load_error", "detail": "".join(traceback.format_exception(error))})
+        channel.send({"type": "load_error", "detail": _detail(error)})
         return
     channel.send({"type": "ready"})
     while True:

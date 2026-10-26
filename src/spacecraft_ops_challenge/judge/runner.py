@@ -218,7 +218,11 @@ def run_case(
     in front of the packages of the environment. Their output is unbuffered, so it survives a crash or a timeout. When
     the worker exits or the time limit is reached, the worker's whole process group is stopped, which
     includes the participant process and every process remaining in that group.
+    Raises `RuntimeError` on platforms other than Linux and macOS, where the participant process cannot be
+    connected to the trusted worker.
     """
+    if os.name != "posix":
+        raise RuntimeError("running cases requires Linux or macOS")
     with (
         tempfile.TemporaryDirectory(prefix="spacecraft-ops-case-", ignore_cleanup_errors=True) as scratch,
         tempfile.TemporaryDirectory(prefix="spacecraft-ops-result-") as results,

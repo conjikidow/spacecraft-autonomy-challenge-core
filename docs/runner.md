@@ -4,6 +4,7 @@
 
 This page describes how a submission is run on evaluation cases (`spacecraft_ops_challenge.judge.runner`).
 Each case runs in its own pair of new processes, which keep the case away from the participant's code.
+Running cases requires Linux or macOS; elsewhere `run_case` raises `RuntimeError`.
 
 ```python
 from pathlib import Path
@@ -72,6 +73,7 @@ and may be at most `MAX_MESSAGE_BYTES` (16 MiB) long.
 
 A strategy exception or an uncaught `CommandError` ends the run as `STRATEGY_ERROR` or `INVALID_COMMAND`,
 as in a local run, and the termination detail includes the participant's traceback.
+A traceback longer than 100 000 characters keeps its first and last 50 000 characters.
 A message that does not follow the protocol ends the case as `CRASHED`.
 
 ## Fresh State for Every Case

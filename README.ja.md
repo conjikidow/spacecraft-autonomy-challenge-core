@@ -21,6 +21,7 @@ Spacecraft Operations Challenge のための Python パッケージです。
 
 - Python 3.12 以降
 - [uv](https://docs.astral.sh/uv/)
+- 提出物の評価には Linux または macOS（[評価ケースの実行](docs/runner.ja.md)を参照）
 
 実行時に Python 標準ライブラリ以外で依存するのは [packaging](https://packaging.pypa.io/) だけです。
 

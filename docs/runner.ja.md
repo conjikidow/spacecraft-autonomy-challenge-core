@@ -4,6 +4,7 @@
 
 このページでは，提出物を評価ケースで実行する方法（`spacecraft_ops_challenge.judge.runner`）について説明します。
 各評価ケースは，それぞれ新しい2つのプロセスで実行され，評価ケースを参加者のコードから切り離します。
+評価ケースの実行には Linux または macOS が必要で，それ以外では `run_case` が `RuntimeError` を送出します。
 
 ```python
 from pathlib import Path
@@ -71,6 +72,7 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 
 戦略の例外や捕捉されなかった `CommandError` は，ローカルでの実行と同じく，
 実行を `STRATEGY_ERROR` または `INVALID_COMMAND` で終了させ，終了の詳細には参加者のトレースバックが含まれます。
+100 000 文字を超えるトレースバックは，先頭と末尾の 50 000 文字ずつを残します。
 プロトコルに従わないメッセージは，評価ケースを `CRASHED` で終了させます。
 
 ## 評価ケースごとの新しい状態

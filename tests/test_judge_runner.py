@@ -600,3 +600,34 @@ def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participa
     outcome = run_case(make_submission({"strategy.py": reading}).root, CASES[0], provider)
     assert outcome.status is CaseStatus.COMPLETED
     assert "hidden: None" in outcome.stdout
+
+
+def test_huge_strategy_errors_are_shortened_instead_of_breaking_the_protocol(make_submission):
+    raising = """
+    from spacecraft_ops_challenge import Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            raise ValueError("x" * 20_000_000)
+    """
+    outcome = run_case(make_submission({"strategy.py": raising}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED
+    assert outcome.metrics["termination_reason"] == "STRATEGY_ERROR"
+    assert "characters omitted" in outcome.detail
+    assert len(outcome.detail) < 200_000
+
+
+def test_huge_load_errors_are_shortened(make_submission):
+    outcome = run_case(
+        make_submission({"strategy.py": "raise ImportError('y' * 20_000_000)\n"}).root, CASES[0], PROVIDER
+    )
+    assert outcome.status is CaseStatus.LOAD_ERROR
+    assert "characters omitted" in outcome.detail
+
+
+def test_cases_need_a_posix_platform(make_submission, monkeypatch):
+    submission = make_submission({"strategy.py": DECLARE_AT_START})
+    monkeypatch.setattr(runner.os, "name", "nt")
+    with pytest.raises(RuntimeError, match="requires Linux or macOS"):
+        run_case(submission.root, CASES[0], PROVIDER)
