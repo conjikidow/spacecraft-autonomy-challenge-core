@@ -19,8 +19,14 @@ dependencies = [
 [project.scripts]
 spacecraft-ops-challenge = "spacecraft_ops_challenge.cli:main"
 
+[project.optional-dependencies]
+marimo = [
+  "marimo>=0.25.2",
+]
+
 [dependency-groups]
 dev = [
+  "marimo>=0.25.2",
   "pytest>=9.1.1",
   { include-group = "lint" },
 ]
