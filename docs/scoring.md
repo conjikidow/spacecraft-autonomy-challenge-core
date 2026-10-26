@@ -65,6 +65,8 @@ Some cases need a closer look:
   if the delta-v error is at least $e_\mathrm{tol}$, the accuracy factor and the score are 0.
 - If $\tau$ is `None`, which includes a completed run whose CPU time could not be measured, $c = 0$.
   If $\tau$ is 0, $c = 1$.
+- $\tau$ counts processes that the participant process starts only as described in [Running Cases](runner.md):
+  a process still running when the participant process exits is not counted.
 - If the target delta-v is 0, $a$ is 1 for an error of exactly 0 and 0 otherwise.
 - If $C_\mathrm{nominal}$ is not above $E_\mathrm{limit}$, $b = 0$.
 
