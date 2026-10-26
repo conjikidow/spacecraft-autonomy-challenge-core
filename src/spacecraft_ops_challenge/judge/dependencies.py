@@ -269,7 +269,7 @@ def _apply_source(requirement: Requirement, source: object) -> Requirement:
         raise _UnsupportedSourceError("is not a table")
     try:
         return _apply_source_table(requirement, source)
-    except ValueError as error:  # InvalidMarker, InvalidRequirement, and markers that cannot be evaluated
+    except (ValueError, KeyError) as error:  # invalid markers or requirements, markers that cannot be evaluated
         raise _UnsupportedSourceError(f"{_describe(source)} is invalid: {error}") from None
     except _UnsupportedSourceError as error:
         raise _UnsupportedSourceError(f"{_describe(source)} {error}") from None
@@ -385,7 +385,7 @@ def _extras(
             try:
                 if marker is None or not marker.evaluate({"extra": extra}) or marker.evaluate({"extra": ""}):
                     continue
-            except ValueError as error:  # a comparison or an environment name that the marker language lacks
+            except (ValueError, KeyError) as error:  # a comparison or a variable that cannot be evaluated here
                 result.unsupported.append(f"{entry} (its environment marker cannot be evaluated: {error})")
                 continue
             dependency.marker = None
@@ -467,7 +467,7 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
 
     try:
         applicable = requirement.marker is None or requirement.marker.evaluate({"extra": ""})
-    except ValueError as error:  # a comparison or an environment name that the marker language does not define
+    except (ValueError, KeyError) as error:  # a comparison or a variable that cannot be evaluated here
         return _decision(Decision.UNSUPPORTED, f"its environment marker cannot be evaluated: {error}")
     if not applicable:
         return _decision(Decision.NOT_APPLICABLE, "its environment marker is false for the evaluating Python")
@@ -625,6 +625,7 @@ def install_overlay(
     keep: Sequence[str] = (),
     preserve: Sequence[str] = (),
     timeout_s: float = DEFAULT_INSTALL_TIMEOUT_S,
+    env: Mapping[str, str] | None = None,
     run: Runner = subprocess.run,
 ) -> Overlay:
     """Install `requirements` into the new directory `target` without touching the evaluating environment.
@@ -665,6 +666,7 @@ def install_overlay(
             completed = run(
                 command,
                 cwd=workdir,
+                env=None if env is None else dict(env),
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -731,6 +733,7 @@ def resolve_dependencies(
     *,
     environment: Environment = installed_distribution,
     install: Callable[..., Overlay] = install_overlay,
+    env: Mapping[str, str] | None = None,
 ) -> tuple[DependencyReport, Overlay | None]:
     """Plan the participant's `pyproject.toml` and install what the environment lacks into an overlay at `target`.
 
@@ -745,5 +748,5 @@ def resolve_dependencies(
         raise DependencyError(f"some participant requirements cannot be reproduced:\n{details}")
     if not plan.to_install:
         return DependencyReport(plan), None
-    overlay = install(plan.to_install, target, keep=plan.to_keep, preserve=plan.to_preserve)
+    overlay = install(plan.to_install, target, keep=plan.to_keep, preserve=plan.to_preserve, env=env)
     return DependencyReport(plan, overlay.attempts), overlay

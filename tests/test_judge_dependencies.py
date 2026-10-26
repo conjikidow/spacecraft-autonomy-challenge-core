@@ -720,7 +720,7 @@ def test_resolve_skips_installation_when_everything_is_satisfied(tmp_path):
 def test_resolve_installs_the_missing_requirements(tmp_path):
     calls = []
 
-    def install(requirements, target, *, keep, preserve):
+    def install(requirements, target, *, keep, preserve, env):
         calls.append((requirements, target, keep, preserve))
         return Overlay(target, (InstallAttempt(("uv",), 0, "ok"),))
 
@@ -735,7 +735,7 @@ def test_resolve_installs_the_missing_requirements(tmp_path):
 def test_resolve_installs_git_sources_as_url_requirements(tmp_path):
     calls = []
 
-    def install(requirements, target, *, keep, preserve):
+    def install(requirements, target, *, keep, preserve, env):
         calls.append(requirements)
         return Overlay(target)
 
@@ -816,3 +816,19 @@ def test_a_package_installed_from_an_index_does_not_stand_in_for_a_local_file(tm
     wheel.write_bytes(b"")
     present = decide(Requirement(f"toolkit @ {wheel.as_uri()}"), from_index.get)
     assert present.decision is Decision.INSTALL
+
+
+@pytest.mark.parametrize("marker", ["extras == 'x'", "dependency_groups == 'g'"])
+def test_markers_with_variables_of_other_contexts_are_unsupported(marker):
+    decision = decide(Requirement(f"lib; {marker}"), {}.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "its environment marker cannot be evaluated" in decision.reason
+
+
+def test_install_overlay_passes_the_given_environment(tmp_path):
+    installer = FakeInstaller(0)
+    install_overlay(
+        ["polars"], tmp_path / "overlay", uv="/bin/uv", python="/py", constraints=[], env={"A": "1"}, run=installer
+    )
+    (call,) = installer.calls
+    assert call["env"] == {"A": "1"}
