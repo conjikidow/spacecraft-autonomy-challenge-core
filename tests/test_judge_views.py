@@ -156,3 +156,22 @@ def test_import_without_marimo_names_the_extra():
     assert completed.returncode != 0
     assert "ImportError" in completed.stderr
     assert "spacecraft-operations-challenge-core[marimo]" in completed.stderr
+
+
+def test_participant_strings_are_escaped():
+    hostile = "x` <script>alert(1)</script> `y"
+    outcome = CaseOutcome("<b>case</b>", CaseStatus.LOAD_ERROR, None, "", hostile, "", "", 0.1, None)
+    html = results_view(result([outcome], participant=hostile, case_ids=("<b>case</b>",))).text
+    assert "<script>" not in html
+    assert "<b>case</b>" not in html
+    plan = DependencyPlan((RequirementDecision(hostile, "x", Decision.INSTALL, "missing"),))
+    assert "<script>" not in dependencies_view(DependencyReport(plan)).text
+
+
+def test_whitespace_output_counts_as_nothing_printed():
+    outcome = CaseOutcome("a", CaseStatus.TIMEOUT, None, "", None, "\n\n", " ", 0.1, None)
+    assert "The strategy printed nothing." in results_view(result([outcome], case_ids=("a",))).text
+
+
+def test_dependencies_view_without_requirements():
+    assert "It lists no requirements." in dependencies_view(DependencyReport(DependencyPlan(()))).text

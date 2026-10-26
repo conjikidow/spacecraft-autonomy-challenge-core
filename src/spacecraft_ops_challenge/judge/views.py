@@ -3,6 +3,7 @@
 Requires marimo, which the `marimo` extra of `spacecraft-operations-challenge-core` provides.
 """
 
+import html
 from collections.abc import Sequence
 
 try:
@@ -30,22 +31,27 @@ DEFAULT_MISSING_MODULE_HINT = (
 )
 
 
+def _code(text: str) -> str:
+    """`text` as inline code in Markdown, escaped so that it cannot end the code or add HTML."""
+    return f"<code>{html.escape(text)}</code>"
+
+
 def results_view(result: EvaluationResult, *, missing_module_hint: str = DEFAULT_MISSING_MODULE_HINT) -> mo.Html:
     """Suite score, summary statistics, per-case scores and metrics, failure details, and participant output.
 
     The summary and the scores are shown as stored in `result`, never recomputed from its outcomes.
     """
     outcomes = result.outcomes
-    heading = f"Suite `{result.suite_name}`"
+    heading = f"Suite {_code(result.suite_name)}"
     if result.participant is not None:
-        heading += f", participant `{result.participant}`"
+        heading += f", participant {_code(result.participant)}"
     sections = [
         mo.md(heading),
         mo.stat(f"{result.summary.score:.2f}", label="Score", caption="out of 100", bordered=True),
     ]
     missing = missing_modules(outcomes)
     if missing:
-        names = ", ".join(f"`{name}`" for name in missing)
+        names = ", ".join(_code(name) for name in missing)
         sections.append(
             mo.callout(
                 mo.md(f"Modules not found: {names}. {missing_module_hint}"), kind="warn", title="Missing modules"
@@ -79,13 +85,13 @@ def results_view(result: EvaluationResult, *, missing_module_hint: str = DEFAULT
         sections.append(
             mo.accordion({f"Errors ({_cases(len(problems))})": mo.vstack([_problem_view(o) for o in problems])})
         )
-    printed = [o for o in outcomes if o.stdout or o.stderr]
+    printed = [o for o in outcomes if o.stdout.strip() or o.stderr.strip()]
     if printed:
         sections.append(
             mo.accordion(
                 {
                     f"Strategy output ({_cases(len(printed))})": mo.accordion(
-                        {o.case_id: output_view(o) for o in printed}, multiple=True
+                        {html.escape(o.case_id): output_view(o) for o in printed}, multiple=True
                     )
                 }
             )
@@ -121,7 +127,7 @@ def score_view(outcomes: Sequence[CaseOutcome], scores: Sequence[CaseScore]) -> 
 
 
 def _problem_view(outcome: CaseOutcome) -> mo.Html:
-    parts = [mo.md(f"**{outcome.case_id}**: `{outcome.status}`")]
+    parts = [mo.md(f"<strong>{html.escape(outcome.case_id)}</strong>: {_code(outcome.status.value)}")]
     if outcome.detail:
         parts.append(mo.plain_text(outcome.detail))
     if outcome.worker_error:
@@ -147,9 +153,11 @@ def dependencies_view(report: DependencyReport) -> mo.Html:
         )
     installed = report.plan.to_install
     summary = (
-        f"Installed for this submission only: {', '.join(f'`{r}`' for r in installed)}."
+        f"Installed for this submission only: {', '.join(_code(r) for r in installed)}."
         if installed
         else "Nothing was installed for this submission; the table shows why for each requirement."
+        if report.plan.decisions
+        else "It lists no requirements."
     )
     return mo.vstack(
         [
