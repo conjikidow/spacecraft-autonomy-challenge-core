@@ -38,6 +38,10 @@ def _now() -> str:
 
 _PROVIDER_CHECK_LOCK = threading.Lock()
 
+# Settled once, before any scenario provider runs in this process, so that a provider that changes TMPDIR cannot
+# choose where evaluations put their files.
+tempfile.gettempdir()
+
 
 def _check_provider(provider: ScenarioProvider, suite: Suite) -> dict[str, str]:
     """Check `provider` on every case of `suite`, and return the environment of this process from before.
