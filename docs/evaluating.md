@@ -23,6 +23,9 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 
 1. It builds the scenario of every case once with `provider.check`,
    so that a broken provider fails before the submission runs.
+   The check runs in the calling process, one evaluation at a time,
+   and the environment variables of the process are restored afterwards;
+   the packages and the cases get the environment from before the check.
 2. It extracts the archive into a temporary directory (see [Submission Archives](submission.md)).
 3. It reproduces the packages that the `pyproject.toml` of the archive names, if there is one,
    in an overlay shared by all cases (see [Participant Packages](dependencies.md)).
@@ -119,6 +122,7 @@ The document is a JSON object with these keys:
 | `cases` | `CaseOutcome.to_dict()` of each outcome (see [Running Cases](runner.md)), without `worker_error` unless `include_worker_errors` is true |
 
 A document may have been filtered before it is loaded, for example to leave out details for another reader.
+Besides `worker_error`, the installer commands and output in `dependencies` show paths of the evaluating machine.
 `from_dict` therefore accepts a `participant` of `null`, fewer `cases` than `case_ids`,
 empty strings for `stdout`, `stderr`, and `detail`, and cases without `worker_error`.
 The `cases` must still be distinct cases of the suite, in the order of `case_ids`.

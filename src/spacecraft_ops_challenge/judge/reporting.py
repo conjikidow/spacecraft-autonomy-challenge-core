@@ -257,7 +257,7 @@ def _outcome(data: Mapping[str, Any]) -> CaseOutcome:
         value = outcome.metrics.get(name)
         if not isinstance(value, expected) or (expected is not bool and isinstance(value, bool)):
             raise TypeError(f"metric {name} of case {outcome.case_id!r} must be {expected}, got {value!r}")
-        if isinstance(value, float) and not math.isfinite(value):
+        if isinstance(value, int | float) and not isinstance(value, bool) and not math.isfinite(value):
             raise TypeError(f"metric {name} of case {outcome.case_id!r} is not finite: {value!r}")
     for value in (outcome.duration_s, outcome.participant_cpu_s):
         if value is not None and not math.isfinite(value):

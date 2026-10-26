@@ -22,6 +22,8 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 `evaluate_submission(archive, suite, provider)` は，`submission.zip` のバイト列を `suite` のすべての評価ケースで評価します。
 
 1. `provider.check` ですべての評価ケースのシナリオを一度ずつ作成し，壊れた `ScenarioProvider` が提出物の実行前に失敗するようにします。
+   この確認は呼び出し側のプロセスで評価ごとに1つずつ行い，その後にプロセスの環境変数を元に戻します。
+   パッケージのインストールと評価ケースには，確認の前の環境変数を渡します。
 2. アーカイブを一時ディレクトリに展開します（[提出アーカイブ](submission.ja.md)を参照）。
 3. アーカイブに `pyproject.toml` があれば，それが挙げるパッケージを，すべての評価ケースで共有する `Overlay` に再現します
    （[参加者のパッケージ](dependencies.ja.md)を参照）。
@@ -117,6 +119,7 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 | `cases` | 各結果の `CaseOutcome.to_dict()`（[評価ケースの実行](runner.ja.md)を参照）。`include_worker_errors` が真でなければ `worker_error` を除きます |
 
 結果文書は，例えば別の読み手のために詳細を省くなど，読み込む前に絞り込まれていることがあります。
+`worker_error` のほか，`dependencies` のインストーラのコマンドと出力には，評価するマシンのパスが現れます。
 そのため `from_dict` は，`null` の `participant`，`case_ids` より少ない `cases`，
 空文字列の `stdout`，`stderr`，`detail`，`worker_error` のない評価ケースを受け付けます。
 ただし，`cases` は `Suite` の異なる評価ケースで，`case_ids` の順でなければなりません。

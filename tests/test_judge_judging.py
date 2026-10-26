@@ -140,7 +140,7 @@ class MyStrategy(Strategy):
         commander.execute(DeclareCompletion())
 """
     evaluation = evaluate_submission(zip_bytes({"submission/strategy.py": reading}), SUITE, exporting)
-    assert "JUDGE_TEST_HIDDEN" in os.environ  # the check in this process did export it
+    assert "JUDGE_TEST_HIDDEN" not in os.environ  # restored after the check
     assert all(outcome.stdout == "hidden: None\n" for outcome in evaluation.outcomes)
 
 
@@ -157,5 +157,43 @@ def test_dependency_installation_gets_the_environment_from_before_the_provider_c
     monkeypatch.setattr(judging, "resolve_dependencies", resolve)
     exporting = ScenarioProvider("judge_test_provider:exporting", PROVIDER.paths)
     evaluate_submission(zip_bytes({"submission/strategy.py": DECLARE_AT_START}), SUITE, exporting)
-    assert "JUDGE_TEST_HIDDEN" in os.environ
+    assert "JUDGE_TEST_HIDDEN" not in os.environ
     assert "JUDGE_TEST_HIDDEN" not in seen["env"]
+
+
+def test_a_provider_that_exits_during_the_check_is_a_case_error():
+    exiting = ScenarioProvider("judge_test_provider:exiting", PROVIDER.paths)
+    with pytest.raises(CaseError, match="SystemExit"):
+        evaluate_submission(zip_bytes({"submission/strategy.py": DECLARE_AT_START}), SUITE, exiting)
+
+
+def test_concurrent_evaluations_do_not_see_each_others_provider_environment(monkeypatch):
+    import threading
+
+    monkeypatch.setenv("JUDGE_TEST_HIDDEN", "")
+    monkeypatch.delenv("JUDGE_TEST_HIDDEN")
+    exporting = ScenarioProvider("judge_test_provider:exporting", PROVIDER.paths)
+    reading = """
+import os
+
+from spacecraft_ops_challenge import DeclareCompletion, Strategy
+
+
+class MyStrategy(Strategy):
+    def initialize(self, brief, telemetry, commander):
+        print("hidden:", os.environ.get("JUDGE_TEST_HIDDEN"))
+        commander.execute(DeclareCompletion())
+"""
+    archive = zip_bytes({"submission/strategy.py": reading})
+    results = []
+
+    def evaluate(provider):
+        results.append(evaluate_submission(archive, SUITE, provider))
+
+    threads = [threading.Thread(target=evaluate, args=(p,)) for p in (exporting, PROVIDER, exporting, PROVIDER)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert len(results) == 4
+    assert all(o.stdout == "hidden: None\n" for result in results for o in result.outcomes)

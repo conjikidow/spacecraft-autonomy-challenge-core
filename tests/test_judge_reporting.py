@@ -322,3 +322,10 @@ def test_non_finite_numbers_are_rejected(text):
     tampered = document.replace('"duration_s": ', f'"duration_s": {text}, "_": ', 1)
     with pytest.raises(ResultFormatError):
         EvaluationResult.from_json(tampered)
+
+
+def test_metrics_too_large_for_a_float_are_rejected():
+    document = EvaluationResult.from_evaluation(EVALUATION).to_json()
+    tampered = document.replace('"delta_v_error_mps": ', '"delta_v_error_mps": 1' + "0" * 400 + ', "_": ', 1)
+    with pytest.raises(ResultFormatError):
+        EvaluationResult.from_json(tampered)

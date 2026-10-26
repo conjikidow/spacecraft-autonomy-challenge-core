@@ -4,6 +4,7 @@ import hashlib
 import io
 import os
 import tempfile
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -35,6 +36,26 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+_PROVIDER_CHECK_LOCK = threading.Lock()
+
+
+def _check_provider(provider: ScenarioProvider, suite: Suite) -> dict[str, str]:
+    """Check `provider` on every case of `suite`, and return the environment of this process from before.
+
+    The provider runs in this process and may change its environment, which must reach neither the cases nor the
+    installation of their packages, of this or of any other evaluation. The environment is therefore restored
+    afterwards, and the lock keeps other evaluations from taking theirs while a check runs.
+    """
+    with _PROVIDER_CHECK_LOCK:
+        env = dict(os.environ)
+        try:
+            provider.check(suite.cases)
+        finally:
+            os.environ.clear()
+            os.environ.update(env)
+    return env
+
+
 def evaluate_submission(
     archive: bytes,
     suite: Suite,
@@ -53,10 +74,7 @@ def evaluate_submission(
     is available. Raises `CaseError` for a broken provider, `SubmissionError` for an invalid archive, and
     `DependencyError` for dependencies that cannot be reproduced.
     """
-    # Taken before the provider runs here, so that what it puts into the environment never reaches the cases
-    # or the installation of their packages.
-    env = dict(os.environ)
-    provider.check(suite.cases)
+    env = _check_provider(provider, suite)
     started_at = _now()
     with tempfile.TemporaryDirectory(prefix="spacecraft-ops-submission-") as scratch:
         submission = extract_submission(io.BytesIO(archive), Path(scratch) / "root")
