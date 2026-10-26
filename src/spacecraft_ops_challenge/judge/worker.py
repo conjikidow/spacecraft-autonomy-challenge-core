@@ -77,6 +77,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     """
     (result_path,) = sys.argv[1:] if argv is None else argv
     request = json.loads(sys.stdin.read())
+    # The runner captures the participant's output from the streams that this process shares with it; what the
+    # trusted side prints, such as warnings of the scenario provider, is discarded instead of joining it. The
+    # participant process writes to the inherited file descriptors, not to these Python streams.
+    sys.stdout = sys.stderr = open(os.devnull, "w")  # noqa: SIM115
     overlay = Path(request["overlay"]) if request.get("overlay") else None
     try:
         case = EvaluationCase.from_dict(request["case"])
@@ -87,8 +91,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         result = {"status": "CRASHED", "detail": f"the trusted worker failed to evaluate the case:\n{detail}"}
         result |= {"missing_module": None, "participant_cpu_s": None}
     Path(result_path).write_text(json.dumps(result), encoding="utf-8")
-    sys.stdout.flush()
-    sys.stderr.flush()
+    sys.__stdout__.flush()
+    sys.__stderr__.flush()
     os._exit(0)
 
 

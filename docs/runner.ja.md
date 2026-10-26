@@ -81,6 +81,8 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 
 評価ケースのプロセスは `PYTHONUNBUFFERED=1` で実行されるため，クラッシュや時間切れの場合でも出力は失われません。
 標準出力と標準エラー出力は，結果の `stdout` と `stderr` として別々に取得されます。
+信頼された実行プロセス自身が Python の `sys.stdout` と `sys.stderr` に書いた出力は，
+`ScenarioProvider` の出力や警告も含めて破棄されるため，取得される出力は参加者のものです。
 それぞれ最大 `MAX_OUTPUT_BYTES`（100 000 バイト）で，先頭と末尾の 50 000 バイトずつを保持し，
 その間に `... [N bytes omitted] ...` という行を挟みます。
 出力は評価ケースの実行中に読み取られるため，終わらない出力が評価ケースを止めることはありません。

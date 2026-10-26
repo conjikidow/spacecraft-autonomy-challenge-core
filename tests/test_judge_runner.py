@@ -9,6 +9,7 @@ import pytest
 from judge_support import DECLARE_AT_START, PROVIDER, case
 
 from spacecraft_ops_challenge.judge import runner
+from spacecraft_ops_challenge.judge.cases import ScenarioProvider
 from spacecraft_ops_challenge.judge.dependencies import Overlay
 from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus, run_case, run_suite
 
@@ -518,3 +519,24 @@ def test_malformed_outcomes_are_rejected(change):
     del data["stdout"]
     with pytest.raises(ValueError, match="not a case outcome"):
         CaseOutcome.from_dict(data)
+
+
+def test_output_of_the_scenario_provider_does_not_reach_the_participant_output(make_submission):
+    provider = ScenarioProvider("judge_test_provider:noisy", PROVIDER.paths)
+    printing = """
+import sys
+
+from spacecraft_ops_challenge import DeclareCompletion, Strategy
+
+
+class MyStrategy(Strategy):
+    def initialize(self, brief, telemetry, commander):
+        print("strategy stdout")
+        print("strategy stderr", file=sys.stderr)
+        commander.execute(DeclareCompletion())
+"""
+    outcome = run_case(make_submission({"strategy.py": printing}).root, CASES[0], provider)
+    assert outcome.status is CaseStatus.COMPLETED
+    assert "strategy stdout" in outcome.stdout
+    assert "strategy stderr" in outcome.stderr
+    assert "secret" not in outcome.stdout + outcome.stderr

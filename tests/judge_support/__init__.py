@@ -31,6 +31,16 @@ def failing(payload):
     raise RuntimeError("the provider failed")
 
 
+def noisy(payload):
+    import sys
+    import warnings
+
+    print("provider stdout: secret", payload["seed"])
+    print("provider stderr: secret", file=sys.stderr)
+    warnings.warn("provider warning: secret", stacklevel=1)
+    return build_scenario(payload)
+
+
 def not_a_scenario(payload):
     return "not a scenario"
 """
