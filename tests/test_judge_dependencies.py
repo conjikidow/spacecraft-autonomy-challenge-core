@@ -182,6 +182,15 @@ def test_unsupported_dependencies_of_extras_make_the_requirement_unsupported():
     assert "a local file of the participant's machine" in decision.reason
 
 
+def test_dependencies_of_extras_with_markers_that_cannot_be_evaluated_are_unsupported():
+    installed = {
+        "pkg": InstalledDistribution("pkg", "1.0", requires=("leaf ; python_version ~= 'abc' and extra == 'x'",))
+    }
+    decision = decide(Requirement("pkg[x]"), installed.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "its environment marker cannot be evaluated" in decision.reason
+
+
 def test_satisfied_extras_are_not_reinstalled():
     with_openpyxl = {**INSTALLED, "openpyxl": InstalledDistribution("openpyxl", "3.1.5")}
     assert decide(Requirement("pandas[excel]>=2.2"), with_openpyxl.get).decision is Decision.SATISFIED
@@ -542,6 +551,7 @@ def test_install_command():
         "--python",
         "/py",
         "--no-progress",
+        "--no-config",
         "--requirements",
         "/tmp/req.txt",
         "--constraints",

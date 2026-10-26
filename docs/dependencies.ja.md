@@ -81,6 +81,7 @@ env = None if overlay is None else overlay.environment()
 
 `INSTALL` の要件は，提出物ごとに1回，`uv pip install --target` で新しいディレクトリにインストールします。
 これを行うのは `install_overlay` で，`resolve_dependencies` はインストールするものがある場合にだけこれを呼び出します。
+uv は `--no-config` を付けて実行するため，ディレクトリの周りの設定ファイルはインストールに影響しません。
 
 - 最初の試行では，評価する環境がインデックスからインストールしたパッケージのバージョン（`base_constraints`）に制約し，
   `Overlay` が別のバージョンでそれらを隠さないようにします。

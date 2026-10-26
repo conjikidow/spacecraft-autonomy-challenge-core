@@ -371,7 +371,11 @@ def _extras(
             except InvalidRequirement:
                 continue
             marker = dependency.marker
-            if marker is None or not marker.evaluate({"extra": extra}) or marker.evaluate({"extra": ""}):
+            try:
+                if marker is None or not marker.evaluate({"extra": extra}) or marker.evaluate({"extra": ""}):
+                    continue
+            except ValueError as error:  # a comparison or an environment name that the marker language lacks
+                result.unsupported.append(f"{entry} (its environment marker cannot be evaluated: {error})")
                 continue
             dependency.marker = None
             if _key(dependency) in visited:
@@ -547,6 +551,8 @@ def install_command(
         "--python",
         python,
         "--no-progress",
+        # Configuration files around the working directory must not change what the plan decided.
+        "--no-config",
         "--requirements",
         str(requirements_file),
     ]
