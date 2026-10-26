@@ -469,6 +469,8 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
             return _decision(Decision.INSTALL, reason, missing, constraints, preserved)
         return _decision(Decision.SATISFIED, reason, (), constraints, preserved)
 
+    if "\n" in str(requirement) or "\r" in str(requirement):  # would add lines to the installer's requirements file
+        return _decision(Decision.UNSUPPORTED, "it contains a line break")
     try:
         applicable = requirement.marker is None or requirement.marker.evaluate({"extra": ""})
     except (ValueError, KeyError) as error:  # a comparison or a variable that cannot be evaluated here
@@ -652,6 +654,8 @@ def install_overlay(
     """
     if not requirements:
         raise ValueError("nothing to install")
+    if any("\n" in entry or "\r" in entry for entry in (*requirements, *keep)):
+        raise DependencyError("a requirement to install contains a line break")
     # Absolute, because the installer runs in `workdir` and would resolve relative paths against it again.
     target = Path(target).resolve()
     target.mkdir(parents=True)

@@ -887,3 +887,13 @@ def test_a_core_reference_with_an_unparsable_url_stays_judge_controlled():
     decision = decide(Requirement("spacecraft-operations-challenge-core @ https://[bad"), {core.name: core}.get)
     assert decision.decision is Decision.JUDGE_CONTROLLED
     assert "differs from" in decision.reason
+
+
+def test_requirements_with_line_breaks_are_unsupported():
+    requirement = Requirement("foo @ https://example.invalid/foo-1.0-py3-none-any.whl%0A")
+    requirement.url = "https://example.invalid/foo.whl\nbar@file:///opt/bar.whl"
+    decision = decide(requirement, {}.get)
+    assert decision.decision is Decision.UNSUPPORTED
+    assert "line break" in decision.reason
+    with pytest.raises(DependencyError, match="line break"):
+        install_overlay(["foo\nbar"], Path("/nonexistent/overlay"), uv="/bin/uv", python="/py", constraints=[])
