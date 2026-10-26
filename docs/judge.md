@@ -58,9 +58,11 @@ they are stored as absolute paths.
 | `load()` | Imports the function, with `paths` appended to the import path of the current process |
 | `build(case)` | The scenario of `case`; `CaseError` if the function does not return a `Scenario` |
 | `check(cases)` | Builds the scenario of every case once, so that a broken provider fails early |
-| `to_dict()` | `{"target": ..., "paths": [...]}`; `ScenarioProvider.from_dict` is its inverse |
+| `to_dict()` | `{"target": ..., "paths": [...]}`; `ScenarioProvider.from_dict` is its inverse and raises `CaseError` for malformed data |
 
 `load` raises `CaseError` if the module or the function is not found, or if the target is not callable.
+A provider with `paths` also raises `CaseError` if its module was imported from elsewhere,
+such as an installed or already imported module of the same name.
 `check` also turns any other exception of the provider into a `CaseError` that names the failing case.
 A target that does not have the form `module:function` raises `CaseError`,
 and so does `from_callable` for a function that is not defined at the top level of an importable module,

@@ -140,3 +140,34 @@ def test_public_scenarios_provider_overrides_the_seed():
 def test_public_scenarios_provider_target_imports():
     assert public_scenarios.PROVIDER.paths == ()
     assert public_scenarios.PROVIDER.load() is public_scenarios.build_scenario
+
+
+def test_provider_rejects_a_module_of_the_same_name_from_elsewhere(tmp_path):
+    first, second = tmp_path / "first", tmp_path / "second"
+    for directory in (first, second):
+        directory.mkdir()
+        (directory / "judge_test_shadowed.py").write_text(f"def build(payload):\n    return {str(directory)!r}\n")
+    try:
+        assert ScenarioProvider("judge_test_shadowed:build", (str(first),)).load()({}) == str(first)
+        with pytest.raises(CaseError, match="not from its paths"):
+            ScenarioProvider("judge_test_shadowed:build", (str(second),)).load()
+    finally:
+        sys.modules.pop("judge_test_shadowed", None)
+
+
+def test_providers_without_paths_accept_installed_modules():
+    assert ScenarioProvider("spacecraft_ops_challenge.challenge:scenario").load() is scenario
+
+
+@pytest.mark.parametrize(
+    "data",
+    [{}, {"target": 1}, {"target": "m:f", "paths": "/single/path"}, {"target": "m:f", "paths": 3}, "m:f"],
+)
+def test_malformed_provider_dicts_are_case_errors(data):
+    with pytest.raises(CaseError):
+        ScenarioProvider.from_dict(data)
+
+
+def test_provider_paths_must_be_strings():
+    with pytest.raises(CaseError, match="sequence of strings"):
+        ScenarioProvider("m:f", "/single/path")

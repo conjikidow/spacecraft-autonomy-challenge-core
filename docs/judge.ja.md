@@ -54,9 +54,11 @@ ID は空でない文字列でなければなりません。
 | `load()` | `paths` を現在のプロセスのインポートパスの末尾に追加して，関数をインポートします |
 | `build(case)` | `case` のシナリオ。関数が `Scenario` を返さない場合は `CaseError` |
 | `check(cases)` | すべての評価ケースのシナリオを1回ずつ作成し，壊れた `ScenarioProvider` を早い段階で検出します |
-| `to_dict()` | `{"target": ..., "paths": [...]}`。`ScenarioProvider.from_dict` はその逆変換です |
+| `to_dict()` | `{"target": ..., "paths": [...]}`。`ScenarioProvider.from_dict` はその逆変換で，不正なデータには `CaseError` を送出します |
 
 `load` は，モジュールや関数が見つからない場合と，指定先が呼び出し可能でない場合に `CaseError` を送出します。
+`paths` を持つ `ScenarioProvider` では，インストール済みやインポート済みの同名モジュールなど，
+モジュールが `paths` 以外の場所から読み込まれた場合にも `CaseError` を送出します。
 `check` は，関数が送出したそれ以外の例外も，失敗した評価ケースを示す `CaseError` に変換します。
 `module:function` の形式でない指定先に対しては `CaseError` が送出されます。
 `from_callable` も，`__main__` で定義された関数など，

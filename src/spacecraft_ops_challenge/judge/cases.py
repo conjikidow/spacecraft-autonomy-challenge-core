@@ -11,6 +11,7 @@ import sys
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 from spacecraft_ops_challenge.scenario import Scenario
@@ -113,6 +114,8 @@ class ScenarioProvider:
         module, separator, function = self.target.partition(":")
         if not separator or not module or not function:
             raise CaseError(f"a scenario provider is named as 'module:function', got {self.target!r}")
+        if isinstance(self.paths, str) or not all(isinstance(path, str) for path in self.paths):
+            raise CaseError(f"the paths of a scenario provider must be a sequence of strings, got {self.paths!r}")
         object.__setattr__(self, "paths", tuple(str(Path(path).resolve()) for path in self.paths))
 
     @classmethod
@@ -137,12 +140,30 @@ class ScenarioProvider:
                 sys.path.append(path)
         module_name, _, function_name = self.target.partition(":")
         try:
-            factory = getattr(importlib.import_module(module_name), function_name)
+            module = importlib.import_module(module_name)
+            factory = getattr(module, function_name)
         except (ImportError, AttributeError) as error:
             raise CaseError(f"cannot import the scenario provider {self.target!r}: {error}") from error
+        self._check_location(module)
         if not callable(factory):
             raise CaseError(f"the scenario provider {self.target!r} is not callable")
         return factory
+
+    def _check_location(self, module: ModuleType) -> None:
+        """With `paths`, require the module to come from one of them, not from a module of the same name elsewhere.
+
+        The import path and the module cache may already provide a module of that name, which would otherwise
+        be used silently.
+        """
+        if not self.paths:
+            return
+        locations = [getattr(module, "__file__", None), *getattr(module, "__path__", ())]
+        location = next((Path(entry).resolve() for entry in locations if entry), None)
+        if location is None or not any(location.is_relative_to(path) for path in self.paths):
+            raise CaseError(
+                f"the scenario provider {self.target!r} was imported from {location}, not from its paths "
+                f"{', '.join(self.paths)}; another module of the same name is importable"
+            )
 
     def build(self, case: EvaluationCase) -> Scenario:
         """The scenario of `case`. Raises `CaseError` if the provider does not return a `Scenario`."""
@@ -167,5 +188,10 @@ class ScenarioProvider:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "ScenarioProvider":
-        """Inverse of `to_dict`."""
-        return cls(data["target"], tuple(data.get("paths", ())))
+        """Inverse of `to_dict`. Raises `CaseError` for data that does not describe a provider."""
+        if not isinstance(data, Mapping) or not isinstance(data.get("target"), str):
+            raise CaseError(f"a scenario provider needs a 'target' string, got {data!r}")
+        paths = data.get("paths", ())
+        if not isinstance(paths, list | tuple):
+            raise CaseError(f"the paths of a scenario provider must be a list of strings, got {paths!r}")
+        return cls(data["target"], tuple(paths))
