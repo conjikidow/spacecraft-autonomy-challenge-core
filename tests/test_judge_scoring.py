@@ -348,3 +348,10 @@ def test_degenerate_metrics_give_no_credit_instead_of_failing(overrides, term):
 def test_integers_too_large_for_a_float_are_config_errors():
     with pytest.raises(ScoringConfigError, match="finite number"):
         ScoringConfig.from_toml(DEFAULT_TOML.replace("tolerance_fraction = 0.1", "tolerance_fraction = 1" + "0" * 400))
+
+
+def test_weights_whose_sum_overflows_are_config_errors():
+    data = ScoringConfig.default().to_dict()
+    data["weights"] |= {"base": 1e308, "completion_time": 1e308}
+    with pytest.raises(ScoringConfigError, match="sum to 1"):
+        ScoringConfig.from_dict(data)

@@ -87,7 +87,10 @@ class ScoreWeights:
         for field in fields(self):
             if getattr(self, field.name) < 0:
                 raise ScoringConfigError(f"weight {field.name} must not be negative, got {getattr(self, field.name)!r}")
-        total = math.fsum(getattr(self, field.name) for field in fields(self))
+        try:
+            total = math.fsum(getattr(self, field.name) for field in fields(self))
+        except OverflowError:
+            total = math.inf
         if abs(total - 1) > _WEIGHT_SUM_TOLERANCE:
             raise ScoringConfigError(f"weights must sum to 1, got {total!r}")
 
