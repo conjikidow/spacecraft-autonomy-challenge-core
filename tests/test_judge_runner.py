@@ -675,3 +675,23 @@ def test_an_interrupted_case_stops_its_processes(make_submission, monkeypatch):
         time.sleep(0.05)
     else:
         pytest.fail("processes of the interrupted case are still running")
+
+
+def test_a_relative_overlay_path_is_resolved_against_the_caller(make_submission, tmp_path, monkeypatch):
+    (tmp_path / "overlay").mkdir()
+    (tmp_path / "overlay" / "participant_only.py").write_text("VALUE = 42\n")
+    importing = """
+    import participant_only
+    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print(participant_only.VALUE)
+            commander.execute(DeclareCompletion())
+    """
+    submission = make_submission({"strategy.py": importing})
+    monkeypatch.chdir(tmp_path)
+    outcome = run_case(submission.root, CASES[0], PROVIDER, overlay=Overlay(Path("overlay")))
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert outcome.stdout == "42\n"

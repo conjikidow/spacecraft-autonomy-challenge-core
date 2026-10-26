@@ -234,7 +234,8 @@ def run_case(
             "submission_root": str(root),
             "case": case.to_dict(),
             "provider": provider.to_dict(),
-            "overlay": None if overlay is None else str(overlay.path),
+            # Absolute: the worker and the participant process run in other directories.
+            "overlay": None if overlay is None else str(overlay.path.resolve()),
         }
         worker_env = dict(os.environ if env is None else env)
         worker_env["PYTHONUNBUFFERED"] = "1"
