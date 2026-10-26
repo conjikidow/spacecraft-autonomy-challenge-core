@@ -5,6 +5,7 @@ included: cases are identified by their ids, suites by a fingerprint.
 """
 
 import json
+import math
 import statistics
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -36,8 +37,8 @@ def _count(value: object) -> int:
 def _optional_float(value: object) -> float | None:
     if value is None:
         return None
-    if not isinstance(value, int | float) or isinstance(value, bool):
-        raise TypeError(f"expected a number or None, got {value!r}")
+    if not isinstance(value, int | float) or isinstance(value, bool) or not math.isfinite(value):
+        raise TypeError(f"expected a finite number or None, got {value!r}")
     return float(value)
 
 
@@ -256,7 +257,33 @@ def _outcome(data: Mapping[str, Any]) -> CaseOutcome:
         value = outcome.metrics.get(name)
         if not isinstance(value, expected) or (expected is not bool and isinstance(value, bool)):
             raise TypeError(f"metric {name} of case {outcome.case_id!r} must be {expected}, got {value!r}")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise TypeError(f"metric {name} of case {outcome.case_id!r} is not finite: {value!r}")
+    for value in (outcome.duration_s, outcome.participant_cpu_s):
+        if value is not None and not math.isfinite(value):
+            raise TypeError(f"times of case {outcome.case_id!r} must be finite, got {value!r}")
     return outcome
+
+
+def _check_case_ids(case_ids: Sequence[str], outcomes: Sequence[CaseOutcome]) -> None:
+    """Require unique case ids and outcomes of cases of the suite, in suite order, each at most once."""
+    if len(set(case_ids)) != len(case_ids):
+        raise ValueError("the case ids of the suite must be unique")
+    positions = {case_id: index for index, case_id in enumerate(case_ids)}
+    indices = [positions.get(outcome.case_id) for outcome in outcomes]
+    if None in indices or indices != sorted(set(indices)):
+        raise ValueError("the cases must be distinct cases of the suite, in the order of its case ids")
+
+
+def _reject_constant(name: str) -> None:
+    raise ValueError(f"{name} is not a finite number")
+
+
+def _case_dict(outcome: CaseOutcome, *, include_worker_errors: bool) -> dict[str, Any]:
+    data = outcome.to_dict()
+    if not include_worker_errors:
+        del data["worker_error"]
+    return data
 
 
 @dataclass(frozen=True, slots=True)
@@ -305,8 +332,12 @@ class EvaluationResult:
             outcomes=evaluation.outcomes,
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        """The result document as a JSON-serializable dictionary."""
+    def to_dict(self, *, include_worker_errors: bool = False) -> dict[str, Any]:
+        """The result document as a JSON-serializable dictionary.
+
+        `worker_error` of the cases is left out unless `include_worker_errors` is true, because it may show the
+        scenario provider and data of the case.
+        """
         return {
             "format": RESULT_FORMAT,
             "format_version": RESULT_FORMAT_VERSION,
@@ -318,7 +349,7 @@ class EvaluationResult:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "summary": self.summary.to_dict(),
-            "cases": [outcome.to_dict() for outcome in self.outcomes],
+            "cases": [_case_dict(o, include_worker_errors=include_worker_errors) for o in self.outcomes],
         }
 
     @classmethod
@@ -339,6 +370,8 @@ class EvaluationResult:
             cases = data["cases"]
             if not isinstance(cases, list):
                 raise TypeError(f"cases must be a list, got {cases!r}")
+            outcomes = tuple(_outcome(_mapping(case)) for case in cases)
+            _check_case_ids(_strings(suite["case_ids"]), outcomes)
             return cls(
                 participant=None if participant is None else _string(participant),
                 submission_sha256=_string(submission["sha256"]),
@@ -351,20 +384,20 @@ class EvaluationResult:
                 started_at=_string(data["started_at"]),
                 finished_at=_string(data["finished_at"]),
                 summary=SuiteSummary.from_dict(_mapping(data["summary"])),
-                outcomes=tuple(_outcome(_mapping(case)) for case in cases),
+                outcomes=outcomes,
             )
         except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as error:
             raise ResultFormatError(f"malformed result document: {error!r}") from None
 
-    def to_json(self) -> str:
-        """The result document as JSON text, indented by two spaces and ending with a newline."""
-        return json.dumps(self.to_dict(), indent=2) + "\n"
+    def to_json(self, *, include_worker_errors: bool = False) -> str:
+        """The result document as JSON text, indented by two spaces and ending with a newline (see `to_dict`)."""
+        return json.dumps(self.to_dict(include_worker_errors=include_worker_errors), indent=2, allow_nan=False) + "\n"
 
     @classmethod
     def from_json(cls, text: str | bytes) -> "EvaluationResult":
         """Inverse of `to_json`; accepts any JSON layout. Raises `ResultFormatError` for text that is not one."""
         try:
-            data = json.loads(text)
+            data = json.loads(text, parse_constant=_reject_constant)
         except (ValueError, RecursionError) as error:
             raise ResultFormatError(f"a result document must be JSON: {error}") from None
         return cls.from_dict(data)

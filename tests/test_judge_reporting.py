@@ -1,5 +1,6 @@
 import copy
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -183,7 +184,7 @@ def test_results_round_trip_through_dictionaries_and_json():
 
 def test_filtered_documents_load_and_keep_their_stored_summary():
     result = EvaluationResult.from_evaluation(EVALUATION, participant="Team A")
-    document = result.to_dict()
+    document = result.to_dict(include_worker_errors=True)
     document["participant"] = None
     document["cases"] = [
         case | {"stdout": "", "stderr": "", "detail": ""} for case in document["cases"] if case["case_id"] in ("a", "b")
@@ -191,14 +192,14 @@ def test_filtered_documents_load_and_keep_their_stored_summary():
     without_worker_error = json.loads(json.dumps(document))
     for case in without_worker_error["cases"]:
         del case["worker_error"]
-    assert EvaluationResult.from_dict(without_worker_error).to_dict() == document
+    assert EvaluationResult.from_dict(without_worker_error).to_dict() == without_worker_error
     loaded = EvaluationResult.from_json(json.dumps(document))
     assert loaded.participant is None
     assert [o.case_id for o in loaded.outcomes] == ["a", "b"]
     assert all(o.stdout == o.stderr == o.detail == "" for o in loaded.outcomes)
     assert loaded.case_ids == result.case_ids
     assert loaded.summary == result.summary != summarize(loaded.outcomes)
-    assert loaded.to_dict() == document
+    assert loaded.to_dict(include_worker_errors=True) == document
 
 
 def test_other_formats_and_versions_are_rejected():
@@ -287,3 +288,37 @@ def test_malformed_values_are_format_errors(change):
 def test_deeply_nested_json_is_a_format_error():
     with pytest.raises(ResultFormatError):
         EvaluationResult.from_json("[" * 100_000 + "]" * 100_000)
+
+
+def test_worker_errors_are_left_out_unless_requested():
+    outcome = replace(EVALUATION.outcomes[0], worker_error="Traceback: hidden")
+    result = replace(EvaluationResult.from_evaluation(EVALUATION), outcomes=(outcome, *EVALUATION.outcomes[1:]))
+    assert "worker_error" not in result.to_dict()["cases"][0]
+    assert "hidden" not in result.to_json()
+    assert result.to_dict(include_worker_errors=True)["cases"][0]["worker_error"] == "Traceback: hidden"
+    assert EvaluationResult.from_json(result.to_json(include_worker_errors=True)) == result
+
+
+@pytest.mark.parametrize(
+    "case_ids",
+    [
+        lambda ids: [ids[0], ids[0]],
+        lambda ids: [ids[1], ids[0]],
+        lambda ids: ["unknown"],
+    ],
+)
+def test_cases_must_be_distinct_cases_of_the_suite_in_order(case_ids):
+    document = EvaluationResult.from_evaluation(EVALUATION).to_dict()
+    by_id = {case["case_id"]: case for case in document["cases"]}
+    ids = list(by_id)
+    document["cases"] = [by_id.get(case_id, by_id[ids[0]] | {"case_id": case_id}) for case_id in case_ids(ids)]
+    with pytest.raises(ResultFormatError, match="cases must be distinct cases of the suite"):
+        EvaluationResult.from_dict(document)
+
+
+@pytest.mark.parametrize("text", ["NaN", "Infinity", "-Infinity", "1e400"])
+def test_non_finite_numbers_are_rejected(text):
+    document = EvaluationResult.from_evaluation(EVALUATION).to_json()
+    tampered = document.replace('"duration_s": ', f'"duration_s": {text}, "_": ', 1)
+    with pytest.raises(ResultFormatError):
+        EvaluationResult.from_json(tampered)

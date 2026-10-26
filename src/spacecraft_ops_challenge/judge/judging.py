@@ -53,7 +53,8 @@ def evaluate_submission(
     is available. Raises `CaseError` for a broken provider, `SubmissionError` for an invalid archive, and
     `DependencyError` for dependencies that cannot be reproduced.
     """
-    # Taken before the provider runs here, so that what it puts into the environment never reaches the cases.
+    # Taken before the provider runs here, so that what it puts into the environment never reaches the cases
+    # or the installation of their packages.
     env = dict(os.environ)
     provider.check(suite.cases)
     started_at = _now()
@@ -61,7 +62,7 @@ def evaluate_submission(
         submission = extract_submission(io.BytesIO(archive), Path(scratch) / "root")
         if on_status is not None:
             on_status("Preparing the participant's packages")
-        dependencies, overlay = resolve_dependencies(submission.pyproject, Path(scratch) / "overlay")
+        dependencies, overlay = resolve_dependencies(submission.pyproject, Path(scratch) / "overlay", env=env)
         if on_status is not None:
             on_status("Running cases")
         outcomes = run_suite(

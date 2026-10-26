@@ -8,6 +8,7 @@ from judge_support import DECLARE_AT_START, PROVIDER, case, zip_bytes
 
 import spacecraft_ops_challenge
 from spacecraft_ops_challenge.challenge import scenario_names
+from spacecraft_ops_challenge.judge import judging
 from spacecraft_ops_challenge.judge.cases import CaseError, ScenarioProvider, Suite
 from spacecraft_ops_challenge.judge.dependencies import DependencyError
 from spacecraft_ops_challenge.judge.judging import check_submission, evaluate_submission
@@ -141,3 +142,20 @@ class MyStrategy(Strategy):
     evaluation = evaluate_submission(zip_bytes({"submission/strategy.py": reading}), SUITE, exporting)
     assert "JUDGE_TEST_HIDDEN" in os.environ  # the check in this process did export it
     assert all(outcome.stdout == "hidden: None\n" for outcome in evaluation.outcomes)
+
+
+def test_dependency_installation_gets_the_environment_from_before_the_provider_check(monkeypatch):
+    monkeypatch.setenv("JUDGE_TEST_HIDDEN", "")
+    monkeypatch.delenv("JUDGE_TEST_HIDDEN")
+    seen = {}
+    real_resolve = judging.resolve_dependencies
+
+    def resolve(*args, env=None, **kwargs):
+        seen["env"] = env
+        return real_resolve(*args, env=env, **kwargs)
+
+    monkeypatch.setattr(judging, "resolve_dependencies", resolve)
+    exporting = ScenarioProvider("judge_test_provider:exporting", PROVIDER.paths)
+    evaluate_submission(zip_bytes({"submission/strategy.py": DECLARE_AT_START}), SUITE, exporting)
+    assert "JUDGE_TEST_HIDDEN" in os.environ
+    assert "JUDGE_TEST_HIDDEN" not in seen["env"]

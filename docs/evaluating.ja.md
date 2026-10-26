@@ -96,9 +96,9 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 
 | メソッド | 意味 |
 |---|---|
-| `to_dict()` | JSON に変換できる辞書としての結果文書 |
+| `to_dict(include_worker_errors=False)` | JSON に変換できる辞書としての結果文書 |
 | `EvaluationResult.from_dict(data)` | `to_dict` の逆変換 |
-| `to_json()` | 2つの空白で字下げし，改行で終わる JSON テキストとしての結果文書 |
+| `to_json(include_worker_errors=False)` | 2つの空白で字下げし，改行で終わる JSON テキストとしての結果文書 |
 | `EvaluationResult.from_json(text)` | `to_json` の逆変換。任意の JSON の書式の `str` または `bytes` を受け取る |
 
 結果文書は，次のキーを持つ JSON オブジェクトです。
@@ -114,20 +114,21 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 | `core_version` | 評価を実行したこのパッケージのバージョン |
 | `started_at`，`finished_at` | ISO 8601 形式の UTC 時刻 |
 | `summary` | `SuiteSummary.to_dict()` |
-| `cases` | 各結果の `CaseOutcome.to_dict()`（[評価ケースの実行](runner.ja.md)を参照） |
+| `cases` | 各結果の `CaseOutcome.to_dict()`（[評価ケースの実行](runner.ja.md)を参照）。`include_worker_errors` が真でなければ `worker_error` を除きます |
 
 結果文書は，例えば別の読み手のために詳細を省くなど，読み込む前に絞り込まれていることがあります。
 そのため `from_dict` は，`null` の `participant`，`case_ids` より少ない `cases`，
 空文字列の `stdout`，`stderr`，`detail`，`worker_error` のない評価ケースを受け付けます。
+ただし，`cases` は `Suite` の異なる評価ケースで，`case_ids` の順でなければなりません。
 保存された `summary` は，`cases` から計算し直されることなく，そのまま読み込まれます。
 
-`from_dict` と `from_json` は，`format` や `format_version` が異なる文書，JSON ではないテキスト，
+`from_dict` と `from_json` は，`format` や `format_version` が異なる文書，JSON ではないテキスト，有限でない数値，
 文書，その `summary` と `cases`，報告の関数が読む評価ケースの評価指標でのキーの欠落や型の誤った値に対して，
 `ValueError` のサブクラスである `ResultFormatError` を送出します。
 依存関係のレポートは，構造だけを検査します。
 形式が定義していないキーは無視されます。
 
 結果文書を読み込んで再び `to_dict()` を呼び出すと，同じ文書が得られます。
-ただし，`worker_error` のない評価ケースには `"worker_error": null` が加わります。
+評価ケースに `worker_error` がある文書では，`include_worker_errors=True` を指定します。
 依存関係の判定の制約と保護するパッケージは結果文書に含まれないため（[参加者のパッケージ](dependencies.ja.md)を参照），
 読み込んだ結果が元の結果と異なりうるのはその点だけです。
