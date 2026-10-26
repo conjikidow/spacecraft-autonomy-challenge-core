@@ -152,3 +152,9 @@ def test_the_timeout_help_names_the_default(capsys):
     with pytest.raises(SystemExit):
         main(["check", "--help"])
     assert f"default: {DEFAULT_CASE_TIMEOUT_S:g}" in capsys.readouterr().out
+
+
+def test_pack_reports_a_symbolic_link_loop_as_a_usage_error(project, tmp_path, capsys):
+    (tmp_path / "loop").symlink_to(tmp_path / "loop")
+    assert main(["pack", str(project), "-o", str(tmp_path / "loop" / "out.zip")]) == EXIT_USAGE
+    assert capsys.readouterr().err.startswith("error:")

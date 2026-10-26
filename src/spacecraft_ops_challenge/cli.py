@@ -159,8 +159,13 @@ def _pack_command(args: argparse.Namespace) -> int:
     from spacecraft_ops_challenge.judge.submission import SUBMISSION_DIRNAME, SubmissionError, build_submission
 
     output = Path(args.output)
-    submission_dir = (Path(args.project_dir) / SUBMISSION_DIRNAME).resolve()
-    if output.resolve().is_relative_to(submission_dir):
+    try:
+        submission_dir = (Path(args.project_dir) / SUBMISSION_DIRNAME).resolve()
+        inside = output.resolve().is_relative_to(submission_dir)
+    except (OSError, RuntimeError) as error:  # RuntimeError: a symbolic link loop
+        print(f"error: {error}", file=sys.stderr)
+        return EXIT_USAGE
+    if inside:
         print(f"error: the output {output} must not be inside {submission_dir}", file=sys.stderr)
         return EXIT_USAGE
     try:
