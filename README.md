@@ -99,6 +99,7 @@ With `--json`, anything the strategy prints goes to standard error, so standard 
 - [Evaluation](docs/evaluation.md): per-run metrics
 - [Submission Archives](docs/submission.md): building and extracting `submission.zip`
 - [Evaluation Cases](docs/judge.md): evaluation cases, suites, and scenario providers
+- [Participant Packages](docs/dependencies.md): reproducing the packages that a submission needs with uv
 
 ## Development
 

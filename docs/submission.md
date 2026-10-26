@@ -23,7 +23,7 @@ The archive mirrors the root of the project it was built from:
 |---|---|
 | `submission/strategy.py` | Entry point; it defines the strategy class `MyStrategy` |
 | `submission/...` | Any supporting files, such as further modules, data, or model files |
-| `pyproject.toml` | Optional `pyproject.toml` of the project, which lists the packages the submission needs |
+| `pyproject.toml` | Optional `pyproject.toml` of the project, which lists the packages the submission needs (see [Participant Packages](dependencies.md)) |
 
 The constants `SUBMISSION_DIRNAME`, `STRATEGY_PATH`, `STRATEGY_CLASS`, and `PYPROJECT_PATH` hold these names.
 

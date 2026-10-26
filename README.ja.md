@@ -99,6 +99,7 @@ spacecraft-ops-challenge scenarios
 - [評価](docs/evaluation.ja.md)：実行ごとの評価指標
 - [提出アーカイブ](docs/submission.ja.md)：`submission.zip` の作成と展開
 - [評価ケース](docs/judge.ja.md)：評価ケース，`Suite`，`ScenarioProvider`
+- [参加者のパッケージ](docs/dependencies.ja.md)：提出物が必要とするパッケージの uv による再現
 
 ## 開発
 
