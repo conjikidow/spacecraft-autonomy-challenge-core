@@ -14,6 +14,7 @@ from spacecraft_ops_challenge.judge.cases import ScenarioProvider, Suite
 from spacecraft_ops_challenge.judge.dependencies import DependencyReport, resolve_dependencies
 from spacecraft_ops_challenge.judge.public_scenarios import PROVIDER, public_suite
 from spacecraft_ops_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S, CaseOutcome, run_suite
+from spacecraft_ops_challenge.judge.scoring import ScoringConfig
 from spacecraft_ops_challenge.judge.submission import extract_submission
 
 
@@ -30,6 +31,8 @@ class SubmissionEvaluation:
     started_at: str
     """UTC start time in ISO 8601 format."""
     finished_at: str
+    scoring: ScoringConfig
+    """Configuration that scores the outcomes."""
 
 
 def _now() -> str:
@@ -66,6 +69,7 @@ def evaluate_submission(
     provider: ScenarioProvider,
     *,
     timeout_s: float = DEFAULT_CASE_TIMEOUT_S,
+    scoring: ScoringConfig | None = None,
     on_status: Callable[[str], None] | None = None,
     on_case_done: Callable[[CaseOutcome], None] | None = None,
 ) -> SubmissionEvaluation:
@@ -74,10 +78,12 @@ def evaluate_submission(
     `provider` builds the scenario of each case; it is checked on every case first, so that a broken provider
     fails before the submission runs. Packages that the `pyproject.toml` of the archive names and the evaluating
     environment lacks are installed once into a temporary overlay shared by all cases. The temporary directory is
-    removed afterwards. `on_status` receives short progress messages, and `on_case_done` each outcome as soon as it
-    is available. Raises `CaseError` for a broken provider, `SubmissionError` for an invalid archive, and
+    removed afterwards. `scoring` is recorded with the outcomes to score them, `ScoringConfig.default()` if it is
+    `None`. `on_status` receives short progress messages, and `on_case_done` each outcome as soon as it is
+    available. Raises `CaseError` for a broken provider, `SubmissionError` for an invalid archive, and
     `DependencyError` for dependencies that cannot be reproduced.
     """
+    scoring = ScoringConfig.default() if scoring is None else scoring
     env = _check_provider(provider, suite)
     started_at = _now()
     with tempfile.TemporaryDirectory(prefix="spacecraft-ops-submission-") as scratch:
@@ -104,6 +110,7 @@ def evaluate_submission(
         dependencies=dependencies,
         started_at=started_at,
         finished_at=_now(),
+        scoring=scoring,
     )
 
 
@@ -111,10 +118,17 @@ def check_submission(
     archive: bytes,
     *,
     timeout_s: float = DEFAULT_CASE_TIMEOUT_S,
+    scoring: ScoringConfig | None = None,
     on_status: Callable[[str], None] | None = None,
     on_case_done: Callable[[CaseOutcome], None] | None = None,
 ) -> SubmissionEvaluation:
     """Evaluate `archive` on the public scenarios: `evaluate_submission` with `public_suite()` and `PROVIDER`."""
     return evaluate_submission(
-        archive, public_suite(), PROVIDER, timeout_s=timeout_s, on_status=on_status, on_case_done=on_case_done
+        archive,
+        public_suite(),
+        PROVIDER,
+        timeout_s=timeout_s,
+        scoring=scoring,
+        on_status=on_status,
+        on_case_done=on_case_done,
     )

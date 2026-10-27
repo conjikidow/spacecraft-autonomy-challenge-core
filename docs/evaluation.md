@@ -30,6 +30,9 @@ print(metrics.completion_declared, metrics.safe, metrics.delta_v_error_mps)
 | `delta_v_error_mps` | Achieved minus target delta-v, so positive means overshoot |
 | `completion_declared_time_s` | Termination time if completion was declared, otherwise `None` |
 | `time_limit_s` | Time limit of the scenario |
+| `decision_period_s` | Decision period of the scenario |
+| `nominal_battery_capacity_wh` | Battery capacity of the published nominal model, which the actual spacecraft may deviate from |
+| `min_battery_energy_limit_wh` | Safety limit on the battery energy |
 | `min_battery_energy_wh` | Lowest true battery energy |
 | `min_propulsion_temperature_c` | Lowest true propulsion temperature |
 | `max_propulsion_temperature_c` | Highest true propulsion temperature |

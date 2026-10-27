@@ -5,6 +5,7 @@ import pytest
 
 from spacecraft_ops_challenge.commands import DeclareCompletion, PropulsionMode, SetPropulsionMode
 from spacecraft_ops_challenge.evaluation import RunMetrics, evaluate
+from spacecraft_ops_challenge.modifiers import Modifier
 from spacecraft_ops_challenge.results import TerminationReason
 from spacecraft_ops_challenge.simulation import run
 from spacecraft_ops_challenge.strategy import Strategy
@@ -42,6 +43,9 @@ def test_declared_completion_safe_run(make_scenario):
     assert metrics.end_time_s == 500.0
     assert metrics.completion_declared_time_s == 500.0
     assert metrics.time_limit_s == 600.0
+    assert metrics.decision_period_s == 60.0
+    assert metrics.nominal_battery_capacity_wh == 100.0
+    assert metrics.min_battery_energy_limit_wh == 0.0
     assert metrics.target_delta_v_mps == 1.0
     assert metrics.delta_v_mps == pytest.approx(1.0)
     assert metrics.delta_v_error_mps == pytest.approx(0.0, abs=1e-9)
@@ -67,6 +71,24 @@ def test_extremes_come_from_trajectory(make_scenario):
     assert metrics.min_propulsion_temperature_c == 20.0
     assert metrics.max_propulsion_temperature_c > 20.0
     assert metrics.max_propulsion_temperature_c > result.final_state.propulsion_temperature_c
+
+
+class HalfBatteryCapacity(Modifier):
+    def modify_parameters(self, parameters, state, rng):
+        return replace(parameters, battery_capacity_wh=parameters.battery_capacity_wh / 2)
+
+
+def test_problem_quantities_come_from_the_nominal_problem(make_scenario, parameters, limits):
+    scenario = make_scenario(
+        parameters=replace(parameters, battery_capacity_wh=80.0),
+        limits=replace(limits, min_battery_energy_wh=5.0),
+        decision_period_s=30.0,
+        modifiers=(HalfBatteryCapacity(),),
+    )
+    metrics = metrics_of(Fixed(), scenario)
+    assert metrics.decision_period_s == 30.0
+    assert metrics.nominal_battery_capacity_wh == 80.0
+    assert metrics.min_battery_energy_limit_wh == 5.0
 
 
 def test_error_sign(make_scenario):

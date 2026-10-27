@@ -30,6 +30,9 @@ print(metrics.completion_declared, metrics.safe, metrics.delta_v_error_mps)
 | `delta_v_error_mps` | 得られた Δv から目標 Δv を引いた値（正なら目標を超過） |
 | `completion_declared_time_s` | 完了が宣言された場合はその終了時刻，そうでなければ `None` |
 | `time_limit_s` | シナリオの制限時間 |
+| `decision_period_s` | シナリオの判断周期 |
+| `nominal_battery_capacity_wh` | 公開された公称モデルのバッテリ容量（実際の宇宙機はこれと異なる場合がある） |
+| `min_battery_energy_limit_wh` | バッテリ蓄電量の安全制約 |
 | `min_battery_energy_wh` | 真のバッテリ蓄電量の最小値 |
 | `min_propulsion_temperature_c` | 真の推進系温度の最小値 |
 | `max_propulsion_temperature_c` | 真の推進系温度の最大値 |
