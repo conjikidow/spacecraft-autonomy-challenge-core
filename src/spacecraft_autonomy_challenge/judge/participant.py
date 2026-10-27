@@ -4,7 +4,7 @@ The trusted case worker starts this process with the participant's packages firs
 talks to it over a dedicated socket. The process only ever receives what a strategy may see: the mission
 brief, telemetry, and the results of commander requests. It never imports the case definitions.
 
-    python -P -m spacecraft_ops_challenge.judge.participant SOCKET_FD SUBMISSION_ROOT [OVERLAY]
+    python -P -m spacecraft_autonomy_challenge.judge.participant SOCKET_FD SUBMISSION_ROOT [OVERLAY]
 """
 
 import operator
@@ -17,10 +17,10 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from spacecraft_ops_challenge import CommandError, CommandId, ScheduledCommand, Strategy
-from spacecraft_ops_challenge.cli import load_strategy
-from spacecraft_ops_challenge.commands import Command
-from spacecraft_ops_challenge.judge.protocol import (
+from spacecraft_autonomy_challenge import CommandError, CommandId, ScheduledCommand, Strategy
+from spacecraft_autonomy_challenge.cli import load_strategy
+from spacecraft_autonomy_challenge.commands import Command
+from spacecraft_autonomy_challenge.judge.protocol import (
     Channel,
     ChannelClosedError,
     JSONValue,
@@ -30,7 +30,7 @@ from spacecraft_ops_challenge.judge.protocol import (
     decode_telemetry,
     encode_command,
 )
-from spacecraft_ops_challenge.judge.submission import STRATEGY_CLASS, STRATEGY_PATH
+from spacecraft_autonomy_challenge.judge.submission import STRATEGY_CLASS, STRATEGY_PATH
 
 _CLOSED = "this commander is only valid during the callback it was passed to"
 

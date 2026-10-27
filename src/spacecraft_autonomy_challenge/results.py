@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from spacecraft_ops_challenge.config import SimulationConfig
-from spacecraft_ops_challenge.model import SpacecraftState
-from spacecraft_ops_challenge.scenario import Scenario
-from spacecraft_ops_challenge.telemetry import Telemetry
-from spacecraft_ops_challenge.timeline import ScheduledCommand
+from spacecraft_autonomy_challenge.config import SimulationConfig
+from spacecraft_autonomy_challenge.model import SpacecraftState
+from spacecraft_autonomy_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.telemetry import Telemetry
+from spacecraft_autonomy_challenge.timeline import ScheduledCommand
 
 
 class TerminationReason(StrEnum):

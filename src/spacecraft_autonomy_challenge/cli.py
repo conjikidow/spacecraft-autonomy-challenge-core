@@ -1,4 +1,4 @@
-"""Command-line runner: `spacecraft-ops-challenge run`, `scenarios`, `pack`, and `check`.
+"""Command-line runner: `autonomy-challenge run`, `scenarios`, `pack`, and `check`.
 
 Exit status of `run`: 0 when the run finished, 1 when the strategy raised an exception or made an invalid
 timeline request, and 2 for usage errors such as a strategy that cannot be loaded. `check` exits with 1 when a
@@ -22,16 +22,16 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from spacecraft_ops_challenge.challenge import scenario as challenge_scenario
-from spacecraft_ops_challenge.challenge import scenario_names
-from spacecraft_ops_challenge.evaluation import RunMetrics, evaluate
-from spacecraft_ops_challenge.results import RunResult, TerminationReason
-from spacecraft_ops_challenge.simulation import run
-from spacecraft_ops_challenge.strategy import Strategy
+from spacecraft_autonomy_challenge.challenge import scenario as challenge_scenario
+from spacecraft_autonomy_challenge.challenge import scenario_names
+from spacecraft_autonomy_challenge.evaluation import RunMetrics, evaluate
+from spacecraft_autonomy_challenge.results import RunResult, TerminationReason
+from spacecraft_autonomy_challenge.simulation import run
+from spacecraft_autonomy_challenge.strategy import Strategy
 
 if TYPE_CHECKING:
-    from spacecraft_ops_challenge.judge.reporting import EvaluationResult
-    from spacecraft_ops_challenge.judge.runner import CaseOutcome
+    from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
+    from spacecraft_autonomy_challenge.judge.runner import CaseOutcome
 
 EXIT_OK = 0
 EXIT_STRATEGY_FAILURE = 1
@@ -79,7 +79,7 @@ def _import_file(path: Path) -> object:
     if not path.is_file():
         raise FileNotFoundError(path)
     _prepend_import_path(path.parent)
-    module_name = "_spacecraft_ops_challenge_strategy_" + re.sub(r"\W", "_", str(path))
+    module_name = "_spacecraft_autonomy_challenge_strategy_" + re.sub(r"\W", "_", str(path))
     spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {path}")
@@ -156,7 +156,7 @@ def _scenarios_command(args: argparse.Namespace) -> int:
 
 
 def _pack_command(args: argparse.Namespace) -> int:
-    from spacecraft_ops_challenge.judge.submission import SUBMISSION_DIRNAME, SubmissionError, build_submission
+    from spacecraft_autonomy_challenge.judge.submission import SUBMISSION_DIRNAME, SubmissionError, build_submission
 
     output = Path(args.output)
     try:
@@ -206,7 +206,7 @@ def _indented_tail(text: str) -> str:
 
 def format_check_report(source: str, result: "EvaluationResult") -> str:
     """Human-readable report of a `check` run: summary, per-case table, problems, and participant output."""
-    from spacecraft_ops_challenge.judge.reporting import case_rows, missing_modules, problem_outcomes, summary_rows
+    from spacecraft_autonomy_challenge.judge.reporting import case_rows, missing_modules, problem_outcomes, summary_rows
 
     lines = [f"{'Submission:':<12}{source}", f"{'SHA-256:':<12}{result.submission_sha256}"]
     if result.skipped_entries:
@@ -255,14 +255,14 @@ def format_check_report(source: str, result: "EvaluationResult") -> str:
 
 
 def _check_command(args: argparse.Namespace) -> int:
-    from spacecraft_ops_challenge.judge.cases import CaseError
-    from spacecraft_ops_challenge.judge.dependencies import DependencyError
-    from spacecraft_ops_challenge.judge.judging import check_submission
-    from spacecraft_ops_challenge.judge.public_scenarios import public_suite
-    from spacecraft_ops_challenge.judge.reporting import EvaluationResult, problem_outcomes
-    from spacecraft_ops_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
-    from spacecraft_ops_challenge.judge.scoring import ScoringConfig, ScoringConfigError, score_case
-    from spacecraft_ops_challenge.judge.submission import SubmissionError, build_submission
+    from spacecraft_autonomy_challenge.judge.cases import CaseError
+    from spacecraft_autonomy_challenge.judge.dependencies import DependencyError
+    from spacecraft_autonomy_challenge.judge.judging import check_submission
+    from spacecraft_autonomy_challenge.judge.public_scenarios import public_suite
+    from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult, problem_outcomes
+    from spacecraft_autonomy_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
+    from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, ScoringConfigError, score_case
+    from spacecraft_autonomy_challenge.judge.submission import SubmissionError, build_submission
 
     source = Path(args.submission)
     total = len(public_suite().cases)
@@ -307,9 +307,9 @@ def _positive_seconds(text: str) -> float:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Argument parser of the `spacecraft-ops-challenge` command."""
+    """Argument parser of the `autonomy-challenge` command."""
     parser = argparse.ArgumentParser(
-        prog="spacecraft-ops-challenge", description="Run strategies on the challenge scenarios."
+        prog="autonomy-challenge", description="Run strategies on the challenge scenarios."
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -362,7 +362,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point of the `spacecraft-ops-challenge` command."""
+    """Entry point of the `autonomy-challenge` command."""
     args = build_parser().parse_args(argv)
     try:
         return args.handler(args)

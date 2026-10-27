@@ -6,17 +6,17 @@ import tempfile
 import pytest
 from judge_support import DECLARE_AT_START, PROVIDER, case, zip_bytes
 
-import spacecraft_ops_challenge
-from spacecraft_ops_challenge.challenge import scenario_names
-from spacecraft_ops_challenge.judge import judging
-from spacecraft_ops_challenge.judge.cases import CaseError, ScenarioProvider, Suite
-from spacecraft_ops_challenge.judge.dependencies import DependencyError
-from spacecraft_ops_challenge.judge.judging import check_submission, evaluate_submission
-from spacecraft_ops_challenge.judge.public_scenarios import public_suite
-from spacecraft_ops_challenge.judge.reporting import EvaluationResult
-from spacecraft_ops_challenge.judge.runner import CaseStatus
-from spacecraft_ops_challenge.judge.scoring import ScoringConfig, score_case, suite_score
-from spacecraft_ops_challenge.judge.submission import SubmissionError
+import spacecraft_autonomy_challenge
+from spacecraft_autonomy_challenge.challenge import scenario_names
+from spacecraft_autonomy_challenge.judge import judging
+from spacecraft_autonomy_challenge.judge.cases import CaseError, ScenarioProvider, Suite
+from spacecraft_autonomy_challenge.judge.dependencies import DependencyError
+from spacecraft_autonomy_challenge.judge.judging import check_submission, evaluate_submission
+from spacecraft_autonomy_challenge.judge.public_scenarios import public_suite
+from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
+from spacecraft_autonomy_challenge.judge.runner import CaseStatus
+from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, score_case, suite_score
+from spacecraft_autonomy_challenge.judge.submission import SubmissionError
 
 SECRET_FACTOR = 0.123456
 SUITE = Suite(
@@ -34,7 +34,7 @@ def test_evaluate_submission_runs_every_case_and_cleans_up(tmp_path, monkeypatch
     seen = []
 
     def on_case_done(outcome):
-        assert [path.name.startswith("spacecraft-ops-submission-") for path in tmp_path.iterdir()] == [True]
+        assert [path.name.startswith("spacecraft-autonomy-submission-") for path in tmp_path.iterdir()] == [True]
         seen.append(outcome)
 
     evaluation = evaluate_submission(archive, SUITE, PROVIDER, on_case_done=on_case_done)
@@ -75,7 +75,7 @@ def test_result_document_is_complete_and_hides_case_definitions():
     assert document["summary"]["score"] == 0.0
     assert [case["score"]["value"] for case in document["cases"]] == [0.0, 0.0]
     assert [case["score"]["accuracy"] for case in document["cases"]] == [0.0, 0.0]
-    assert document["core_version"] == spacecraft_ops_challenge.__version__
+    assert document["core_version"] == spacecraft_autonomy_challenge.__version__
     for secret in (str(SECRET_FACTOR), "987654321", "876543219", "ThrusterEfficiency", "THRUSTER_1"):
         assert secret not in text
 
@@ -154,7 +154,7 @@ def test_environment_changes_of_the_provider_check_do_not_reach_the_participant(
     reading = """
 import os
 
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
 class MyStrategy(Strategy):
@@ -199,7 +199,7 @@ def test_concurrent_evaluations_do_not_see_each_others_provider_environment(monk
     reading = """
 import os
 
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
 class MyStrategy(Strategy):

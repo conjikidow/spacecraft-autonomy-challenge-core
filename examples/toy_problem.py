@@ -3,13 +3,19 @@
 Its limits are loose, so no strategy runs into them; the examples only show how the API behaves.
 """
 
-from spacecraft_ops_challenge import PropulsionMode, SafetyLimits, SpacecraftParameters, Strategy, ThrusterParameters
-from spacecraft_ops_challenge.evaluation import evaluate
-from spacecraft_ops_challenge.model import SpacecraftState
-from spacecraft_ops_challenge.problem import Problem
-from spacecraft_ops_challenge.results import RunResult
-from spacecraft_ops_challenge.scenario import Scenario
-from spacecraft_ops_challenge.simulation import run
+from spacecraft_autonomy_challenge import (
+    PropulsionMode,
+    SafetyLimits,
+    SpacecraftParameters,
+    Strategy,
+    ThrusterParameters,
+)
+from spacecraft_autonomy_challenge.evaluation import evaluate
+from spacecraft_autonomy_challenge.model import SpacecraftState
+from spacecraft_autonomy_challenge.problem import Problem
+from spacecraft_autonomy_challenge.results import RunResult
+from spacecraft_autonomy_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.simulation import run
 
 
 def toy_scenario() -> Scenario:

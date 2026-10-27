@@ -2,14 +2,14 @@
 
 **English** | [日本語](dependencies.ja.md)
 
-This page describes how the packages that a submission needs are reproduced (`spacecraft_ops_challenge.judge.dependencies`).
+This page describes how the packages that a submission needs are reproduced (`spacecraft_autonomy_challenge.judge.dependencies`).
 A submission lists them in the optional `pyproject.toml` of its archive (see [Submission Archives](submission.md)).
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.dependencies import resolve_dependencies
-from spacecraft_ops_challenge.judge.submission import extract_submission
+from spacecraft_autonomy_challenge.judge.dependencies import resolve_dependencies
+from spacecraft_autonomy_challenge.judge.submission import extract_submission
 
 submission = extract_submission("submission.zip", Path("work/extracted"))
 report, overlay = resolve_dependencies(submission.pyproject, Path("work/overlay"))
@@ -35,7 +35,7 @@ Each requirement gets one `Decision` against the evaluating environment:
 | Decision | When |
 |---|---|
 | `NOT_APPLICABLE` | Its environment marker is false for the evaluating interpreter |
-| `JUDGE_CONTROLLED` | It is `spacecraft-operations-challenge-core` |
+| `JUDGE_CONTROLLED` | It is `spacecraft-autonomy-challenge-core` |
 | `SATISFIED` | The installed version and extras satisfy it, or it is installed from the same URL |
 | `INSTALL` | It is missing, its version or extras are not satisfied, or it names another URL |
 | `UNSUPPORTED` | It, its `[tool.uv.sources]` entry, or a dependency of a requested extra cannot be reproduced, or its environment marker cannot be evaluated |

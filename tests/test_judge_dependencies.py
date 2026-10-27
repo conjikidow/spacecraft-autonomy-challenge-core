@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from packaging.requirements import Requirement
 
-from spacecraft_ops_challenge.judge import dependencies
-from spacecraft_ops_challenge.judge.dependencies import (
+from spacecraft_autonomy_challenge.judge import dependencies
+from spacecraft_autonomy_challenge.judge.dependencies import (
     CORE_DISTRIBUTION,
     Decision,
     DependencyError,
@@ -32,7 +32,7 @@ from spacecraft_ops_challenge.judge.dependencies import (
 )
 
 PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
-CORE_URL = "https://github.com/conjikidow/spacecraft-operations-challenge-core"
+CORE_URL = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
 TOOLKIT_WHEEL = "file:///opt/wheels/toolkit-1.2.0-py3-none-any.whl"
 
 PARTICIPANT_PYPROJECT = f"""
@@ -47,7 +47,7 @@ dependencies = [
     "polars>=1.20",
     "scikit-learn>=1.5",
     "pywin32>=306; sys_platform == 'win32'",
-    "spacecraft-operations-challenge-core @ git+{CORE_URL}@v0.1.2",
+    "spacecraft-autonomy-challenge-core @ git+{CORE_URL}@v0.1.2",
     "private-helper @ file:///home/participant/wheels/private_helper-0.1-py3-none-any.whl",
 ]
 """.encode()
@@ -57,8 +57,8 @@ INSTALLED = {
     "numpy": InstalledDistribution("numpy", "2.2.6"),
     "pandas": InstalledDistribution("pandas", "2.3.0", requires=("numpy>=1.26", 'openpyxl>=3.1; extra == "excel"')),
     "polars": InstalledDistribution("polars", "1.0.0"),
-    "spacecraft-operations-challenge-core": InstalledDistribution(
-        "spacecraft-operations-challenge-core",
+    "spacecraft-autonomy-challenge-core": InstalledDistribution(
+        "spacecraft-autonomy-challenge-core",
         "0.1.2",
         direct_url={
             "url": CORE_URL,
@@ -93,7 +93,7 @@ def test_representative_participant_pyproject():
         "polars": Decision.INSTALL,
         "scikit-learn": Decision.INSTALL,
         "pywin32": Decision.NOT_APPLICABLE,
-        "spacecraft-operations-challenge-core": Decision.JUDGE_CONTROLLED,
+        "spacecraft-autonomy-challenge-core": Decision.JUDGE_CONTROLLED,
         "private-helper": Decision.UNSUPPORTED,
     }
     assert plan.to_install == ("openpyxl>=3.1", "polars>=1.20", "scikit-learn>=1.5")
@@ -104,7 +104,7 @@ def test_representative_participant_pyproject():
     assert reasons["polars"] == "the evaluating environment has 1.0.0, which does not satisfy it"
     assert reasons["scikit-learn"] == "not installed in the evaluating environment"
     assert "local file" in reasons["private-helper"]
-    assert reasons["spacecraft-operations-challenge-core"] == (
+    assert reasons["spacecraft-autonomy-challenge-core"] == (
         "the evaluating environment uses its own core 0.1.2; the participant's reference matches it"
     )
 
@@ -200,9 +200,9 @@ def test_satisfied_extras_are_not_reinstalled():
 @pytest.mark.parametrize(
     "requirement",
     [
-        f"spacecraft-operations-challenge-core @ git+{CORE_URL}@v0.2.0",
-        "spacecraft-operations-challenge-core>=0.2",
-        "spacecraft_operations_challenge_core==0.0.1",
+        f"spacecraft-autonomy-challenge-core @ git+{CORE_URL}@v0.2.0",
+        "spacecraft-autonomy-challenge-core>=0.2",
+        "spacecraft_autonomy_challenge_core==0.0.1",
     ],
 )
 def test_core_is_judge_controlled_even_when_the_participant_asks_for_another(requirement):
@@ -215,7 +215,7 @@ def test_core_is_judge_controlled_even_when_the_participant_asks_for_another(req
 
 def test_core_reference_by_commit_matches():
     requirement = Requirement(
-        f"spacecraft-operations-challenge-core @ git+{CORE_URL}@afbd421ce1e086eaf89539841c623f4ca9711e2a"
+        f"spacecraft-autonomy-challenge-core @ git+{CORE_URL}@afbd421ce1e086eaf89539841c623f4ca9711e2a"
     )
     assert decide(requirement, environment).reason.endswith("matches it")
 
@@ -355,18 +355,18 @@ def test_invalid_source_tables(data):
 
 def test_template_like_pyproject_uses_the_core_source():
     pyproject = f"""[project]
-dependencies = ["spacecraft-operations-challenge-core", "numpy>=2"]
+dependencies = ["spacecraft-autonomy-challenge-core", "numpy>=2"]
 
 [tool.uv.sources]
-spacecraft-operations-challenge-core = {{ git = "{CORE_URL}", tag = "v0.1.2" }}
+spacecraft-autonomy-challenge-core = {{ git = "{CORE_URL}", tag = "v0.1.2" }}
 """.encode()
     plan = plan_of(pyproject)
     core, numpy = plan.decisions
     assert core.decision is Decision.JUDGE_CONTROLLED
-    assert core.requirement == str(Requirement(f"spacecraft-operations-challenge-core @ git+{CORE_URL}@v0.1.2"))
+    assert core.requirement == str(Requirement(f"spacecraft-autonomy-challenge-core @ git+{CORE_URL}@v0.1.2"))
     assert core.reason == (
         "the evaluating environment uses its own core 0.1.2; the participant's reference matches it "
-        "(rewritten from spacecraft-operations-challenge-core by [tool.uv.sources])"
+        "(rewritten from spacecraft-autonomy-challenge-core by [tool.uv.sources])"
     )
     assert numpy.decision is Decision.SATISFIED
     assert plan.to_install == ()
@@ -677,19 +677,19 @@ def test_install_overlay_failure_is_a_clear_error(tmp_path):
 
 
 def test_install_overlay_never_replaces_the_core(tmp_path):
-    installer = FakeInstaller(0, create=["spacecraft_ops_challenge"])
-    with pytest.raises(DependencyError, match=r"replace modules of the core package: spacecraft_ops_challenge$"):
+    installer = FakeInstaller(0, create=["spacecraft_autonomy_challenge"])
+    with pytest.raises(DependencyError, match=r"replace modules of the core package: spacecraft_autonomy_challenge$"):
         install_overlay(["helper"], tmp_path / "o", uv="/bin/uv", constraints=[], run=installer)
 
 
 def test_install_overlay_never_replaces_core_modules_given_as_files(tmp_path):
     def installer(command, **kwargs):
         target = Path(command[command.index("--target") + 1])
-        (target / "spacecraft_ops_challenge.py").write_text("")
+        (target / "spacecraft_autonomy_challenge.py").write_text("")
         (target / "unrelated.py").write_text("")
         return subprocess.CompletedProcess(command, 0, stdout="")
 
-    with pytest.raises(DependencyError, match=r"spacecraft_ops_challenge$"):
+    with pytest.raises(DependencyError, match=r"spacecraft_autonomy_challenge$"):
         install_overlay(["helper"], tmp_path / "o", uv="/bin/uv", constraints=[], run=installer)
 
 
@@ -899,9 +899,9 @@ def test_uv_is_found_on_the_path_of_the_given_environment(tmp_path):
 
 def test_a_core_reference_with_an_unparsable_url_stays_judge_controlled():
     core = InstalledDistribution(
-        "spacecraft-operations-challenge-core", "0.2.0", direct_url={"url": "https://example.com/core.git"}
+        "spacecraft-autonomy-challenge-core", "0.2.0", direct_url={"url": "https://example.com/core.git"}
     )
-    decision = decide(Requirement("spacecraft-operations-challenge-core @ https://[bad"), {core.name: core}.get)
+    decision = decide(Requirement("spacecraft-autonomy-challenge-core @ https://[bad"), {core.name: core}.get)
     assert decision.decision is Decision.JUDGE_CONTROLLED
     assert "differs from" in decision.reason
 

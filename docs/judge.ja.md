@@ -2,13 +2,14 @@
 
 [English](judge.md) | **日本語**
 
-このページでは，評価ケース，`Suite`，`ScenarioProvider`（`spacecraft_ops_challenge.judge.cases`）と，公開シナリオ用の `ScenarioProvider`（`spacecraft_ops_challenge.judge.public_scenarios`）について説明します。
+このページでは，評価ケース，`Suite`，`ScenarioProvider`（`spacecraft_autonomy_challenge.judge.cases`）と，
+公開シナリオ用の `ScenarioProvider`（`spacecraft_autonomy_challenge.judge.public_scenarios`）について説明します。
 これらは，提出物を評価するシナリオを定義します。
 提出物をそれらで実行する方法は[評価ケースの実行](runner.ja.md)を，
 アーカイブ全体を `Suite` で評価する方法は[提出物の評価](evaluating.ja.md)を参照してください。
 
 ```python
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite
 
 suite = Suite("example", (EvaluationCase.of("case-001", {"seed": 1}), EvaluationCase.of("case-002", {"seed": 2})))
 provider = ScenarioProvider("my_cases.provider:build_scenario", paths=("path/to/directory/of/my_cases",))
@@ -68,16 +69,16 @@ ID は空でない文字列でなければなりません。
 
 ## 公開シナリオ
 
-`spacecraft_ops_challenge.judge.public_scenarios` は，チャレンジの公開シナリオ（[チャレンジ問題](challenge.ja.md)を参照）で評価するためのもので，独自の評価ケースなしで評価を試せます。
+`spacecraft_autonomy_challenge.judge.public_scenarios` は，チャレンジの公開シナリオ（[チャレンジ問題](challenge.ja.md)を参照）で評価するためのもので，独自の評価ケースなしで評価を試せます。
 
 ```python
-from spacecraft_ops_challenge.judge.public_scenarios import PROVIDER, public_suite
+from spacecraft_autonomy_challenge.judge.public_scenarios import PROVIDER, public_suite
 
 suite = public_suite()
 scenarios = [PROVIDER.build(case) for case in suite.cases]
 ```
 
-- `PROVIDER` は，`spacecraft_ops_challenge.judge.public_scenarios:build_scenario` を指定する `ScenarioProvider` です。
+- `PROVIDER` は，`spacecraft_autonomy_challenge.judge.public_scenarios:build_scenario` を指定する `ScenarioProvider` です。
 - `payload`は `{"scenario": name}` または `{"scenario": name, "seed": seed}` です。
   `name` は `scenario_names()` のいずれかで，`seed` が `None` でなければシナリオのシードを置き換えます。
 - `public_suite()` は，公開シナリオごとに1つの評価ケースを持つ 名前が `public` の `Suite` を返します。評価ケースの ID はシナリオ名です。

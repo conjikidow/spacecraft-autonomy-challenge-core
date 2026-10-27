@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from spacecraft_ops_challenge.commands import PropulsionMode
+from spacecraft_autonomy_challenge.commands import PropulsionMode
 
 
 @dataclass(frozen=True, slots=True)

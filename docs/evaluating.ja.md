@@ -2,14 +2,14 @@
 
 [English](evaluating.md) | **日本語**
 
-このページでは，提出アーカイブ全体を `Suite` で評価する方法（`spacecraft_ops_challenge.judge.judging`）と，
-その結果を集計し，JSON の結果文書として記録する方法（`spacecraft_ops_challenge.judge.reporting`）について説明します。
+このページでは，提出アーカイブ全体を `Suite` で評価する方法（`spacecraft_autonomy_challenge.judge.judging`）と，
+その結果を集計し，JSON の結果文書として記録する方法（`spacecraft_autonomy_challenge.judge.reporting`）について説明します。
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.judging import check_submission
-from spacecraft_ops_challenge.judge.reporting import EvaluationResult
+from spacecraft_autonomy_challenge.judge.judging import check_submission
+from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
 
 evaluation = check_submission(Path("submission.zip").read_bytes())
 result = EvaluationResult.from_evaluation(evaluation, participant="example")
@@ -32,7 +32,7 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 `Overlay` を含む一時ディレクトリは，その後に削除されます。
 `check_submission(archive)` は同じことを公開シナリオで行います。
 これは，`public_suite()` と `ScenarioProvider` の `PROVIDER` を渡した `evaluate_submission` です（[評価ケース](judge.ja.md)を参照）。
-コマンドラインでは，`spacecraft-ops-challenge check` がプロジェクトディレクトリかアーカイブに対して `check_submission` を実行し，結果の報告を出力します（[README](../README.ja.md#コマンドラインツール)を参照）。
+コマンドラインでは，`autonomy-challenge check` がプロジェクトディレクトリかアーカイブに対して `check_submission` を実行し，結果の報告を出力します（[README](../README.ja.md#コマンドラインツール)を参照）。
 
 どちらも次のキーワード引数を受け取ります。
 
@@ -115,7 +115,7 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 
 | キー | 意味 |
 |---|---|
-| `format` | 常に `RESULT_FORMAT`，つまり `"spacecraft-operations-challenge/result"` |
+| `format` | 常に `RESULT_FORMAT`，つまり `"spacecraft-autonomy-challenge/result"` |
 | `format_version` | 常に `RESULT_FORMAT_VERSION`，現在は `1` |
 | `participant` | 参加者の名前，または `null` |
 | `submission` | アーカイブの `{"sha256": ..., "skipped_entries": [...]}` |

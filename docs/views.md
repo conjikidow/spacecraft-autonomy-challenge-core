@@ -3,17 +3,17 @@
 **English** | [日本語](views.ja.md)
 
 This page describes the [marimo](https://marimo.io) views of result documents and dependency reports
-(`spacecraft_ops_challenge.judge.views`).
+(`spacecraft_autonomy_challenge.judge.views`).
 
 ## Installation
 
 The views need marimo, which the optional `marimo` extra of this package provides:
 
 ```sh
-uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
+uv add "spacecraft-autonomy-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
 ```
 
-Importing `spacecraft_ops_challenge.judge.views` without marimo raises `ImportError`, with a message that names `spacecraft-operations-challenge-core[marimo]`.
+Importing `spacecraft_autonomy_challenge.judge.views` without marimo raises `ImportError`, with a message that names `spacecraft-autonomy-challenge-core[marimo]`.
 The rest of the package does not need marimo.
 
 ## Usage
@@ -25,8 +25,8 @@ from pathlib import Path
 
 import marimo as mo
 
-from spacecraft_ops_challenge.judge.reporting import EvaluationResult
-from spacecraft_ops_challenge.judge.views import dependencies_view, results_view
+from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
+from spacecraft_autonomy_challenge.judge.views import dependencies_view, results_view
 
 result = EvaluationResult.from_json(Path("result.json").read_bytes())
 mo.vstack([results_view(result), dependencies_view(result.dependencies)])

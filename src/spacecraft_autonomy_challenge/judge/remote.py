@@ -15,9 +15,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Self
 
-import spacecraft_ops_challenge
-from spacecraft_ops_challenge import Commander, CommandError, MissionBrief, Strategy, Telemetry
-from spacecraft_ops_challenge.judge.protocol import (
+import spacecraft_autonomy_challenge
+from spacecraft_autonomy_challenge import Commander, CommandError, MissionBrief, Strategy, Telemetry
+from spacecraft_autonomy_challenge.judge.protocol import (
     Channel,
     ChannelClosedError,
     JSONValue,
@@ -29,12 +29,12 @@ from spacecraft_ops_challenge.judge.protocol import (
     encode_telemetry,
 )
 
-PACKAGE_ROOT = str(Path(spacecraft_ops_challenge.__file__).resolve().parent.parent)
+PACKAGE_ROOT = str(Path(spacecraft_autonomy_challenge.__file__).resolve().parent.parent)
 """Import root of the core package, appended (not prepended) to the import path of the case processes."""
 
 _PARTICIPANT_BOOTSTRAP = (
     "import sys; sys.path.append(sys.argv.pop(1)); "
-    "from spacecraft_ops_challenge.judge.participant import main; main(sys.argv[1:])"
+    "from spacecraft_autonomy_challenge.judge.participant import main; main(sys.argv[1:])"
 )
 _EXIT_WAIT_S = 5.0
 _POLL_INTERVAL_S = 0.05

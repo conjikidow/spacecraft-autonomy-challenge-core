@@ -6,11 +6,11 @@ A payload names a public scenario and may override its seed: `{"scenario": "nomi
 from dataclasses import replace
 from typing import Any
 
-from spacecraft_ops_challenge.challenge import scenario, scenario_names
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite
-from spacecraft_ops_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.challenge import scenario, scenario_names
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite
+from spacecraft_autonomy_challenge.scenario import Scenario
 
-PROVIDER = ScenarioProvider("spacecraft_ops_challenge.judge.public_scenarios:build_scenario")
+PROVIDER = ScenarioProvider("spacecraft_autonomy_challenge.judge.public_scenarios:build_scenario")
 
 
 def build_scenario(payload: dict[str, Any]) -> Scenario:

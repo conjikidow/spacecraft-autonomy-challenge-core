@@ -3,9 +3,9 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops_challenge.commands import PropulsionMode
-from spacecraft_ops_challenge.model import SpacecraftState, StateRates
-from spacecraft_ops_challenge.modifiers import (
+from spacecraft_autonomy_challenge.commands import PropulsionMode
+from spacecraft_autonomy_challenge.model import SpacecraftState, StateRates
+from spacecraft_autonomy_challenge.modifiers import (
     Modifier,
     TelemetryBias,
     ThrusterEfficiency,
@@ -14,7 +14,7 @@ from spacecraft_ops_challenge.modifiers import (
     nominal_telemetry,
     observe,
 )
-from spacecraft_ops_challenge.telemetry import Telemetry
+from spacecraft_autonomy_challenge.telemetry import Telemetry
 
 
 def test_base_modifier_changes_nothing(parameters, make_state):

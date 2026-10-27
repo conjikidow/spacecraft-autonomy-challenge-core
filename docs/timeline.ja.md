@@ -2,7 +2,7 @@
 
 [English](timeline.md) | **日本語**
 
-このページでは，`spacecraft_ops_challenge.commands` のコマンドの種類と，`spacecraft_ops_challenge.timeline` のタイムラインについて説明します。
+このページでは，`spacecraft_autonomy_challenge.commands` のコマンドの種類と，`spacecraft_autonomy_challenge.timeline` のタイムラインについて説明します。
 
 ## コマンド
 

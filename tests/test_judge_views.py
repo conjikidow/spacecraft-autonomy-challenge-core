@@ -4,17 +4,17 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops_challenge.judge.dependencies import (
+from spacecraft_autonomy_challenge.judge.dependencies import (
     Decision,
     DependencyPlan,
     DependencyReport,
     InstallAttempt,
     RequirementDecision,
 )
-from spacecraft_ops_challenge.judge.reporting import EvaluationResult, summarize
-from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
-from spacecraft_ops_challenge.judge.scoring import ScoringConfig, score_case
-from spacecraft_ops_challenge.judge.views import (
+from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult, summarize
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, score_case
+from spacecraft_autonomy_challenge.judge.views import (
     DEFAULT_MISSING_MODULE_HINT,
     dependencies_view,
     results_view,
@@ -151,11 +151,11 @@ def test_dependencies_view_with_nothing_to_install():
 
 
 def test_import_without_marimo_names_the_extra():
-    code = "import sys\nsys.modules['marimo'] = None\nimport spacecraft_ops_challenge.judge.views\n"
+    code = "import sys\nsys.modules['marimo'] = None\nimport spacecraft_autonomy_challenge.judge.views\n"
     completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False)
     assert completed.returncode != 0
     assert "ImportError" in completed.stderr
-    assert "spacecraft-operations-challenge-core[marimo]" in completed.stderr
+    assert "spacecraft-autonomy-challenge-core[marimo]" in completed.stderr
 
 
 def test_participant_strings_are_escaped():

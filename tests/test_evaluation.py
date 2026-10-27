@@ -3,12 +3,12 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops_challenge.commands import DeclareCompletion, PropulsionMode, SetPropulsionMode
-from spacecraft_ops_challenge.evaluation import RunMetrics, evaluate
-from spacecraft_ops_challenge.modifiers import Modifier
-from spacecraft_ops_challenge.results import TerminationReason
-from spacecraft_ops_challenge.simulation import run
-from spacecraft_ops_challenge.strategy import Strategy
+from spacecraft_autonomy_challenge.commands import DeclareCompletion, PropulsionMode, SetPropulsionMode
+from spacecraft_autonomy_challenge.evaluation import RunMetrics, evaluate
+from spacecraft_autonomy_challenge.modifiers import Modifier
+from spacecraft_autonomy_challenge.results import TerminationReason
+from spacecraft_autonomy_challenge.simulation import run
+from spacecraft_autonomy_challenge.strategy import Strategy
 
 FIRE_1 = SetPropulsionMode(PropulsionMode.THRUSTER_1)
 OFF = SetPropulsionMode(PropulsionMode.OFF)

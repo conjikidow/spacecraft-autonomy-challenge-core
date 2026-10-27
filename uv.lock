@@ -577,7 +577,7 @@ wheels = [
 ]
 
 [[package]]
-name = "spacecraft-operations-challenge-core"
+name = "spacecraft-autonomy-challenge-core"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [

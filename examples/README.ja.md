@@ -33,5 +33,5 @@ uv run python examples/telemetry_and_replanning.py
 ## `toy_problem.py`
 
 `toy_scenario()` は例題のシナリオを構築し，`run_and_report(strategy)` はそのシナリオで戦略を実行して結果を出力します。
-戦略のファイルがインポートするのは，トップレベルの `spacecraft_ops_challenge` パッケージだけです。
+戦略のファイルがインポートするのは，トップレベルの `spacecraft_autonomy_challenge` パッケージだけです。
 一方 `toy_problem.py` は，シナリオの構築と実行のためにシミュレーション関連のモジュールも使います。

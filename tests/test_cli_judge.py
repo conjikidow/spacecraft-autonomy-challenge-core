@@ -8,13 +8,13 @@ from pathlib import Path
 import pytest
 from judge_support import DECLARE_AT_START
 
-from spacecraft_ops_challenge.challenge import scenario_names
-from spacecraft_ops_challenge.cli import EXIT_INTERRUPTED, EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, main
-from spacecraft_ops_challenge.judge.reporting import EvaluationResult
-from spacecraft_ops_challenge.judge.submission import build_submission
+from spacecraft_autonomy_challenge.challenge import scenario_names
+from spacecraft_autonomy_challenge.cli import EXIT_INTERRUPTED, EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, main
+from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
+from spacecraft_autonomy_challenge.judge.submission import build_submission
 
 RAISING = """
-from spacecraft_ops_challenge import Strategy
+from spacecraft_autonomy_challenge import Strategy
 
 
 class MyStrategy(Strategy):
@@ -130,8 +130,8 @@ def test_check_rejects_a_non_positive_timeout(project, capsys):
 
 def test_importing_the_cli_does_not_import_the_evaluation_modules():
     code = (
-        "import sys, spacecraft_ops_challenge.cli; "
-        "print(sorted(m for m in sys.modules if m.startswith('spacecraft_ops_challenge.judge')))"
+        "import sys, spacecraft_autonomy_challenge.cli; "
+        "print(sorted(m for m in sys.modules if m.startswith('spacecraft_autonomy_challenge.judge')))"
     )
     output = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
     assert output.strip() == "[]"
@@ -141,13 +141,13 @@ def test_an_interrupted_check_exits_130_without_a_traceback(project, capsys, mon
     def interrupted(*args, **kwargs):
         raise KeyboardInterrupt
 
-    monkeypatch.setattr("spacecraft_ops_challenge.judge.judging.check_submission", interrupted)
+    monkeypatch.setattr("spacecraft_autonomy_challenge.judge.judging.check_submission", interrupted)
     assert main(["check", str(project)]) == EXIT_INTERRUPTED
     assert capsys.readouterr().err.strip().endswith("interrupted")
 
 
 def test_the_timeout_help_names_the_default(capsys):
-    from spacecraft_ops_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
+    from spacecraft_autonomy_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
 
     with pytest.raises(SystemExit):
         main(["check", "--help"])

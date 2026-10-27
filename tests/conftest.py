@@ -7,11 +7,11 @@ from pathlib import Path
 import pytest
 from judge_support import zip_bytes
 
-from spacecraft_ops_challenge.commands import PropulsionMode
-from spacecraft_ops_challenge.judge.submission import Submission, extract_submission
-from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
-from spacecraft_ops_challenge.problem import Problem
-from spacecraft_ops_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.commands import PropulsionMode
+from spacecraft_autonomy_challenge.judge.submission import Submission, extract_submission
+from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
+from spacecraft_autonomy_challenge.problem import Problem
+from spacecraft_autonomy_challenge.scenario import Scenario
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-# Spacecraft Operations Challenge: Core
+# Spacecraft Autonomy Challenge: Core
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
@@ -7,13 +7,13 @@
 
 [English](README.md) | **日本語**
 
-Spacecraft Operations Challenge のための Python パッケージです。
+Spacecraft Autonomy Challenge のための Python パッケージです。
 参加者は，シミュレーション上の宇宙機を運用する戦略を書きます。
 戦略はテレメトリを読み取ってコマンドをスケジュールし，熱・電力・角運動量の制約を守りながら，宇宙機の Δv を目標値まで増やします。
 
 このパッケージは，戦略 API，パラメータで調整できる小さなリファレンスシミュレータ，公開シナリオを含むチャレンジ問題，実行ごとの評価指標，コマンドラインツールを提供します。
 宇宙機モデルは，特定の宇宙機やミッションを想定しない簡易モデルです。
-配布名は `spacecraft-operations-challenge-core`，インポートするパッケージ名は `spacecraft_ops_challenge` です。
+配布名は `spacecraft-autonomy-challenge-core`，インポートするパッケージ名は `spacecraft_autonomy_challenge` です。
 
 このプロジェクトは開発の初期段階にあり，API は今後も変わる可能性があります。
 
@@ -32,13 +32,13 @@ Spacecraft Operations Challenge のための Python パッケージです。
 `--tag` や `--rev` でバージョンを固定することもできます。
 
 ```sh
-uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
+uv add git+https://github.com/conjikidow/spacecraft-autonomy-challenge-core
 ```
 
 結果の表示を使うには，代わりに `marimo` extra を付けて追加します（[結果の表示](docs/views.ja.md)を参照）。
 
 ```sh
-uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
+uv add "spacecraft-autonomy-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
 ```
 
 ## クイックスタート
@@ -46,7 +46,7 @@ uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/co
 リポジトリのルートで，チャレンジのシナリオを一覧表示し，API の使用例を実行します。
 
 ```sh
-uv run spacecraft-ops-challenge scenarios
+uv run autonomy-challenge scenarios
 uv run python examples/timeline_basics.py
 ```
 
@@ -58,7 +58,7 @@ uv run python examples/timeline_basics.py
 `Strategy` を継承し，`initialize` と `update` のどちらか，または両方をオーバーライドします。
 
 ```python
-from spacecraft_ops_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
+from spacecraft_autonomy_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
@@ -70,20 +70,20 @@ class MyStrategy(Strategy):
         print(telemetry)
 ```
 
-チャレンジのシナリオで実行するには，`uv run spacecraft-ops-challenge run my_strategy.py:MyStrategy` とします。
+チャレンジのシナリオで実行するには，`uv run autonomy-challenge run my_strategy.py:MyStrategy` とします。
 このコマンドは，シミュレーションがどのように終了したかと，その評価指標を出力します。
 API の詳細は [戦略の書き方](docs/strategy.ja.md) を参照してください。
 
 ## コマンドラインツール
 
 ```text
-spacecraft-ops-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
-spacecraft-ops-challenge scenarios
-spacecraft-ops-challenge pack [PROJECT_DIR] [-o FILE]
-spacecraft-ops-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
+autonomy-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
+autonomy-challenge scenarios
+autonomy-challenge pack [PROJECT_DIR] [-o FILE]
+autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
 ```
 
-`python -m spacecraft_ops_challenge` は `spacecraft-ops-challenge` と同じ働きをします。
+`python -m spacecraft_autonomy_challenge` は `autonomy-challenge` と同じ働きをします。
 
 ### `run` と `scenarios`
 

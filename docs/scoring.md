@@ -2,15 +2,15 @@
 
 **English** | [日本語](scoring.ja.md)
 
-This page describes how evaluated cases and suites are scored (`spacecraft_ops_challenge.judge.scoring`).
+This page describes how evaluated cases and suites are scored (`spacecraft_autonomy_challenge.judge.scoring`).
 A score depends only on the status and the run metrics of a case (see [Evaluation](evaluation.md)),
 the CPU time of its participant process (see [Running Cases](runner.md)), and a scoring configuration.
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.judging import check_submission
-from spacecraft_ops_challenge.judge.scoring import ScoringConfig, score_case, suite_score
+from spacecraft_autonomy_challenge.judge.judging import check_submission
+from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, score_case, suite_score
 
 config = ScoringConfig.default()
 evaluation = check_submission(Path("submission.zip").read_bytes(), scoring=config)
@@ -89,7 +89,7 @@ No pass threshold is applied.
 
 The parameters of the formula are not fixed in the code.
 A `ScoringConfig` holds them in four sections, read from TOML.
-This package ships the following configuration as `spacecraft_ops_challenge/judge/scoring.toml`:
+This package ships the following configuration as `spacecraft_autonomy_challenge/judge/scoring.toml`:
 
 ```toml
 version = 1

@@ -3,11 +3,11 @@ import sys
 import pytest
 from judge_support import PROVIDER, case
 
-from spacecraft_ops_challenge.challenge import scenario, scenario_names
-from spacecraft_ops_challenge.judge import public_scenarios
-from spacecraft_ops_challenge.judge.cases import CaseError, EvaluationCase, ScenarioProvider, Suite
-from spacecraft_ops_challenge.modifiers import ThrusterEfficiency
-from spacecraft_ops_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.challenge import scenario, scenario_names
+from spacecraft_autonomy_challenge.judge import public_scenarios
+from spacecraft_autonomy_challenge.judge.cases import CaseError, EvaluationCase, ScenarioProvider, Suite
+from spacecraft_autonomy_challenge.modifiers import ThrusterEfficiency
+from spacecraft_autonomy_challenge.scenario import Scenario
 
 
 @pytest.fixture(autouse=True)
@@ -156,7 +156,7 @@ def test_provider_rejects_a_module_of_the_same_name_from_elsewhere(tmp_path):
 
 
 def test_providers_without_paths_accept_installed_modules():
-    assert ScenarioProvider("spacecraft_ops_challenge.challenge:scenario").load() is scenario
+    assert ScenarioProvider("spacecraft_autonomy_challenge.challenge:scenario").load() is scenario
 
 
 @pytest.mark.parametrize(

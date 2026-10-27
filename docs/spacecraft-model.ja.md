@@ -2,8 +2,8 @@
 
 [English](spacecraft-model.md) | **日本語**
 
-このページでは，`spacecraft_ops_challenge.model` のリファレンス宇宙機モデル，
-`spacecraft_ops_challenge.telemetry` のテレメトリ，`spacecraft_ops_challenge.modifiers` の `Modifier` について説明します。
+このページでは，`spacecraft_autonomy_challenge.model` のリファレンス宇宙機モデル，
+`spacecraft_autonomy_challenge.telemetry` のテレメトリ，`spacecraft_autonomy_challenge.modifiers` の `Modifier` について説明します。
 
 このモデルは，意図的に小規模にとどめた簡易モデルです。
 数値はすべてパラメータとして与えられ，モデル自体に固定値はありません。
@@ -33,7 +33,7 @@
 対称な構成では，ホイール角運動量変化率の符号が逆であることを除いて同じ値を使い，
 `THRUSTER_1` がホイール角運動量を増やし，`THRUSTER_2` が減らすようにします。
 
-![重心からずれた2つのスラスタと1軸のリアクションホイール](../src/spacecraft_ops_challenge/figures/spacecraft-geometry.ja.svg)
+![重心からずれた2つのスラスタと1軸のリアクションホイール](../src/spacecraft_autonomy_challenge/figures/spacecraft-geometry.ja.svg)
 
 この図は，2つのスラスタのずれと推力が異なる一般の場合について，ホイール角運動量変化率の背後にある物理的なイメージを示しています。
 各スラスタの推力の作用線は重心からずれているため，噴射すると1軸まわりのトルクが生じ，それをリアクションホイールが吸収します。

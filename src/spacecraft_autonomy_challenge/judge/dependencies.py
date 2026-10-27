@@ -30,8 +30,8 @@ from packaging.specifiers import InvalidSpecifier
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
-CORE_DISTRIBUTION = "spacecraft-operations-challenge-core"
-PROTECTED_MODULES = frozenset({"spacecraft_ops_challenge"})
+CORE_DISTRIBUTION = "spacecraft-autonomy-challenge-core"
+PROTECTED_MODULES = frozenset({"spacecraft_autonomy_challenge"})
 """Top-level modules of the core package, which the overlay must never provide."""
 DEFAULT_INSTALL_TIMEOUT_S = 900.0
 

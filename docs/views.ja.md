@@ -2,7 +2,7 @@
 
 [English](views.md) | **日本語**
 
-このページでは，結果文書と依存関係のレポートを [marimo](https://marimo.io) で表示する関数（`spacecraft_ops_challenge.judge.views`）について説明します。
+このページでは，結果文書と依存関係のレポートを [marimo](https://marimo.io) で表示する関数（`spacecraft_autonomy_challenge.judge.views`）について説明します。
 
 ## インストール
 
@@ -10,11 +10,11 @@
 marimo は，このパッケージの省略可能な `marimo` extra で入ります。
 
 ```sh
-uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
+uv add "spacecraft-autonomy-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
 ```
 
-marimo がない状態で `spacecraft_ops_challenge.judge.views` をインポートすると，
-`spacecraft-operations-challenge-core[marimo]` を示すメッセージとともに `ImportError` が送出されます。
+marimo がない状態で `spacecraft_autonomy_challenge.judge.views` をインポートすると，
+`spacecraft-autonomy-challenge-core[marimo]` を示すメッセージとともに `ImportError` が送出されます。
 パッケージのそれ以外の部分は marimo を必要としません。
 
 ## 使い方
@@ -26,8 +26,8 @@ from pathlib import Path
 
 import marimo as mo
 
-from spacecraft_ops_challenge.judge.reporting import EvaluationResult
-from spacecraft_ops_challenge.judge.views import dependencies_view, results_view
+from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
+from spacecraft_autonomy_challenge.judge.views import dependencies_view, results_view
 
 result = EvaluationResult.from_json(Path("result.json").read_bytes())
 mo.vstack([results_view(result), dependencies_view(result.dependencies)])

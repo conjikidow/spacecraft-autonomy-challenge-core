@@ -2,12 +2,12 @@
 
 [English](evaluation.md) | **日本語**
 
-このページでは，実行ごとの評価指標（`spacecraft_ops_challenge.evaluation`）について説明します。
+このページでは，実行ごとの評価指標（`spacecraft_autonomy_challenge.evaluation`）について説明します。
 評価指標は，テレメトリではなく，`RunResult` に含まれる真値から計算されます。
 
 ```python
-from spacecraft_ops_challenge.evaluation import evaluate
-from spacecraft_ops_challenge.simulation import run
+from spacecraft_autonomy_challenge.evaluation import evaluate
+from spacecraft_autonomy_challenge.simulation import run
 
 result = run(MyStrategy(), scenario)
 metrics = evaluate(result)

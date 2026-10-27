@@ -4,10 +4,10 @@ from dataclasses import replace
 
 import pytest
 
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, Suite
-from spacecraft_ops_challenge.judge.dependencies import DependencyReport
-from spacecraft_ops_challenge.judge.judging import SubmissionEvaluation
-from spacecraft_ops_challenge.judge.reporting import (
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, Suite
+from spacecraft_autonomy_challenge.judge.dependencies import DependencyReport
+from spacecraft_autonomy_challenge.judge.judging import SubmissionEvaluation
+from spacecraft_autonomy_challenge.judge.reporting import (
     RESULT_FORMAT,
     RESULT_FORMAT_VERSION,
     EvaluationResult,
@@ -19,8 +19,8 @@ from spacecraft_ops_challenge.judge.reporting import (
     summarize,
     summary_rows,
 )
-from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
-from spacecraft_ops_challenge.judge.scoring import ScoringConfig, score_case, suite_score
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, score_case, suite_score
 
 
 def metrics(reason="COMPLETION_DECLARED", *, safe=True, error=0.0):

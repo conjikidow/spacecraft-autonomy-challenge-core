@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from judge_support import DECLARE_AT_START, zip_bytes
 
-from spacecraft_ops_challenge.judge.submission import SubmissionError, build_submission, extract_submission
+from spacecraft_autonomy_challenge.judge.submission import SubmissionError, build_submission, extract_submission
 
 
 def extract(tmp_path, archive, **kwargs):
