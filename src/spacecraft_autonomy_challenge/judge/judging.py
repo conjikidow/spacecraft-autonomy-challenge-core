@@ -10,12 +10,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.cases import ScenarioProvider, Suite
-from spacecraft_ops_challenge.judge.dependencies import DependencyReport, resolve_dependencies
-from spacecraft_ops_challenge.judge.public_scenarios import PROVIDER, public_suite
-from spacecraft_ops_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S, CaseOutcome, run_suite
-from spacecraft_ops_challenge.judge.scoring import ScoringConfig
-from spacecraft_ops_challenge.judge.submission import extract_submission
+from spacecraft_autonomy_challenge.judge.cases import ScenarioProvider, Suite
+from spacecraft_autonomy_challenge.judge.dependencies import DependencyReport, resolve_dependencies
+from spacecraft_autonomy_challenge.judge.public_scenarios import PROVIDER, public_suite
+from spacecraft_autonomy_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S, CaseOutcome, run_suite
+from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig
+from spacecraft_autonomy_challenge.judge.submission import extract_submission
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,7 +86,7 @@ def evaluate_submission(
     scoring = ScoringConfig.default() if scoring is None else scoring
     env = _check_provider(provider, suite)
     started_at = _now()
-    with tempfile.TemporaryDirectory(prefix="spacecraft-ops-submission-") as scratch:
+    with tempfile.TemporaryDirectory(prefix="spacecraft-autonomy-submission-") as scratch:
         submission = extract_submission(io.BytesIO(archive), Path(scratch) / "root")
         if on_status is not None:
             on_status("Preparing the participant's packages")

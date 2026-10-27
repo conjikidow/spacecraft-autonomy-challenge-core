@@ -8,7 +8,7 @@ never carries over between cases.
 The worker writes a JSON result file; standard output and standard error belong to the participant process,
 and the runner captures them separately.
 
-    python -P -m spacecraft_ops_challenge.judge.worker RESULT.json < REQUEST.json
+    python -P -m spacecraft_autonomy_challenge.judge.worker RESULT.json < REQUEST.json
 """
 
 import json
@@ -20,11 +20,11 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from spacecraft_ops_challenge.evaluation import evaluate
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider
-from spacecraft_ops_challenge.judge.dependencies import Overlay
-from spacecraft_ops_challenge.judge.remote import ParticipantProcess, ParticipantStopError, RemoteStrategy
-from spacecraft_ops_challenge.simulation import run
+from spacecraft_autonomy_challenge.evaluation import evaluate
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
+from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.remote import ParticipantProcess, ParticipantStopError, RemoteStrategy
+from spacecraft_autonomy_challenge.simulation import run
 
 _MISSING_MODULE = re.compile(r"^ModuleNotFoundError: No module named '([^']+)'", re.MULTILINE)
 

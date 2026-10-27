@@ -2,16 +2,16 @@
 
 [English](runner.md) | **日本語**
 
-このページでは，提出物を評価ケースで実行する方法（`spacecraft_ops_challenge.judge.runner`）について説明します。
+このページでは，提出物を評価ケースで実行する方法（`spacecraft_autonomy_challenge.judge.runner`）について説明します。
 各評価ケースは，それぞれ新しい2つのプロセスで実行され，評価ケースを参加者のコードから切り離します。
 評価ケースの実行には Linux または macOS が必要で，それ以外では `run_case` が `RuntimeError` を送出します。
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.public_scenarios import PROVIDER, public_suite
-from spacecraft_ops_challenge.judge.runner import run_suite
-from spacecraft_ops_challenge.judge.submission import extract_submission
+from spacecraft_autonomy_challenge.judge.public_scenarios import PROVIDER, public_suite
+from spacecraft_autonomy_challenge.judge.runner import run_suite
+from spacecraft_autonomy_challenge.judge.submission import extract_submission
 
 submission = extract_submission("submission.zip", Path("work/extracted"))
 for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
@@ -49,7 +49,7 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 `ScenarioProvider` が設定した環境変数は参加者のプロセスに届きません。
 結果は，参加者のファイルとは別の一時ディレクトリにあるファイルに書き込みます。
 
-参加者のプロセスは，`spacecraft-ops-challenge run` と同じように，
+参加者のプロセスは，`autonomy-challenge run` と同じように，
 `submission/` をインポートパスの先頭に置いて `submission/strategy.py:MyStrategy` を読み込み，
 評価ケースのためにインスタンスを1つ作成します。
 このプロセスが受け取るのは，戦略が見てよいもの，つまり `MissionBrief`，テレメトリ，`Commander` への要求の結果だけです。

@@ -1,4 +1,4 @@
-# Spacecraft Operations Challenge: Core
+# Spacecraft Autonomy Challenge: Core
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
@@ -7,7 +7,7 @@
 
 **English** | [日本語](README.ja.md)
 
-Python package for the Spacecraft Operations Challenge.
+Python package for the Spacecraft Autonomy Challenge.
 You write a strategy that operates a simulated spacecraft:
 it reads telemetry and schedules commands
 so that the spacecraft accumulates a target delta-v without violating thermal, power, or momentum limits.
@@ -15,7 +15,7 @@ so that the spacecraft accumulates a target delta-v without violating thermal, p
 The package provides the strategy API, a small parameterized reference simulator,
 the challenge problem with its public scenarios, per-run evaluation metrics, and a command-line runner.
 The spacecraft model is a generic toy model and does not represent any particular spacecraft or mission.
-The distribution name is `spacecraft-operations-challenge-core` and the import package is `spacecraft_ops_challenge`.
+The distribution name is `spacecraft-autonomy-challenge-core` and the import package is `spacecraft_autonomy_challenge`.
 
 The project is in early development; the API may still change.
 
@@ -33,13 +33,13 @@ The optional `marimo` extra adds [marimo](https://marimo.io) for the result view
 Add the package to another uv project from Git, optionally pinned with `--tag` or `--rev`:
 
 ```sh
-uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
+uv add git+https://github.com/conjikidow/spacecraft-autonomy-challenge-core
 ```
 
 To use the result views, add it with the `marimo` extra instead (see [Result Views](docs/views.md)):
 
 ```sh
-uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
+uv add "spacecraft-autonomy-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
 ```
 
 ## Quick Start
@@ -47,7 +47,7 @@ uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/co
 List the challenge scenarios and run an API example from the repository root:
 
 ```sh
-uv run spacecraft-ops-challenge scenarios
+uv run autonomy-challenge scenarios
 uv run python examples/timeline_basics.py
 ```
 
@@ -58,7 +58,7 @@ The examples run on a small toy problem and show how the API behaves; see [examp
 Subclass `Strategy` and override `initialize`, `update`, or both:
 
 ```python
-from spacecraft_ops_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
+from spacecraft_autonomy_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
@@ -70,20 +70,20 @@ class MyStrategy(Strategy):
         print(telemetry)
 ```
 
-Run it on a challenge scenario with `uv run spacecraft-ops-challenge run my_strategy.py:MyStrategy`.
+Run it on a challenge scenario with `uv run autonomy-challenge run my_strategy.py:MyStrategy`.
 The command prints how the run ended and its metrics.
 See [Writing a Strategy](docs/strategy.md) for the full API.
 
 ## Command-Line Runner
 
 ```text
-spacecraft-ops-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
-spacecraft-ops-challenge scenarios
-spacecraft-ops-challenge pack [PROJECT_DIR] [-o FILE]
-spacecraft-ops-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
+autonomy-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
+autonomy-challenge scenarios
+autonomy-challenge pack [PROJECT_DIR] [-o FILE]
+autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
 ```
 
-`python -m spacecraft_ops_challenge` is equivalent to `spacecraft-ops-challenge`.
+`python -m spacecraft_autonomy_challenge` is equivalent to `autonomy-challenge`.
 
 ### `run` and `scenarios`
 

@@ -1,9 +1,9 @@
-import spacecraft_ops_challenge.strategy as strategy_module
-from spacecraft_ops_challenge.commands import Command, PropulsionMode, SetPropulsionMode
-from spacecraft_ops_challenge.modifiers import nominal_telemetry
-from spacecraft_ops_challenge.simulation import LocalCommander, Simulation
-from spacecraft_ops_challenge.strategy import Commander, Strategy
-from spacecraft_ops_challenge.timeline import CommandId, ScheduledCommand
+import spacecraft_autonomy_challenge.strategy as strategy_module
+from spacecraft_autonomy_challenge.commands import Command, PropulsionMode, SetPropulsionMode
+from spacecraft_autonomy_challenge.modifiers import nominal_telemetry
+from spacecraft_autonomy_challenge.simulation import LocalCommander, Simulation
+from spacecraft_autonomy_challenge.strategy import Commander, Strategy
+from spacecraft_autonomy_challenge.timeline import CommandId, ScheduledCommand
 
 
 class RecordingCommander:

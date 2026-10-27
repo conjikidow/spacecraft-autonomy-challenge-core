@@ -1,6 +1,6 @@
 """marimo views of result documents and dependency reports.
 
-Requires marimo, which the `marimo` extra of `spacecraft-operations-challenge-core` provides.
+Requires marimo, which the `marimo` extra of `spacecraft-autonomy-challenge-core` provides.
 """
 
 import html
@@ -10,20 +10,20 @@ try:
     import marimo as mo
 except ModuleNotFoundError as error:
     raise ImportError(
-        "spacecraft_ops_challenge.judge.views requires marimo; "
-        'install it with the extra "spacecraft-operations-challenge-core[marimo]"'
+        "spacecraft_autonomy_challenge.judge.views requires marimo; "
+        'install it with the extra "spacecraft-autonomy-challenge-core[marimo]"'
     ) from error
 
-from spacecraft_ops_challenge.judge.dependencies import DependencyReport
-from spacecraft_ops_challenge.judge.reporting import (
+from spacecraft_autonomy_challenge.judge.dependencies import DependencyReport
+from spacecraft_autonomy_challenge.judge.reporting import (
     EvaluationResult,
     case_rows,
     missing_modules,
     problem_outcomes,
     summary_rows,
 )
-from spacecraft_ops_challenge.judge.runner import CaseOutcome
-from spacecraft_ops_challenge.judge.scoring import CaseScore
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome
+from spacecraft_autonomy_challenge.judge.scoring import CaseScore
 
 DEFAULT_MISSING_MODULE_HINT = (
     "Packages added with `uv add` must be listed in the project's `pyproject.toml`, which is packed into "

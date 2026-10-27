@@ -8,7 +8,7 @@ from bisect import insort
 from dataclasses import dataclass
 from typing import NewType
 
-from spacecraft_ops_challenge.commands import Command, CommandError
+from spacecraft_autonomy_challenge.commands import Command, CommandError
 
 CommandId = NewType("CommandId", int)
 """Identifier of a scheduled command, unique within a run and assigned sequentially from 1."""

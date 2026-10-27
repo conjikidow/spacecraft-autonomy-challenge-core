@@ -1,9 +1,9 @@
 import pytest
 
-from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
-from spacecraft_ops_challenge.commands import PropulsionMode
-from spacecraft_ops_challenge.modifiers import ThrusterEfficiency
-from spacecraft_ops_challenge.simulation import check_safety
+from spacecraft_autonomy_challenge.challenge import problem, scenario, scenario_names
+from spacecraft_autonomy_challenge.commands import PropulsionMode
+from spacecraft_autonomy_challenge.modifiers import ThrusterEfficiency
+from spacecraft_autonomy_challenge.simulation import check_safety
 
 
 def test_registry_lists_public_scenarios():

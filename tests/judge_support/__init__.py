@@ -1,4 +1,4 @@
-"""Helpers shared by the tests of `spacecraft_ops_challenge.judge`."""
+"""Helpers shared by the tests of `spacecraft_autonomy_challenge.judge`."""
 
 import atexit
 import io
@@ -9,12 +9,12 @@ import zipfile
 from collections.abc import Mapping
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
 
 PROVIDER_SOURCE = """
-from spacecraft_ops_challenge.challenge import problem
-from spacecraft_ops_challenge.modifiers import TelemetryBias, ThrusterEfficiency
-from spacecraft_ops_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.challenge import problem
+from spacecraft_autonomy_challenge.modifiers import TelemetryBias, ThrusterEfficiency
+from spacecraft_autonomy_challenge.scenario import Scenario
 
 TYPES = {"ThrusterEfficiency": ThrusterEfficiency, "TelemetryBias": TelemetryBias}
 
@@ -74,7 +74,7 @@ def case(case_id, seed=0, *modifiers, **payload):
 
 
 DECLARE_AT_START = """
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
 class MyStrategy(Strategy):

@@ -21,9 +21,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import IO, Any
 
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider
-from spacecraft_ops_challenge.judge.dependencies import Overlay
-from spacecraft_ops_challenge.judge.remote import PACKAGE_ROOT
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
+from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.remote import PACKAGE_ROOT
 
 DEFAULT_CASE_TIMEOUT_S = 300.0
 """Wall-clock limit of one case, including interpreter start-up and loading the strategy."""
@@ -36,7 +36,7 @@ _READER_JOIN_TIMEOUT_S = 5.0
 
 _BOOTSTRAP = (
     "import sys; sys.path.append(sys.argv.pop(1)); "
-    "from spacecraft_ops_challenge.judge.worker import main; main(sys.argv[1:])"
+    "from spacecraft_autonomy_challenge.judge.worker import main; main(sys.argv[1:])"
 )
 
 
@@ -224,8 +224,8 @@ def run_case(
     if os.name != "posix":
         raise RuntimeError("running cases requires Linux or macOS")
     with (
-        tempfile.TemporaryDirectory(prefix="spacecraft-ops-case-", ignore_cleanup_errors=True) as scratch,
-        tempfile.TemporaryDirectory(prefix="spacecraft-ops-result-", ignore_cleanup_errors=True) as results,
+        tempfile.TemporaryDirectory(prefix="spacecraft-autonomy-case-", ignore_cleanup_errors=True) as scratch,
+        tempfile.TemporaryDirectory(prefix="spacecraft-autonomy-result-", ignore_cleanup_errors=True) as results,
     ):
         root = Path(scratch) / "root"
         shutil.copytree(submission_root, root, symlinks=True)

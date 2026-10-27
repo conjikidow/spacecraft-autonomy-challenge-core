@@ -2,7 +2,7 @@
 
 [English](simulation.md) | **日本語**
 
-このページでは，問題（`spacecraft_ops_challenge.problem`），シナリオ（`spacecraft_ops_challenge.scenario`），シミュレーション設定（`spacecraft_ops_challenge.config`），シミュレーション（`spacecraft_ops_challenge.simulation`），実行結果（`spacecraft_ops_challenge.results`）について説明します。
+このページでは，問題（`spacecraft_autonomy_challenge.problem`），シナリオ（`spacecraft_autonomy_challenge.scenario`），シミュレーション設定（`spacecraft_autonomy_challenge.config`），シミュレーション（`spacecraft_autonomy_challenge.simulation`），実行結果（`spacecraft_autonomy_challenge.results`）について説明します。
 
 ## 問題
 
@@ -43,7 +43,7 @@
 ## 戦略の実行
 
 ```python
-from spacecraft_ops_challenge.simulation import run
+from spacecraft_autonomy_challenge.simulation import run
 
 result = run(MyStrategy(), scenario)
 print(result.termination.reason, result.final_state.delta_v_mps)
@@ -112,8 +112,8 @@ print(result.termination.reason, result.final_state.delta_v_mps)
 `Simulation` は，`run` 以外のドライバのために，同じループを明示的なステップとして提供します。
 
 ```python
-from spacecraft_ops_challenge.config import SimulationConfig
-from spacecraft_ops_challenge.simulation import Simulation
+from spacecraft_autonomy_challenge.config import SimulationConfig
+from spacecraft_autonomy_challenge.simulation import Simulation
 
 simulation = Simulation(scenario, config=SimulationConfig(), seed=0)
 telemetry = simulation.start()

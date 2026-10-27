@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from spacecraft_ops_challenge.results import RunResult, SafetyViolation, TerminationReason
+from spacecraft_autonomy_challenge.results import RunResult, SafetyViolation, TerminationReason
 
 
 @dataclass(frozen=True, slots=True)

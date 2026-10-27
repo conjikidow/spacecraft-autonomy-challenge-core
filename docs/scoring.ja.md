@@ -2,14 +2,14 @@
 
 [English](scoring.md) | **日本語**
 
-このページでは，評価した評価ケースと `Suite` の得点の計算方法（`spacecraft_ops_challenge.judge.scoring`）について説明します。
+このページでは，評価した評価ケースと `Suite` の得点の計算方法（`spacecraft_autonomy_challenge.judge.scoring`）について説明します。
 得点は，評価ケースの状態と実行の評価指標（[評価](evaluation.ja.md)を参照），参加者のプロセスの CPU 時間（[評価ケースの実行](runner.ja.md)を参照），得点の設定だけから決まります。
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.judging import check_submission
-from spacecraft_ops_challenge.judge.scoring import ScoringConfig, score_case, suite_score
+from spacecraft_autonomy_challenge.judge.judging import check_submission
+from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, score_case, suite_score
 
 config = ScoringConfig.default()
 evaluation = check_submission(Path("submission.zip").read_bytes(), scoring=config)
@@ -85,7 +85,7 @@ $N$ は `Suite` の評価ケースの数，$s_i$ は評価ケース $i$ の得�
 
 計算式の値はコードに固定されていません。
 `ScoringConfig` は，TOML から読み込んだ値を4つのセクションに分けて持ちます。
-このパッケージは，次の設定を `spacecraft_ops_challenge/judge/scoring.toml` として含みます。
+このパッケージは，次の設定を `spacecraft_autonomy_challenge/judge/scoring.toml` として含みます。
 
 ```toml
 version = 1

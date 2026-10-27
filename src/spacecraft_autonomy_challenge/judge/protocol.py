@@ -12,7 +12,7 @@ import socket
 from dataclasses import asdict
 from typing import Any
 
-from spacecraft_ops_challenge import (
+from spacecraft_autonomy_challenge import (
     CommandId,
     DeclareCompletion,
     MissionBrief,
@@ -25,7 +25,7 @@ from spacecraft_ops_challenge import (
     Telemetry,
     ThrusterParameters,
 )
-from spacecraft_ops_challenge.commands import Command
+from spacecraft_autonomy_challenge.commands import Command
 
 type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
 

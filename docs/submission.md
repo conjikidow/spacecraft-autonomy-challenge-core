@@ -2,20 +2,20 @@
 
 **English** | [日本語](submission.ja.md)
 
-This page describes submission archives (`spacecraft_ops_challenge.judge.submission`).
+This page describes submission archives (`spacecraft_autonomy_challenge.judge.submission`).
 A submission archive, `submission.zip`, packs a strategy together with its supporting files.
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.submission import build_submission, extract_submission
+from spacecraft_autonomy_challenge.judge.submission import build_submission, extract_submission
 
 Path("submission.zip").write_bytes(build_submission("."))
 submission = extract_submission("submission.zip", Path("extracted"))
 print(submission.strategy_file, submission.pyproject is not None)
 ```
 
-On the command line, `spacecraft-ops-challenge pack` builds `submission.zip` from a project directory
+On the command line, `autonomy-challenge pack` builds `submission.zip` from a project directory
 (see the [README](../README.md#command-line-runner)).
 
 ## Archive Layout

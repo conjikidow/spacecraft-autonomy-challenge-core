@@ -2,13 +2,13 @@
 
 **English** | [日本語](judge.ja.md)
 
-This page describes evaluation cases, suites, and scenario providers (`spacecraft_ops_challenge.judge.cases`),
-and the scenario provider for the public scenarios (`spacecraft_ops_challenge.judge.public_scenarios`).
+This page describes evaluation cases, suites, and scenario providers (`spacecraft_autonomy_challenge.judge.cases`),
+and the scenario provider for the public scenarios (`spacecraft_autonomy_challenge.judge.public_scenarios`).
 They define the scenarios that a submission is evaluated on; [Running Cases](runner.md) describes how it is run on them,
 and [Evaluating Submissions](evaluating.md) how a whole archive is evaluated on a suite.
 
 ```python
-from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite
+from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite
 
 suite = Suite("example", (EvaluationCase.of("case-001", {"seed": 1}), EvaluationCase.of("case-002", {"seed": 2})))
 provider = ScenarioProvider("my_cases.provider:build_scenario", paths=("path/to/directory/of/my_cases",))
@@ -71,17 +71,17 @@ such as one in `__main__`.
 
 ## Public Scenarios
 
-`spacecraft_ops_challenge.judge.public_scenarios` evaluates on the public scenarios of the challenge
+`spacecraft_autonomy_challenge.judge.public_scenarios` evaluates on the public scenarios of the challenge
 (see [Challenge Problem](challenge.md)), for trying an evaluation without cases of your own.
 
 ```python
-from spacecraft_ops_challenge.judge.public_scenarios import PROVIDER, public_suite
+from spacecraft_autonomy_challenge.judge.public_scenarios import PROVIDER, public_suite
 
 suite = public_suite()
 scenarios = [PROVIDER.build(case) for case in suite.cases]
 ```
 
-- `PROVIDER` is the scenario provider `spacecraft_ops_challenge.judge.public_scenarios:build_scenario`.
+- `PROVIDER` is the scenario provider `spacecraft_autonomy_challenge.judge.public_scenarios:build_scenario`.
 - A payload is `{"scenario": name}` or `{"scenario": name, "seed": seed}`;
   `name` is one of `scenario_names()`, and a `seed` that is not `None` replaces the seed of the scenario.
 - `public_suite()` returns the suite `public` with one case per public scenario, whose id is the scenario name.

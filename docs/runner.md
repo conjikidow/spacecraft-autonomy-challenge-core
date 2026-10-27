@@ -2,16 +2,16 @@
 
 **English** | [日本語](runner.ja.md)
 
-This page describes how a submission is run on evaluation cases (`spacecraft_ops_challenge.judge.runner`).
+This page describes how a submission is run on evaluation cases (`spacecraft_autonomy_challenge.judge.runner`).
 Each case runs in its own pair of new processes, which keep the case away from the participant's code.
 Running cases requires Linux or macOS; elsewhere `run_case` raises `RuntimeError`.
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.public_scenarios import PROVIDER, public_suite
-from spacecraft_ops_challenge.judge.runner import run_suite
-from spacecraft_ops_challenge.judge.submission import extract_submission
+from spacecraft_autonomy_challenge.judge.public_scenarios import PROVIDER, public_suite
+from spacecraft_autonomy_challenge.judge.runner import run_suite
+from spacecraft_autonomy_challenge.judge.submission import extract_submission
 
 submission = extract_submission("submission.zip", Path("work/extracted"))
 for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
@@ -49,7 +49,7 @@ The participant process gets the worker's environment variables as they were bef
 so variables that the provider sets never reach it.
 It writes its result to a file in a temporary directory apart from the participant's files.
 
-The participant process loads `submission/strategy.py:MyStrategy` like `spacecraft-ops-challenge run`,
+The participant process loads `submission/strategy.py:MyStrategy` like `autonomy-challenge run`,
 with `submission/` first on the import path, and creates one instance for the case.
 It receives only what a strategy may see: the mission brief, telemetry, and the results of its commander requests.
 It never receives the case id, the payload, the scenario provider, the scenario, its seed or modifiers,

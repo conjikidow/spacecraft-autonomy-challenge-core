@@ -5,8 +5,8 @@ from importlib.resources import files
 
 import pytest
 
-from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
-from spacecraft_ops_challenge.judge.scoring import (
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_autonomy_challenge.judge.scoring import (
     SCORING_CONFIG_VERSION,
     ZERO_SCORE,
     AccuracyParameters,
@@ -75,7 +75,7 @@ def test_default_config_is_the_shipped_file():
     assert CONFIG.declaration == DeclarationParameters(undeclared_factor=0.5)
     assert CONFIG.weights == ScoreWeights(base=0.7, completion_time=0.15, battery_margin=0.1, cpu_time=0.05)
     assert CONFIG.cpu_time == CpuTimeParameters(startup_allowance_s=5.0, per_decision_cycle_s=0.1)
-    shipped = files("spacecraft_ops_challenge.judge").joinpath("scoring.toml").read_text(encoding="utf-8")
+    shipped = files("spacecraft_autonomy_challenge.judge").joinpath("scoring.toml").read_text(encoding="utf-8")
     assert tomllib.loads(shipped) == CONFIG.to_dict()
 
 

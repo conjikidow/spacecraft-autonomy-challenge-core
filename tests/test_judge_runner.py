@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from judge_support import DECLARE_AT_START, PROVIDER, case
 
-from spacecraft_ops_challenge.judge import runner
-from spacecraft_ops_challenge.judge.cases import ScenarioProvider
-from spacecraft_ops_challenge.judge.dependencies import Overlay
-from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus, run_case, run_suite
+from spacecraft_autonomy_challenge.judge import runner
+from spacecraft_autonomy_challenge.judge.cases import ScenarioProvider
+from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus, run_case, run_suite
 
 
 def process_is_running(pid):
@@ -35,7 +35,7 @@ CASES = (
 )
 
 FIRE_THEN_DECLARE = """
-from spacecraft_ops_challenge import DeclareCompletion, PropulsionMode, SetPropulsionMode, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, PropulsionMode, SetPropulsionMode, Strategy
 
 
 class MyStrategy(Strategy):
@@ -48,7 +48,7 @@ MODULE_STATE = """
 import os
 
 import helper
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 CALLS = 0
 
@@ -91,7 +91,7 @@ def test_participant_output_does_not_corrupt_the_result(make_submission):
     import os
     import sys
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
     print('{"status": "LOAD_ERROR", "detail": "fake"}')
 
@@ -114,7 +114,7 @@ def test_participant_output_does_not_corrupt_the_result(make_submission):
 
 def test_strategy_exceptions_become_structured_results(make_submission):
     failing = """
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -148,7 +148,7 @@ def test_a_failing_case_does_not_stop_the_suite(make_submission):
     exiting = """
     import sys
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -167,7 +167,7 @@ def test_a_hard_exit_is_reported_as_a_crash(make_submission):
     hard_exit = """
     import os
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -185,7 +185,7 @@ def test_cases_time_out(make_submission):
     slow = """
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -204,7 +204,7 @@ def test_submission_files_are_found_like_the_template_runner(make_submission):
     reading = """
     from pathlib import Path
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
     from planner.core import plan
 
@@ -229,7 +229,7 @@ def test_submission_files_are_found_like_the_template_runner(make_submission):
 
 def test_long_output_is_shortened(make_submission):
     chatty = """
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
     print("x" * 300_000)
 
@@ -248,7 +248,7 @@ def test_endless_output_is_bounded_while_it_is_read(make_submission):
     endless = """
     import sys
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -278,7 +278,7 @@ def test_overlay_packages_come_before_the_environment_packages(make_submission, 
     import linked_module
     import participant_only
     import typing_extensions
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
     child = "import participant_only; print(participant_only.VALUE)"
 
@@ -303,7 +303,7 @@ def test_threads_left_running_do_not_hold_up_a_finished_case(make_submission):
     import threading
     import time
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -323,7 +323,7 @@ def test_processes_left_behind_are_stopped_when_the_case_ends(make_submission, s
     import subprocess
     import sys
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
     STDIO = {{"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}}
 
@@ -348,7 +348,7 @@ def test_the_request_is_not_where_the_strategy_can_read_it(make_submission):
     import sys
     from pathlib import Path
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -384,7 +384,7 @@ def test_a_helper_outside_the_session_holding_the_output_does_not_block(make_sub
     import subprocess
     import sys
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -405,7 +405,7 @@ def test_files_written_by_the_strategy_do_not_reach_later_cases(make_submission)
     caching = """
     from pathlib import Path
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
     CACHE = Path(__file__).parent / "cache.txt"
 
@@ -436,7 +436,7 @@ def test_a_result_written_after_the_deadline_does_not_count(make_submission, mon
 BURN_CPU = """
 import time
 
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
 class MyStrategy(Strategy):
@@ -462,7 +462,7 @@ def test_cases_without_a_completed_run_have_no_cpu_time(make_submission):
     hard_exit = """
     import os
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -472,7 +472,7 @@ def test_cases_without_a_completed_run_have_no_cpu_time(make_submission):
     slow = """
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -539,7 +539,7 @@ def test_output_of_the_scenario_provider_does_not_reach_the_participant_output(m
     printing = """
     import sys
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -559,8 +559,8 @@ def test_a_participant_that_does_not_exit_after_the_run_reports_no_cpu_time(make
     lingering = """
     import time
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
-    from spacecraft_ops_challenge.judge import protocol
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge.judge import protocol
 
 
     class MyStrategy(Strategy):
@@ -589,7 +589,7 @@ def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participa
     reading = """
     import os
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -604,7 +604,7 @@ def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participa
 
 def test_huge_strategy_errors_are_shortened_instead_of_breaking_the_protocol(make_submission):
     raising = """
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -637,7 +637,7 @@ def test_an_interrupted_case_stops_its_processes(make_submission, monkeypatch):
     sleeping = """
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -682,7 +682,7 @@ def test_a_relative_overlay_path_is_resolved_against_the_caller(make_submission,
     (tmp_path / "overlay" / "participant_only.py").write_text("VALUE = 42\n")
     importing = """
     import participant_only
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -702,7 +702,7 @@ def test_other_base_exceptions_end_the_case_at_once(make_submission):
     import threading
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class Odd(BaseException):
@@ -726,7 +726,7 @@ def test_deeply_nested_messages_are_protocol_errors(make_submission):
     import sys
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -743,8 +743,8 @@ def test_deeply_nested_messages_are_protocol_errors(make_submission):
 
 def test_oversized_commander_requests_are_command_errors(make_submission):
     oversized = """
-    from spacecraft_ops_challenge import CommandError, DeclareCompletion, Strategy
-    from spacecraft_ops_challenge.judge.protocol import MAX_MESSAGE_BYTES
+    from spacecraft_autonomy_challenge import CommandError, DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge.judge.protocol import MAX_MESSAGE_BYTES
 
 
     class MyStrategy(Strategy):
@@ -764,8 +764,8 @@ def test_oversized_commander_requests_are_command_errors(make_submission):
 def test_oversized_commander_errors_are_bounded_command_errors(make_submission):
     # Each backslash takes two bytes in the request, but four in the error message that quotes it.
     oversized = """
-    from spacecraft_ops_challenge import CommandError, DeclareCompletion, Strategy
-    from spacecraft_ops_challenge.judge.protocol import MAX_MESSAGE_BYTES
+    from spacecraft_autonomy_challenge import CommandError, DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge.judge.protocol import MAX_MESSAGE_BYTES
 
 
     class MyStrategy(Strategy):

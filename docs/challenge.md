@@ -2,11 +2,11 @@
 
 **English** | [日本語](challenge.ja.md)
 
-`spacecraft_ops_challenge.challenge` defines the challenge problem and its public scenarios.
+`spacecraft_autonomy_challenge.challenge` defines the challenge problem and its public scenarios.
 All numbers are provisional placeholders for the toy spacecraft model.
 
 ```python
-from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
+from spacecraft_autonomy_challenge.challenge import problem, scenario, scenario_names
 
 print(scenario_names())
 nominal = scenario("nominal")

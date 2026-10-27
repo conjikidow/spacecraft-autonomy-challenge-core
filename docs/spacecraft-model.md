@@ -2,8 +2,8 @@
 
 **English** | [日本語](spacecraft-model.ja.md)
 
-This page describes the reference spacecraft model in `spacecraft_ops_challenge.model`,
-telemetry in `spacecraft_ops_challenge.telemetry`, and modifiers in `spacecraft_ops_challenge.modifiers`.
+This page describes the reference spacecraft model in `spacecraft_autonomy_challenge.model`,
+telemetry in `spacecraft_autonomy_challenge.telemetry`, and modifiers in `spacecraft_autonomy_challenge.modifiers`.
 
 The model is a deliberately small toy model.
 All numbers are parameters; none are fixed by the model itself.
@@ -35,7 +35,7 @@ Both thrusters are configured independently.
 A symmetric configuration uses identical values except for opposite wheel-momentum rates,
 so that `THRUSTER_1` increases and `THRUSTER_2` decreases the wheel momentum.
 
-![Two thrusters offset from the center of mass and a single-axis reaction wheel](../src/spacecraft_ops_challenge/figures/spacecraft-geometry.svg)
+![Two thrusters offset from the center of mass and a single-axis reaction wheel](../src/spacecraft_autonomy_challenge/figures/spacecraft-geometry.svg)
 
 The figure shows the physical picture behind the wheel-momentum rate for the general case,
 in which the two offsets and thrusts differ.

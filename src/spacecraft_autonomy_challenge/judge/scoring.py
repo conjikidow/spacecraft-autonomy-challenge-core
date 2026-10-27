@@ -15,8 +15,8 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
-from spacecraft_ops_challenge.results import TerminationReason
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_autonomy_challenge.results import TerminationReason
 
 SCORING_CONFIG_VERSION = 1
 
@@ -132,8 +132,8 @@ class ScoringConfig:
 
     @classmethod
     def default(cls) -> "ScoringConfig":
-        """The configuration shipped with this package as `spacecraft_ops_challenge/judge/scoring.toml`."""
-        return cls.from_toml(files("spacecraft_ops_challenge.judge").joinpath("scoring.toml").read_bytes())
+        """The configuration shipped with this package as `spacecraft_autonomy_challenge/judge/scoring.toml`."""
+        return cls.from_toml(files("spacecraft_autonomy_challenge.judge").joinpath("scoring.toml").read_bytes())
 
     @classmethod
     def from_toml(cls, data: bytes | str | Path) -> "ScoringConfig":

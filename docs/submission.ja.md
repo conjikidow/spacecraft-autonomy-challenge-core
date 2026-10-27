@@ -2,20 +2,20 @@
 
 [English](submission.md) | **日本語**
 
-このページでは，提出アーカイブ（`spacecraft_ops_challenge.judge.submission`）について説明します。
+このページでは，提出アーカイブ（`spacecraft_autonomy_challenge.judge.submission`）について説明します。
 提出アーカイブ `submission.zip` は，戦略とそれが使うファイルをまとめたものです。
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.submission import build_submission, extract_submission
+from spacecraft_autonomy_challenge.judge.submission import build_submission, extract_submission
 
 Path("submission.zip").write_bytes(build_submission("."))
 submission = extract_submission("submission.zip", Path("extracted"))
 print(submission.strategy_file, submission.pyproject is not None)
 ```
 
-コマンドラインでは，`spacecraft-ops-challenge pack` でプロジェクトディレクトリから `submission.zip` を作成できます（[README](../README.ja.md#コマンドラインツール)を参照）。
+コマンドラインでは，`autonomy-challenge pack` でプロジェクトディレクトリから `submission.zip` を作成できます（[README](../README.ja.md#コマンドラインツール)を参照）。
 
 ## アーカイブの構成
 

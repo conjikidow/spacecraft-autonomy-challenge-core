@@ -1,4 +1,4 @@
-"""Python package for the Spacecraft Operations Challenge.
+"""Python package for the Spacecraft Autonomy Challenge.
 
 The top-level package exports the strategy-facing API. Simulation, scenario, and result types are
 imported from their submodules.
@@ -6,19 +6,19 @@ imported from their submodules.
 
 from importlib.metadata import version
 
-from spacecraft_ops_challenge.commands import (
+from spacecraft_autonomy_challenge.commands import (
     CommandError,
     DeclareCompletion,
     PropulsionMode,
     SetHeater,
     SetPropulsionMode,
 )
-from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters, ThrusterParameters
-from spacecraft_ops_challenge.strategy import Commander, MissionBrief, Strategy
-from spacecraft_ops_challenge.telemetry import Telemetry
-from spacecraft_ops_challenge.timeline import CommandId, ScheduledCommand
+from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftParameters, ThrusterParameters
+from spacecraft_autonomy_challenge.strategy import Commander, MissionBrief, Strategy
+from spacecraft_autonomy_challenge.telemetry import Telemetry
+from spacecraft_autonomy_challenge.timeline import CommandId, ScheduledCommand
 
-__version__ = version("spacecraft-operations-challenge-core")
+__version__ = version("spacecraft-autonomy-challenge-core")
 
 __all__ = [
     "CommandError",

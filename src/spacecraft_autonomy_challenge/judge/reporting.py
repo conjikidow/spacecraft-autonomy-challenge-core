@@ -1,6 +1,6 @@
 """Aggregate statistics, report rows, and the result document of an evaluation.
 
-Reports carry metrics and the scores of `spacecraft_ops_challenge.judge.scoring`. No pass threshold is applied, and
+Reports carry metrics and the scores of `spacecraft_autonomy_challenge.judge.scoring`. No pass threshold is applied, and
 no case payloads are included: cases are identified by their ids, suites by a fingerprint.
 """
 
@@ -12,13 +12,19 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from spacecraft_ops_challenge import __version__ as core_version
-from spacecraft_ops_challenge.judge.dependencies import DependencyReport
-from spacecraft_ops_challenge.judge.judging import SubmissionEvaluation
-from spacecraft_ops_challenge.judge.runner import CaseOutcome, CaseStatus
-from spacecraft_ops_challenge.judge.scoring import STRATEGY_FAILURES, CaseScore, ScoringConfig, score_case, suite_score
+from spacecraft_autonomy_challenge import __version__ as core_version
+from spacecraft_autonomy_challenge.judge.dependencies import DependencyReport
+from spacecraft_autonomy_challenge.judge.judging import SubmissionEvaluation
+from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus
+from spacecraft_autonomy_challenge.judge.scoring import (
+    STRATEGY_FAILURES,
+    CaseScore,
+    ScoringConfig,
+    score_case,
+    suite_score,
+)
 
-RESULT_FORMAT = "spacecraft-operations-challenge/result"
+RESULT_FORMAT = "spacecraft-autonomy-challenge/result"
 RESULT_FORMAT_VERSION = 1
 
 

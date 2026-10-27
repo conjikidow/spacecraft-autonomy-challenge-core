@@ -4,10 +4,10 @@
 
 戦略は，タイムラインにコマンドをスケジュールすることで宇宙機を運用します。
 戦略が受け取るのは `MissionBrief`，`Telemetry`，`Commander` だけであり，宇宙機の真の状態を見ることはありません。
-これらはすべて，トップレベルの `spacecraft_ops_challenge` パッケージからエクスポートされています。
+これらはすべて，トップレベルの `spacecraft_autonomy_challenge` パッケージからエクスポートされています。
 
 ```python
-from spacecraft_ops_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
+from spacecraft_autonomy_challenge import Commander, MissionBrief, SetHeater, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
@@ -41,7 +41,7 @@ class MyStrategy(Strategy):
 
 `Commander` はインタフェース（`typing.Protocol`）です。
 戦略は，以下に挙げるメンバだけに依存するようにしてください。
-シミュレーションが渡すのは `spacecraft_ops_challenge.simulation.LocalCommander` で，これは同じプロセス内でタイムラインを直接操作します。
+シミュレーションが渡すのは `spacecraft_autonomy_challenge.simulation.LocalCommander` で，これは同じプロセス内でタイムラインを直接操作します。
 要求と結果はすべて，時刻，コマンド，コマンド識別子，`ScheduledCommand` の値といった単純なデータで表されます。
 
 | メンバ | 振る舞い |

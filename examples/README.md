@@ -33,5 +33,5 @@ cancels everything from the current time onward with `cancel_from`, and register
 ## `toy_problem.py`
 
 `toy_scenario()` builds the toy scenario, and `run_and_report(strategy)` runs a strategy on it and prints the result.
-The strategy files import only the top-level `spacecraft_ops_challenge` package;
+The strategy files import only the top-level `spacecraft_autonomy_challenge` package;
 `toy_problem.py` also uses the simulation modules to build and run the scenario.

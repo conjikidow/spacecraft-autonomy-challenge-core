@@ -2,12 +2,12 @@
 
 **English** | [日本語](evaluation.ja.md)
 
-This page describes per-run evaluation metrics (`spacecraft_ops_challenge.evaluation`).
+This page describes per-run evaluation metrics (`spacecraft_autonomy_challenge.evaluation`).
 Metrics are computed from the ground truth in a `RunResult`, not from telemetry.
 
 ```python
-from spacecraft_ops_challenge.evaluation import evaluate
-from spacecraft_ops_challenge.simulation import run
+from spacecraft_autonomy_challenge.evaluation import evaluate
+from spacecraft_autonomy_challenge.simulation import run
 
 result = run(MyStrategy(), scenario)
 metrics = evaluate(result)

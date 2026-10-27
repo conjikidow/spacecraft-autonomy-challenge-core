@@ -2,14 +2,14 @@ import math
 
 import pytest
 
-from spacecraft_ops_challenge.commands import (
+from spacecraft_autonomy_challenge.commands import (
     CommandError,
     DeclareCompletion,
     PropulsionMode,
     SetHeater,
     SetPropulsionMode,
 )
-from spacecraft_ops_challenge.timeline import Timeline
+from spacecraft_autonomy_challenge.timeline import Timeline
 
 FIRE_1 = SetPropulsionMode(PropulsionMode.THRUSTER_1)
 OFF = SetPropulsionMode(PropulsionMode.OFF)

@@ -3,7 +3,7 @@ import socket
 
 import pytest
 
-from spacecraft_ops_challenge import (
+from spacecraft_autonomy_challenge import (
     CommandId,
     DeclareCompletion,
     PropulsionMode,
@@ -12,9 +12,9 @@ from spacecraft_ops_challenge import (
     SetPropulsionMode,
     Telemetry,
 )
-from spacecraft_ops_challenge.challenge import problem
-from spacecraft_ops_challenge.judge import protocol
-from spacecraft_ops_challenge.judge.protocol import (
+from spacecraft_autonomy_challenge.challenge import problem
+from spacecraft_autonomy_challenge.judge import protocol
+from spacecraft_autonomy_challenge.judge.protocol import (
     MAX_MESSAGE_BYTES,
     Channel,
     ChannelClosedError,

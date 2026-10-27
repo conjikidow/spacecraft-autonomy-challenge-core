@@ -11,10 +11,10 @@ from pathlib import Path
 import pytest
 from judge_support import PROVIDER, case
 
-from spacecraft_ops_challenge.evaluation import evaluate
-from spacecraft_ops_challenge.judge.dependencies import Overlay
-from spacecraft_ops_challenge.judge.runner import CaseStatus, run_case
-from spacecraft_ops_challenge.simulation import run
+from spacecraft_autonomy_challenge.evaluation import evaluate
+from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.runner import CaseStatus, run_case
+from spacecraft_autonomy_challenge.simulation import run
 
 HAS_PROC = Path("/proc").is_dir()
 
@@ -35,7 +35,7 @@ import inspect
 import json
 import sys
 
-from spacecraft_ops_challenge import DeclareCompletion, Strategy
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 HIDDEN_TYPES = {{
     "EvaluationCase", "ScenarioProvider", "Scenario", "Simulation", "SpacecraftState", "Problem", "RunResult",
@@ -83,7 +83,7 @@ def findings():
     found += [
         "module " + name
         for name in sys.modules
-        if name.startswith("spacecraft_ops_challenge.judge.")
+        if name.startswith("spacecraft_autonomy_challenge.judge.")
         and name.rsplit(".", 1)[1] in ("cases", "public_scenarios", "dependencies", "worker", "remote", "runner")
     ]
     found += [
@@ -106,7 +106,7 @@ import json
 from decimal import Decimal
 from fractions import Fraction
 
-from spacecraft_ops_challenge import (
+from spacecraft_autonomy_challenge import (
     CommandError, DeclareCompletion, PropulsionMode, SetHeater, SetPropulsionMode, Strategy,
 )
 
@@ -226,7 +226,7 @@ def test_participant_runs_in_its_own_process(make_submission):
     import os
     from pathlib import Path
 
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -241,7 +241,7 @@ def test_participant_runs_in_its_own_process(make_submission):
     assert pid != parent_pid
     assert os.getpid() not in (pid, parent_pid)
     if HAS_PROC:
-        assert "spacecraft_ops_challenge.judge.worker" in parent_cmdline
+        assert "spacecraft_autonomy_challenge.judge.worker" in parent_cmdline
 
 
 def test_remote_commander_matches_the_core_commander(make_submission, tmp_path):
@@ -264,7 +264,7 @@ def test_remote_commander_matches_the_core_commander(make_submission, tmp_path):
 
 def test_uncaught_command_errors_end_the_run_as_invalid_command(make_submission):
     invalid = """
-    from spacecraft_ops_challenge import SetHeater, Strategy
+    from spacecraft_autonomy_challenge import SetHeater, Strategy
 
 
     class MyStrategy(Strategy):
@@ -281,7 +281,7 @@ def test_uncaught_command_errors_end_the_run_as_invalid_command(make_submission)
 
 def test_strategy_exceptions_keep_the_participant_traceback(make_submission):
     failing = """
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     def plan():
@@ -302,7 +302,7 @@ def test_strategy_exceptions_keep_the_participant_traceback(make_submission):
 
 def test_keyboard_interrupt_in_a_callback_is_a_crash(make_submission):
     interrupting = """
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -320,7 +320,7 @@ def test_a_hard_exit_of_the_participant_leaves_the_worker_running(make_submissio
     exiting = f"""
     import os
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
     if {where!r} == "import":
         os._exit(9)
@@ -344,7 +344,7 @@ def test_malformed_messages_from_the_participant_end_the_case(make_submission):
     import sys
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):
@@ -377,7 +377,7 @@ def test_only_the_participant_process_gets_the_overlay(make_submission, tmp_path
     from pathlib import Path
 
     import participant_package
-    from spacecraft_ops_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
 
 
     class MyStrategy(Strategy):
@@ -403,7 +403,7 @@ def test_only_the_participant_process_gets_the_overlay(make_submission, tmp_path
 def test_an_overlay_cannot_replace_the_trusted_worker(make_submission, tmp_path):
     overlay, _ = make_overlay(tmp_path)
     (overlay / "marker.pth").unlink()
-    fake = overlay / "spacecraft_ops_challenge" / "judge"
+    fake = overlay / "spacecraft_autonomy_challenge" / "judge"
     fake.mkdir(parents=True)
     (fake.parent / "__init__.py").write_text("")
     (fake / "__init__.py").write_text("")
@@ -421,7 +421,7 @@ def test_a_forked_child_holding_the_connection_does_not_hide_the_participant_exi
     import os
     import time
 
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_autonomy_challenge import Strategy
 
 
     class MyStrategy(Strategy):

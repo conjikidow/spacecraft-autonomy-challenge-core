@@ -2,14 +2,14 @@
 
 [English](dependencies.md) | **日本語**
 
-このページでは，提出物が必要とするパッケージを再現する方法（`spacecraft_ops_challenge.judge.dependencies`）について説明します。
+このページでは，提出物が必要とするパッケージを再現する方法（`spacecraft_autonomy_challenge.judge.dependencies`）について説明します。
 提出物は，必要なパッケージをアーカイブの任意の `pyproject.toml` に記載します（[提出アーカイブ](submission.ja.md)を参照）。
 
 ```python
 from pathlib import Path
 
-from spacecraft_ops_challenge.judge.dependencies import resolve_dependencies
-from spacecraft_ops_challenge.judge.submission import extract_submission
+from spacecraft_autonomy_challenge.judge.dependencies import resolve_dependencies
+from spacecraft_autonomy_challenge.judge.submission import extract_submission
 
 submission = extract_submission("submission.zip", Path("work/extracted"))
 report, overlay = resolve_dependencies(submission.pyproject, Path("work/overlay"))
@@ -34,7 +34,7 @@ env = None if overlay is None else overlay.environment()
 | `Decision` | 条件 |
 |---|---|
 | `NOT_APPLICABLE` | 環境マーカーが，評価するインタプリタに対して偽である |
-| `JUDGE_CONTROLLED` | `spacecraft-operations-challenge-core` である |
+| `JUDGE_CONTROLLED` | `spacecraft-autonomy-challenge-core` である |
 | `SATISFIED` | インストール済みのバージョンと extra が要件を満たす，または同じ URL からインストール済みである |
 | `INSTALL` | 未インストールである，バージョンや extra が満たされていない，または別の URL を指定している |
 | `UNSUPPORTED` | 要件自体，その `[tool.uv.sources]` の項目，または指定した extra の依存関係を再現できない。または環境マーカーを評価できない |
@@ -77,7 +77,7 @@ env = None if overlay is None else overlay.environment()
   別の要件に書き換えずに `UNSUPPORTED` とします。
 - `marker` を持つ項目は，そのマーカーが評価するインタプリタに対して真の場合にだけ適用し，偽の場合は要件を書かれたとおりに判定します。
 - 書き換えた要件の判定には書き換えた要件が記録され，その理由には元の要件が示されます。
-- `spacecraft-operations-challenge-core` の要件は，取得元によらず `JUDGE_CONTROLLED` のままです。
+- `spacecraft-autonomy-challenge-core` の要件は，取得元によらず `JUDGE_CONTROLLED` のままです。
   環境マーカーが偽の要件も `NOT_APPLICABLE` のままです。
 - `[project] dependencies` にないパッケージの項目は無視します。
 - `foo_bar` と `Foo-Bar` のように，正規化すると同じパッケージになる名前の項目が2つあると，`DependencyError` を送出します。

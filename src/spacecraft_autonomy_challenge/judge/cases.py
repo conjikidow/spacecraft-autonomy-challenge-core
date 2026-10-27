@@ -14,7 +14,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from spacecraft_ops_challenge.scenario import Scenario
+from spacecraft_autonomy_challenge.scenario import Scenario
 
 type ScenarioFactory = Callable[[dict[str, Any]], Scenario]
 

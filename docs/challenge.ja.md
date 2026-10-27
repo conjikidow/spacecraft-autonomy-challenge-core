@@ -2,11 +2,11 @@
 
 [English](challenge.md) | **日本語**
 
-`spacecraft_ops_challenge.challenge` は，チャレンジ問題とその公開シナリオを定義します。
+`spacecraft_autonomy_challenge.challenge` は，チャレンジ問題とその公開シナリオを定義します。
 数値はすべて，簡易な宇宙機モデル向けの暫定値です。
 
 ```python
-from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
+from spacecraft_autonomy_challenge.challenge import problem, scenario, scenario_names
 
 print(scenario_names())
 nominal = scenario("nominal")
