@@ -179,7 +179,9 @@ def test_dependencies_view_without_requirements():
     assert "It lists no requirements." in dependencies_view(DependencyReport(DependencyPlan(()))).text
 
 
-WRAPPED = '<pre class="text-xs" style="white-space: pre-wrap; overflow-wrap: anywhere">'
+WRAPPED = (
+    '<pre class="text-xs" style="white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20rem; overflow-y: auto">'
+)
 
 
 def test_text_view_wraps_and_escapes_text():

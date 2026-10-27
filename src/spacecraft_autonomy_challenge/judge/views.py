@@ -40,10 +40,10 @@ def text_view(text: str) -> mo.Html:
     """`text` in a fixed-width font, escaped, with spaces and newlines kept and long lines wrapped.
 
     Unlike `marimo.plain_text`, which keeps long lines whole and can clip them, every line stays readable.
+    Text longer than about 20 lines scrolls within that height instead of growing without limit.
     """
-    return mo.Html(
-        f'<pre class="text-xs" style="white-space: pre-wrap; overflow-wrap: anywhere">{html.escape(text)}</pre>'
-    )
+    style = "white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20rem; overflow-y: auto"
+    return mo.Html(f'<pre class="text-xs" style="{style}">{html.escape(text)}</pre>')
 
 
 def results_view(result: EvaluationResult, *, missing_module_hint: str = DEFAULT_MISSING_MODULE_HINT) -> mo.Html:
