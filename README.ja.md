@@ -21,6 +21,7 @@ Spacecraft Operations Challenge のための Python パッケージです。
 
 - Python 3.12 以降
 - [uv](https://docs.astral.sh/uv/)
+- 提出物の評価には Linux または macOS（[評価ケースの実行](docs/runner.ja.md)を参照）
 
 実行時に Python 標準ライブラリ以外で依存するのは [packaging](https://packaging.pypa.io/) だけです。
 
@@ -100,6 +101,7 @@ spacecraft-ops-challenge scenarios
 - [提出アーカイブ](docs/submission.ja.md)：`submission.zip` の作成と展開
 - [評価ケース](docs/judge.ja.md)：評価ケース，`Suite`，`ScenarioProvider`
 - [参加者のパッケージ](docs/dependencies.ja.md)：提出物が必要とするパッケージの uv による再現
+- [評価ケースの実行](docs/runner.ja.md)：信頼されたプロセスと参加者のプロセスに分けた，評価ケースごとの提出物の実行
 
 ## 開発
 

@@ -1,9 +1,14 @@
-from collections.abc import Callable
+import io
+import textwrap
+from collections.abc import Callable, Mapping
 from dataclasses import fields
+from pathlib import Path
 
 import pytest
+from judge_support import zip_bytes
 
 from spacecraft_ops_challenge.commands import PropulsionMode
+from spacecraft_ops_challenge.judge.submission import Submission, extract_submission
 from spacecraft_ops_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
 from spacecraft_ops_challenge.problem import Problem
 from spacecraft_ops_challenge.scenario import Scenario
@@ -81,5 +86,19 @@ def make_scenario(parameters, limits, make_state) -> Callable[..., Scenario]:
         problem_values |= {key: value for key, value in overrides.items() if key in PROBLEM_FIELDS}
         scenario_values = {"name": "test"} | {k: v for k, v in overrides.items() if k not in PROBLEM_FIELDS}
         return Scenario(problem=Problem(**problem_values), **scenario_values)
+
+    return factory
+
+
+@pytest.fixture
+def make_submission(tmp_path: Path) -> Callable[..., Submission]:
+    """Extract a submission whose files are given relative to `submission/`, with sources dedented."""
+    counter = 0
+
+    def factory(files: Mapping[str, str]) -> Submission:
+        nonlocal counter
+        counter += 1
+        archive = zip_bytes({f"submission/{name}": textwrap.dedent(text) for name, text in files.items()})
+        return extract_submission(io.BytesIO(archive), tmp_path / f"submission-{counter}")
 
     return factory

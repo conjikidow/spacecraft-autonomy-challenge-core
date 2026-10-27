@@ -31,6 +31,32 @@ def failing(payload):
     raise RuntimeError("the provider failed")
 
 
+def exporting(payload):
+    import os
+
+    os.environ["JUDGE_TEST_HIDDEN"] = f"seed-{payload['seed']}"
+    return build_scenario(payload)
+
+
+def exiting(payload):
+    raise SystemExit("bad configuration")
+
+
+def noisy(payload):
+    import os
+    import subprocess
+    import sys
+    import warnings
+
+    print("provider stdout: secret", payload["seed"])
+    os.write(1, b"provider descriptor: secret\\n")
+    os.write(2, b"provider descriptor: secret\\n")
+    subprocess.run([sys.executable, "-c", "print('provider child: secret')"], check=True)
+    print("provider stderr: secret", file=sys.stderr)
+    warnings.warn("provider warning: secret", stacklevel=1)
+    return build_scenario(payload)
+
+
 def not_a_scenario(payload):
     return "not a scenario"
 """

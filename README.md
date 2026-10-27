@@ -23,6 +23,7 @@ The project is in early development; the API may still change.
 
 - Python 3.12 or later
 - [uv](https://docs.astral.sh/uv/)
+- Linux or macOS for evaluating submissions (see [Running Cases](docs/runner.md))
 
 Beyond the Python standard library, the package depends only on [packaging](https://packaging.pypa.io/) at run time.
 
@@ -100,6 +101,7 @@ With `--json`, anything the strategy prints goes to standard error, so standard 
 - [Submission Archives](docs/submission.md): building and extracting `submission.zip`
 - [Evaluation Cases](docs/judge.md): evaluation cases, suites, and scenario providers
 - [Participant Packages](docs/dependencies.md): reproducing the packages that a submission needs with uv
+- [Running Cases](docs/runner.md): running a submission on each case in separate trusted and participant processes
 
 ## Development
 
