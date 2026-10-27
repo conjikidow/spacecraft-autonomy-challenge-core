@@ -198,16 +198,15 @@ class RemoteStrategy(Strategy):
             reply = participant.receive()
             if reply["type"] == "call":
                 try:
-                    value = _serve_call(commander, reply)
-                except CommandError as error:
-                    participant.send({"type": "command_error", "message": str(error)})
+                    response = {"type": "return", "value": _serve_call(commander, reply)}
+                except CommandError as error:  # its message may quote a huge argument
+                    response = {"type": "command_error", "message": str(error)}
                 except (ProtocolError, KeyError, TypeError, ValueError) as error:
                     raise ParticipantStopError(f"the strategy process sent a malformed request: {error!r}") from None
-                else:
-                    try:
-                        participant.send({"type": "return", "value": value})
-                    except MessageTooLargeError as error:
-                        participant.send({"type": "command_error", "message": f"the reply is too large: {error}"})
+                try:
+                    participant.send(response)
+                except MessageTooLargeError as error:
+                    participant.send({"type": "command_error", "message": f"the reply is too large: {error}"})
             elif reply["type"] == "done":
                 return
             elif reply["type"] == "failed":
