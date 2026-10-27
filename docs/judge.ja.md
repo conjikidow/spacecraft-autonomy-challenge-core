@@ -4,7 +4,8 @@
 
 このページでは，評価ケース，`Suite`，`ScenarioProvider`（`spacecraft_ops_challenge.judge.cases`）と，公開シナリオ用の `ScenarioProvider`（`spacecraft_ops_challenge.judge.public_scenarios`）について説明します。
 これらは，提出物を評価するシナリオを定義します。
-提出物をそれらで実行する方法は[評価ケースの実行](runner.ja.md)を参照してください。
+提出物をそれらで実行する方法は[評価ケースの実行](runner.ja.md)を，
+アーカイブ全体を `Suite` で評価する方法は[提出物の評価](evaluating.ja.md)を参照してください。
 
 ```python
 from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite

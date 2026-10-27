@@ -177,9 +177,9 @@ class ScenarioProvider:
         for case in cases:
             try:
                 self.build(case)
-            except CaseError:
+            except (CaseError, KeyboardInterrupt):
                 raise
-            except Exception as error:
+            except BaseException as error:  # also SystemExit, so that a provider cannot end the calling process
                 raise CaseError(f"the scenario provider failed for case {case.case_id!r}: {error!r}") from error
 
     def to_dict(self) -> dict[str, Any]:

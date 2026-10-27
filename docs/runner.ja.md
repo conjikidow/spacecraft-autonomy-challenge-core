@@ -30,6 +30,7 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 | `overlay` | 参加者のパッケージの `Overlay`（[参加者のパッケージ](dependencies.ja.md)を参照），または `None` |
 
 評価ケースと `ScenarioProvider` については，[評価ケース](judge.ja.md)を参照してください。
+アーカイブ全体を評価し，その結果を記録する方法は[提出物の評価](evaluating.ja.md)を参照してください。
 
 ## 評価ケースごとの2つのプロセス
 

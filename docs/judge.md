@@ -4,7 +4,8 @@
 
 This page describes evaluation cases, suites, and scenario providers (`spacecraft_ops_challenge.judge.cases`),
 and the scenario provider for the public scenarios (`spacecraft_ops_challenge.judge.public_scenarios`).
-They define the scenarios that a submission is evaluated on; [Running Cases](runner.md) describes how it is run on them.
+They define the scenarios that a submission is evaluated on; [Running Cases](runner.md) describes how it is run on them,
+and [Evaluating Submissions](evaluating.md) how a whole archive is evaluated on a suite.
 
 ```python
 from spacecraft_ops_challenge.judge.cases import EvaluationCase, ScenarioProvider, Suite

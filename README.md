@@ -102,6 +102,7 @@ With `--json`, anything the strategy prints goes to standard error, so standard 
 - [Evaluation Cases](docs/judge.md): evaluation cases, suites, and scenario providers
 - [Participant Packages](docs/dependencies.md): reproducing the packages that a submission needs with uv
 - [Running Cases](docs/runner.md): running a submission on each case in separate trusted and participant processes
+- [Evaluating Submissions](docs/evaluating.md): evaluating a submission archive, summary statistics, and JSON result documents
 
 ## Development
 
