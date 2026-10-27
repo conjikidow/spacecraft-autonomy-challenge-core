@@ -23,7 +23,7 @@ print(submission.strategy_file, submission.pyproject is not None)
 |---|---|
 | `submission/strategy.py` | エントリポイント。戦略クラス `MyStrategy` を定義します |
 | `submission/...` | 追加のモジュール，データ，モデルファイルなど，戦略が使う任意のファイル |
-| `pyproject.toml` | 省略可能。提出物が必要とするパッケージを記載した，プロジェクトの `pyproject.toml` |
+| `pyproject.toml` | 省略可能。提出物が必要とするパッケージを記載した，プロジェクトの `pyproject.toml`（[参加者のパッケージ](dependencies.ja.md)を参照） |
 
 定数 `SUBMISSION_DIRNAME`，`STRATEGY_PATH`，`STRATEGY_CLASS`，`PYPROJECT_PATH` は，これらの名前を表します。
 

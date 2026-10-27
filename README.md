@@ -24,7 +24,7 @@ The project is in early development; the API may still change.
 - Python 3.12 or later
 - [uv](https://docs.astral.sh/uv/)
 
-The package has no runtime dependencies beyond the Python standard library.
+Beyond the Python standard library, the package depends only on [packaging](https://packaging.pypa.io/) at run time.
 
 ## Installation
 
@@ -99,6 +99,7 @@ With `--json`, anything the strategy prints goes to standard error, so standard 
 - [Evaluation](docs/evaluation.md): per-run metrics
 - [Submission Archives](docs/submission.md): building and extracting `submission.zip`
 - [Evaluation Cases](docs/judge.md): evaluation cases, suites, and scenario providers
+- [Participant Packages](docs/dependencies.md): reproducing the packages that a submission needs with uv
 
 ## Development
 
