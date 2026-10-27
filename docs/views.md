@@ -42,7 +42,7 @@ See [Evaluating Submissions](evaluating.md) for how a result document is created
 | `dependencies_view(report)` | A `DependencyReport`: how the packages of the participant's `pyproject.toml` were reproduced |
 | `score_view(outcomes, scores)` | A table of each `CaseScore`: the score on the scale of the suite score and its factors and terms, with `scores` in the order of `outcomes` |
 | `output_view(outcome)` | Standard output and standard error of one `CaseOutcome` |
-| `text_view(text)` | Plain text in a fixed-width font, with spaces and newlines kept and long lines wrapped |
+| `text_view(text)` | Plain text in a fixed-width font, with spaces and newlines kept and long lines wrapped; text longer than about 20 lines scrolls within that height |
 
 `results_view` shows, from top to bottom:
 
@@ -73,5 +73,5 @@ the decision for each requirement with its reason (see [Participant Packages](de
 and the output of each run of the installer.
 
 The views show standard output, standard error, failure details, worker errors, and installer output with `text_view`,
-so long lines wrap instead of being cut off.
+so long lines wrap instead of being cut off, and text longer than about 20 lines scrolls within that height.
 `text_view` escapes the text, so it cannot add HTML.
