@@ -36,6 +36,16 @@ def _code(text: str) -> str:
     return f"<code>{html.escape(text)}</code>"
 
 
+def text_view(text: str) -> mo.Html:
+    """`text` in a fixed-width font, escaped, with spaces and newlines kept and long lines wrapped.
+
+    Unlike `marimo.plain_text`, which keeps long lines whole and can clip them, every line stays readable.
+    """
+    return mo.Html(
+        f'<pre class="text-xs" style="white-space: pre-wrap; overflow-wrap: anywhere">{html.escape(text)}</pre>'
+    )
+
+
 def results_view(result: EvaluationResult, *, missing_module_hint: str = DEFAULT_MISSING_MODULE_HINT) -> mo.Html:
     """Suite score, summary statistics, per-case scores and metrics, failure details, and participant output.
 
@@ -129,9 +139,9 @@ def score_view(outcomes: Sequence[CaseOutcome], scores: Sequence[CaseScore]) -> 
 def _problem_view(outcome: CaseOutcome) -> mo.Html:
     parts = [mo.md(f"<strong>{html.escape(outcome.case_id)}</strong>: {_code(outcome.status.value)}")]
     if outcome.detail:
-        parts.append(mo.plain_text(outcome.detail))
+        parts.append(text_view(outcome.detail))
     if outcome.worker_error:
-        parts += [mo.md("Trusted worker error"), mo.plain_text(outcome.worker_error)]
+        parts += [mo.md("Trusted worker error"), text_view(outcome.worker_error)]
     return mo.vstack(parts)
 
 
@@ -139,9 +149,9 @@ def output_view(outcome: CaseOutcome) -> mo.Html:
     """Standard output and standard error of one case."""
     parts = []
     if outcome.stdout:
-        parts += [mo.md("Standard output"), mo.plain_text(outcome.stdout)]
+        parts += [mo.md("Standard output"), text_view(outcome.stdout)]
     if outcome.stderr:
-        parts += [mo.md("Standard error"), mo.plain_text(outcome.stderr)]
+        parts += [mo.md("Standard error"), text_view(outcome.stderr)]
     return mo.vstack(parts)
 
 
@@ -173,7 +183,7 @@ def dependencies_view(report: DependencyReport) -> mo.Html:
                         pagination=False,
                     ),
                     **{
-                        f"Installer output ({index})": mo.plain_text(attempt.output)
+                        f"Installer output ({index})": text_view(attempt.output)
                         for index, attempt in enumerate(report.attempts, start=1)
                     },
                 }
