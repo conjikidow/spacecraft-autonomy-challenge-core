@@ -2,6 +2,7 @@ import subprocess
 import sys
 from dataclasses import replace
 
+import marimo as mo
 import pytest
 
 from spacecraft_autonomy_challenge.judge.dependencies import (
@@ -20,6 +21,7 @@ from spacecraft_autonomy_challenge.judge.views import (
     output_view,
     results_view,
     score_view,
+    scoring_view,
     text_view,
 )
 
@@ -87,7 +89,8 @@ def test_results_view_renders_a_full_result():
         "Trusted worker error",
         "Traceback x",
         "Strategy output (2 cases)",
-        "no pass threshold",
+        "Score definition",
+        "Not completed (load error, crash, timeout)",
         "printed",
         "warning",
         f"{100 * FULL.scores[0].value:.2f}",
@@ -115,6 +118,34 @@ def test_results_view_renders_a_filtered_result():
     assert "participant" not in html
     assert "Missing modules" not in html
     assert "Trusted worker error" not in html
+
+
+def test_results_view_shows_stats_below_the_suite_score():
+    html = results_view(FULL, stats=[mo.stat("28.61", label="Subset", caption="extra")]).text
+    assert html.index(f"{FULL.summary.score:.2f}") < html.index("28.61") < html.index("Statistic")
+    assert "Subset" in html
+
+
+def test_results_view_shows_the_summary_as_a_plain_table():
+    html = results_view(FULL).text
+    assert ">Statistic</th>" in html
+    assert ">Mean |delta-v error|, completed runs</td>" in html
+
+
+def test_scoring_view_shows_the_parameters_of_the_configuration():
+    config = ScoringConfig.from_dict(
+        ScoringConfig.default().to_dict()
+        | {
+            "accuracy": {"tolerance_fraction": 0.123456789},
+            "declaration": {"undeclared_factor": 0.3},
+            "weights": {"base": 0.4, "completion_time": 0.3, "battery_margin": 0.2, "cpu_time": 0.1},
+            "cpu_time": {"startup_allowance_s": 7.0, "per_decision_cycle_s": 1e-5},
+        }
+    )
+    html = scoring_view(config).text
+    for expected in (r"0.4 + 0.3\,t + 0.2\,b + 0.1\,c", "0.123456789", "else 0.3", "7 + 0.00001"):
+        assert expected in html
+    assert "e-05" not in html
 
 
 def test_score_view_requires_a_score_per_outcome():
@@ -163,9 +194,12 @@ def test_import_without_marimo_names_the_extra():
 def test_participant_strings_are_escaped():
     hostile = "x` <script>alert(1)</script> `y"
     outcome = CaseOutcome("<b>case</b>", CaseStatus.LOAD_ERROR, None, "", hostile, "", "", 0.1, None)
-    html = results_view(result([outcome], participant=hostile, case_ids=("<b>case</b>",))).text
+    hostile_result = result([outcome], participant=hostile, case_ids=("<b>case</b>",))
+    summary = replace(hostile_result.summary, termination_reasons={hostile: 1})
+    html = results_view(replace(hostile_result, summary=summary)).text
     assert "<script>" not in html
     assert "<b>case</b>" not in html
+    assert "Termination: x` &lt;script&gt;" in html
     plan = DependencyPlan((RequirementDecision(hostile, "x", Decision.INSTALL, "missing"),))
     assert "<script>" not in dependencies_view(DependencyReport(plan)).text
 

@@ -38,7 +38,8 @@ See [Evaluating Submissions](evaluating.md) for how a result document is created
 
 | Function | Shows |
 |---|---|
-| `results_view(result, *, missing_module_hint=DEFAULT_MISSING_MODULE_HINT)` | An `EvaluationResult`: suite score, summary, cases, score components, errors, and strategy output |
+| `results_view(result, *, stats=(), missing_module_hint=DEFAULT_MISSING_MODULE_HINT)` | An `EvaluationResult`: suite score, summary, cases, score definition, score components, errors, and strategy output |
+| `scoring_view(config)` | The scoring formula with the parameters of a `ScoringConfig`, and the definitions of its factors, terms, and inputs |
 | `dependencies_view(report)` | A `DependencyReport`: how the packages of the participant's `pyproject.toml` were reproduced |
 | `score_view(outcomes, scores)` | A table of each `CaseScore`: the score on the scale of the suite score and its factors and terms, with `scores` in the order of `outcomes` |
 | `output_view(outcome)` | Standard output and standard error of one `CaseOutcome` |
@@ -46,17 +47,18 @@ See [Evaluating Submissions](evaluating.md) for how a result document is created
 
 `results_view` shows, from top to bottom:
 
-1. The suite name, the participant name if there is one, and the suite score out of 100.
-2. A warning that lists the modules that the submission failed to import (see `missing_modules`), if any, followed by `missing_module_hint`.
-3. The summary table of `summary_rows(result.summary)`.
+1. The suite name and the participant name if there is one.
+2. Side by side: on the left, the suite score out of 100 with the elements of `stats` below it;
+   on the right, the summary of `summary_rows(result.summary)` as a plain table.
+3. A warning that lists the modules that the submission failed to import (see `missing_modules`), if any, followed by `missing_module_hint`.
 4. The case table of `case_rows(result.outcomes, result.scores)`.
    If the result has fewer outcomes than `case_ids`, a note says how many of the cases are shown.
-5. A short description of the scoring formula (see [Scoring](scoring.md)),
-   and the score components of `score_view` in a collapsed section.
+5. The `scoring_view` of `result.scoring` in a collapsed section.
+6. The score components of `score_view` in a collapsed section.
    Case scores appear on the scale of the suite score, from 0 to 100, and their factors and terms from 0 to 1.
-6. The status and detail of each outcome of `problem_outcomes` in a collapsed section,
+7. The status and detail of each outcome of `problem_outcomes` in a collapsed section,
    with the `worker_error` of the outcome when it is present.
-7. The standard output and standard error of each case that printed anything in a collapsed section,
+8. The standard output and standard error of each case that printed anything in a collapsed section,
    or a note that the strategy printed nothing.
 
 The summary and the scores are shown as stored in the result and never recomputed from its outcomes.
@@ -66,6 +68,14 @@ empty `stdout`, `stderr`, and `detail`, and no `worker_error` leave out the corr
 `DEFAULT_MISSING_MODULE_HINT` says that packages added with `uv add` must be listed in the project's `pyproject.toml`,
 which is packed into `submission.zip`, and that modules of one's own must be under `submission/`.
 Pass another `missing_module_hint` to replace it.
+
+`stats` adds figures that the result itself does not hold, such as `marimo.stat` elements with a score computed elsewhere;
+without them, the suite score stands alone on the left.
+
+`scoring_view` shows the formulas of [Scoring](scoring.md) with the weights and parameters of the configuration filled in,
+so a result shows the configuration that scored it.
+It writes the case score on the scale of the suite score, from 0 to 100, as the tables show it,
+and leaves the cases of [Scoring](scoring.md) that need a closer look to that page.
 
 `dependencies_view` says that the submission ran with the packages of the evaluating environment if it has no `pyproject.toml`.
 Otherwise it lists the requirements installed for the submission only,
