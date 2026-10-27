@@ -43,6 +43,7 @@ mo.vstack([results_view(result), dependencies_view(result.dependencies)])
 | `dependencies_view(report)` | `DependencyReport`，つまり参加者の `pyproject.toml` のパッケージをどう再現したか |
 | `score_view(outcomes, scores)` | 各 `CaseScore` の表。得点を `Suite` の得点と同じ尺度で，その係数と項とともに示します。`scores` は `outcomes` と同じ順 |
 | `output_view(outcome)` | 1つの `CaseOutcome` の標準出力と標準エラー出力 |
+| `text_view(text)` | 等幅フォントのテキスト。空白と改行を保ち，長い行は折り返します |
 
 `results_view` は，上から順に次のものを表示します。
 
@@ -69,3 +70,6 @@ mo.vstack([results_view(result), dependencies_view(result.dependencies)])
 
 `dependencies_view` は，提出物に `pyproject.toml` がなければ，評価する環境のパッケージで実行したことを示します。
 そうでなければ，その提出物のためだけにインストールしたパッケージ，各パッケージの判定とその理由（[参加者のパッケージ](dependencies.ja.md)を参照），インストーラの各実行の出力を表示します。
+
+これらの関数は，標準出力，標準エラー出力，失敗の詳細，`worker_error`，インストーラの出力を `text_view` で表示するため，長い行は切れずに折り返されます。
+`text_view` はテキストをエスケープするので，テキストが HTML を追加することはありません。

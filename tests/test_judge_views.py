@@ -17,8 +17,10 @@ from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, score_cas
 from spacecraft_autonomy_challenge.judge.views import (
     DEFAULT_MISSING_MODULE_HINT,
     dependencies_view,
+    output_view,
     results_view,
     score_view,
+    text_view,
 )
 
 METRICS = {
@@ -175,3 +177,22 @@ def test_whitespace_output_counts_as_nothing_printed():
 
 def test_dependencies_view_without_requirements():
     assert "It lists no requirements." in dependencies_view(DependencyReport(DependencyPlan(()))).text
+
+
+WRAPPED = '<pre class="text-xs" style="white-space: pre-wrap; overflow-wrap: anywhere">'
+
+
+def test_text_view_wraps_and_escapes_text():
+    html = text_view("a <script>x</script> & \"q\" 'r'\n  indented").text
+    assert html.startswith(WRAPPED)
+    assert "<script>" not in html
+    assert "&lt;script&gt;x&lt;/script&gt; &amp; &quot;q&quot; &#x27;r&#x27;\n  indented" in html
+
+
+def test_participant_output_uses_text_view():
+    outcome = CaseOutcome("a", CaseStatus.CRASHED, None, "detail", None, "out\n", "err\n", 0.1, None, "worker")
+    assert output_view(outcome).text.count(WRAPPED) == 2
+    assert results_view(result([outcome])).text.count(WRAPPED) == 4
+    attempt = InstallAttempt(("uv",), 0, "installed ok")
+    plan = DependencyPlan((RequirementDecision("x", "x", Decision.INSTALL, "missing"),))
+    assert WRAPPED + "installed ok" in dependencies_view(DependencyReport(plan, attempts=(attempt,))).text
