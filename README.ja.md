@@ -24,6 +24,7 @@ Spacecraft Operations Challenge のための Python パッケージです。
 - 提出物の評価には Linux または macOS（[評価ケースの実行](docs/runner.ja.md)を参照）
 
 実行時に Python 標準ライブラリ以外で依存するのは [packaging](https://packaging.pypa.io/) だけです。
+省略可能な `marimo` extra を付けると，結果の表示のために [marimo](https://marimo.io) が加わります。
 
 ## インストール
 
@@ -32,6 +33,12 @@ Spacecraft Operations Challenge のための Python パッケージです。
 
 ```sh
 uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
+```
+
+結果の表示を使うには，代わりに `marimo` extra を付けて追加します（[結果の表示](docs/views.ja.md)を参照）。
+
+```sh
+uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
 ```
 
 ## クイックスタート
@@ -139,6 +146,7 @@ spacecraft-ops-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML]
 - [評価ケースの実行](docs/runner.ja.md)：信頼されたプロセスと参加者のプロセスに分けた，評価ケースごとの提出物の実行
 - [提出物の評価](docs/evaluating.ja.md)：提出アーカイブの評価，集計統計，JSON の結果文書
 - [得点](docs/scoring.ja.md)：得点の計算式とその設定
+- [結果の表示](docs/views.ja.md)：結果文書と依存関係のレポートの marimo による表示
 
 ## 開発
 

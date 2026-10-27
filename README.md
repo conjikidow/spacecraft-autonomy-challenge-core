@@ -26,6 +26,7 @@ The project is in early development; the API may still change.
 - Linux or macOS for evaluating submissions (see [Running Cases](docs/runner.md))
 
 Beyond the Python standard library, the package depends only on [packaging](https://packaging.pypa.io/) at run time.
+The optional `marimo` extra adds [marimo](https://marimo.io) for the result views.
 
 ## Installation
 
@@ -33,6 +34,12 @@ Add the package to another uv project from Git, optionally pinned with `--tag` o
 
 ```sh
 uv add git+https://github.com/conjikidow/spacecraft-operations-challenge-core
+```
+
+To use the result views, add it with the `marimo` extra instead (see [Result Views](docs/views.md)):
+
+```sh
+uv add "spacecraft-operations-challenge-core[marimo] @ git+https://github.com/conjikidow/spacecraft-operations-challenge-core"
 ```
 
 ## Quick Start
@@ -143,6 +150,7 @@ and the last lines that the strategy printed to standard output and standard err
 - [Running Cases](docs/runner.md): running a submission on each case in separate trusted and participant processes
 - [Evaluating Submissions](docs/evaluating.md): evaluating a submission archive, summary statistics, and JSON result documents
 - [Scoring](docs/scoring.md): the scoring formula and its configuration
+- [Result Views](docs/views.md): marimo views of result documents and dependency reports
 
 ## Development
 
