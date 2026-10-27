@@ -15,6 +15,8 @@ submission = extract_submission("submission.zip", Path("extracted"))
 print(submission.strategy_file, submission.pyproject is not None)
 ```
 
+コマンドラインでは，`spacecraft-ops-challenge pack` でプロジェクトディレクトリから `submission.zip` を作成できます（[README](../README.ja.md#コマンドラインツール)を参照）。
+
 ## アーカイブの構成
 
 アーカイブの構成は，作成元のプロジェクトのルートディレクトリと同じです。
@@ -64,7 +66,7 @@ print(submission.strategy_file, submission.pyproject is not None)
 - 暗号化されたエントリがある。
 - 展開するエントリまたはルートの `pyproject.toml` と同じ名前のエントリが複数ある，またはその名前がディレクトリとしても使われている。
 - アーカイブに `submission/strategy.py` がない。
-- 有効な ZIP アーカイブでない。
+- 有効な ZIP アーカイブでない，または Python が読めない圧縮方式のエントリがある。
 - 展開後のファイルの合計サイズが `max_total_bytes`（デフォルトは `DEFAULT_MAX_TOTAL_BYTES`）を超える。
 
 チェックサムの不一致など，展開の途中でエントリの破損がわかった場合は，`SubmissionError` が送出され，それまでに書き込んだファイルは削除されます。

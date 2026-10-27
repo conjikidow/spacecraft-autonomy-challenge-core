@@ -437,3 +437,14 @@ def test_unreadable_directories_raise_os_error(tmp_path):
             build_submission(project)
     finally:
         data.chmod(0o755)
+
+
+def test_unsupported_compression_methods_are_invalid_archives(tmp_path):
+    archive = bytearray(zip_bytes({"submission/strategy.py": DECLARE_AT_START}))
+    # Set the compression method of the local header and of the central directory entry to 99.
+    archive[8:10] = (99).to_bytes(2, "little")
+    central = archive.rindex(b"PK\x01\x02")
+    archive[central + 10 : central + 12] = (99).to_bytes(2, "little")
+    with pytest.raises(SubmissionError, match="not a valid ZIP archive"):
+        extract(tmp_path, bytes(archive))
+    assert not any((tmp_path / "out").iterdir())

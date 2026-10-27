@@ -34,6 +34,8 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 The temporary directory, including the overlay, is removed afterwards.
 `check_submission(archive)` does the same on the public scenarios: it is `evaluate_submission` with `public_suite()`
 and the scenario provider `PROVIDER` (see [Evaluation Cases](judge.md)).
+On the command line, `spacecraft-ops-challenge check` runs `check_submission` on a project directory or an archive
+and prints a report of the result (see the [README](../README.md#command-line-runner)).
 
 Both take these keyword arguments:
 

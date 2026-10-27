@@ -72,7 +72,15 @@ See [Writing a Strategy](docs/strategy.md) for the full API.
 ```text
 spacecraft-ops-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
 spacecraft-ops-challenge scenarios
+spacecraft-ops-challenge pack [PROJECT_DIR] [-o FILE]
+spacecraft-ops-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
 ```
+
+`python -m spacecraft_ops_challenge` is equivalent to `spacecraft-ops-challenge`.
+
+### `run` and `scenarios`
+
+`run` runs a strategy on one challenge scenario and prints its metrics, and `scenarios` lists the challenge scenarios.
 
 `STRATEGY` is `FILE.py:CLASS` or `MODULE:CLASS`, where `CLASS` is a `Strategy` subclass
 with a constructor that takes no arguments.
@@ -82,13 +90,44 @@ For a module, the current directory is put on the import path.
 `--scenario` selects a challenge scenario (default `nominal`), `--seed` overrides the scenario seed,
 and `--json` prints the metrics as JSON.
 With `--json`, anything the strategy prints goes to standard error, so standard output stays valid JSON.
-`python -m spacecraft_ops_challenge` is equivalent to `spacecraft-ops-challenge`.
 
 | Exit status | Meaning |
 |---|---|
 | 0 | The run finished, whether or not the target was reached |
 | 1 | The strategy raised an exception or made an invalid timeline request during the run |
 | 2 | Usage error, such as a strategy or scenario that cannot be found |
+| 130 | Interrupted, for example with Ctrl-C |
+
+### `pack` and `check`
+
+These commands work on a project directory that contains `submission/strategy.py` with the strategy class `MyStrategy`
+(see [Submission Archives](docs/submission.md)).
+
+`pack` builds `submission.zip` from `PROJECT_DIR` (default: the current directory)
+and writes it to `FILE` (default: `submission.zip` in the current directory).
+An existing `FILE` is replaced.
+`FILE` must not be inside the `submission/` directory of the project.
+`pack` prints the path, size, SHA-256, and number of entries of the archive.
+
+`check` evaluates a submission on the public scenarios, one case per scenario,
+in the same way as any evaluation of a submission archive (see [Evaluating Submissions](docs/evaluating.md)).
+`SUBMISSION` is a project directory (default: the current directory), which is packed in memory exactly like `pack`,
+or a `submission.zip` file, which is read as it is.
+`--timeout` sets the wall-clock limit of one case (default 300 s),
+and `--scoring` reads the scoring configuration from a TOML file instead of the shipped one (see [Scoring](docs/scoring.md)).
+Progress goes to standard error.
+`check` then prints the suite score, the summary statistics, and a table of the cases;
+details of the cases that did not complete or ended with a strategy failure;
+the modules that the submission failed to import;
+and the last lines that the strategy printed to standard output and standard error in each case.
+`--json` prints the JSON result document instead.
+
+| Exit status | Meaning |
+|---|---|
+| 0 | `pack` wrote the archive; `check` completed every case without a strategy error or an invalid command, whatever the scores |
+| 1 | `check` only: a case did not load, crashed, or timed out, or its run ended with a strategy error or an invalid command |
+| 2 | Usage error, such as an invalid project or archive, packages that cannot be reproduced, an invalid scoring configuration, or a file that cannot be read or written |
+| 130 | Interrupted, for example with Ctrl-C; the processes of the running case are stopped |
 
 ## Documentation
 

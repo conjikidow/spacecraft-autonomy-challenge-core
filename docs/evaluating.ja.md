@@ -32,6 +32,7 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 `Overlay` を含む一時ディレクトリは，その後に削除されます。
 `check_submission(archive)` は同じことを公開シナリオで行います。
 これは，`public_suite()` と `ScenarioProvider` の `PROVIDER` を渡した `evaluate_submission` です（[評価ケース](judge.ja.md)を参照）。
+コマンドラインでは，`spacecraft-ops-challenge check` がプロジェクトディレクトリかアーカイブに対して `check_submission` を実行し，結果の報告を出力します（[README](../README.ja.md#コマンドラインツール)を参照）。
 
 どちらも次のキーワード引数を受け取ります。
 
