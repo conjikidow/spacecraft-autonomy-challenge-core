@@ -488,7 +488,9 @@ def _decide(requirement: Requirement, environment: Environment, visited: _Visite
 
     if requirement.url:
         url = urlsplit(requirement.url)
-        if not url.scheme or (url.scheme == "file" and not _local_path(requirement.url).is_absolute()):
+        # A VCS URL with the file transport, such as git+file:, is a local path as well.
+        local = url.scheme.rpartition("+")[2] == "file"
+        if not url.scheme or (local and not _local_path(requirement.url).is_absolute()):
             return _decision(
                 Decision.UNSUPPORTED,
                 "a relative path of the participant's project, which cannot be reproduced; "
@@ -658,6 +660,9 @@ def install_overlay(
         raise DependencyError("a requirement to install contains a line break")
     # Absolute, because the installer runs in `workdir` and would resolve relative paths against it again.
     target = Path(target).resolve()
+    if os.sep in python:  # a path rather than a version or an executable name
+        # Not resolved: a virtual environment's interpreter is a symbolic link to its base interpreter.
+        python = os.path.abspath(python)
     target.mkdir(parents=True)
     # The installer's files and working directory are private to this call, so that calls for targets in the same
     # directory never read each other's files.

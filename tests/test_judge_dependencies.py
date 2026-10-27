@@ -237,11 +237,18 @@ def test_local_files_present_in_the_evaluating_environment_can_be_installed(tmp_
     assert decision.decision is Decision.INSTALL
 
 
-@pytest.mark.parametrize("requirement", ["helper @ ../helper", "helper @ file:../helper", "helper @ ./dist/h.whl"])
+@pytest.mark.parametrize(
+    "requirement",
+    ["helper @ ../helper", "helper @ file:../helper", "helper @ ./dist/h.whl", "helper @ git+file:../helper"],
+)
 def test_relative_direct_references_are_unsupported(requirement):
     decision = decide(Requirement(requirement), {}.get)
     assert decision.decision is Decision.UNSUPPORTED
     assert "a relative path of the participant's project" in decision.reason
+
+
+def test_absolute_vcs_references_over_the_file_transport_are_installed():
+    assert decide(Requirement("helper @ git+file:///abs/helper"), {}.get).decision is Decision.INSTALL
 
 
 def test_installed_local_files_are_satisfied_whatever_their_path():
@@ -625,6 +632,16 @@ def test_install_overlay_resolves_a_relative_target(tmp_path, monkeypatch):
     assert call["cwd"].parent == tmp_path / "work"
     assert command[command.index("--target") + 1] == str(tmp_path / "work" / "overlay")
     assert Path(command[command.index("--requirements") + 1]).is_absolute()
+
+
+@pytest.mark.parametrize(("python", "expected"), [(".venv/bin/python", "{cwd}/.venv/bin/python"), ("3.12", "3.12")])
+def test_install_overlay_resolves_a_relative_python_path(tmp_path, monkeypatch, python, expected):
+    monkeypatch.chdir(tmp_path)
+    installer = FakeInstaller(0)
+    install_overlay(["polars"], tmp_path / "overlay", uv="/bin/uv", python=python, constraints=[], run=installer)
+    (call,) = installer.calls
+    command = call["command"]
+    assert command[command.index("--python") + 1] == expected.format(cwd=tmp_path)
 
 
 def test_install_overlay_excludes_requested_packages_from_the_default_constraints(tmp_path, monkeypatch):
