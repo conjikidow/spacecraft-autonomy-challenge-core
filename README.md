@@ -123,7 +123,8 @@ or a `submission.zip` file, which is read as it is.
 `--timeout` sets the wall-clock limit of one case (default 300 s),
 and `--scoring` reads the scoring configuration from a TOML file instead of the shipped one (see [Scoring](docs/scoring.md)).
 Progress goes to standard error.
-`check` then prints the suite score, the summary statistics, and a table of the cases;
+`check` then prints the suite score, the summary statistics,
+and a table of the cases with its numeric columns aligned to the right;
 details of the cases that did not complete or ended with a strategy failure;
 the modules that the submission failed to import;
 and the last lines that the strategy printed to standard output and standard error in each case.

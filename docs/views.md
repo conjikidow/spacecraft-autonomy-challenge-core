@@ -62,6 +62,8 @@ See [Evaluating Submissions](evaluating.md) for how a result document is created
    or a note that the strategy printed nothing.
 
 The summary and the scores are shown as stored in the result and never recomputed from its outcomes.
+In the case table and the score components,
+columns that hold a number in every row (or `-` for none) are aligned to the right, so that their decimal points line up.
 A filtered result document works as well: a `participant` of `None`, fewer outcomes than `case_ids`,
 empty `stdout`, `stderr`, and `detail`, and no `worker_error` leave out the corresponding parts.
 

@@ -18,6 +18,7 @@ except ModuleNotFoundError as error:
 from spacecraft_autonomy_challenge.judge.dependencies import DependencyReport
 from spacecraft_autonomy_challenge.judge.reporting import (
     EvaluationResult,
+    _numeric_columns,
     case_rows,
     missing_modules,
     problem_outcomes,
@@ -104,7 +105,7 @@ def results_view(
             )
         )
     sections += [
-        mo.ui.table(case_rows(outcomes, result.scores), selection=None, pagination=False),
+        _numeric_table(case_rows(outcomes, result.scores)),
         mo.accordion({"Score definition": scoring_view(result.scoring)}),
         mo.accordion({"Score components": score_view(outcomes, result.scores)}),
     ]
@@ -127,6 +128,12 @@ def results_view(
     else:
         sections.append(mo.md("The strategy printed nothing."))
     return mo.vstack(sections)
+
+
+def _numeric_table(rows: Sequence[Mapping[str, str]]) -> mo.Html:
+    """`rows` as a table whose numeric columns are aligned to the right, so that their decimal points line up."""
+    right = dict.fromkeys(_numeric_columns(rows), "right")
+    return mo.ui.table(rows, selection=None, pagination=False, text_justify_columns=right or None)
 
 
 def _cases(count: int) -> str:
@@ -194,7 +201,7 @@ def score_view(outcomes: Sequence[CaseOutcome], scores: Sequence[CaseScore]) -> 
         }
         for outcome, score in zip(outcomes, scores, strict=True)
     ]
-    return mo.ui.table(rows, selection=None, pagination=False)
+    return _numeric_table(rows)
 
 
 def _problem_view(outcome: CaseOutcome) -> mo.Html:

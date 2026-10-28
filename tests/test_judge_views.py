@@ -126,6 +126,16 @@ def test_results_view_shows_stats_below_the_suite_score():
     assert "Subset" in html
 
 
+def test_numeric_columns_of_the_tables_are_aligned_to_the_right():
+    html = results_view(FULL).text
+    case_table = html[html.index("data-text-justify-columns") :]
+    assert "&quot;Score&quot;:&quot;right&quot;" in case_table
+    assert "&quot;CPU [s]&quot;:&quot;right&quot;" in case_table
+    assert "&quot;Case&quot;:&quot;right&quot;" not in html
+    assert "&quot;Status&quot;:&quot;right&quot;" not in html
+    assert "&quot;Accuracy a&quot;:&quot;right&quot;" in score_view(FULL.outcomes, FULL.scores).text
+
+
 def test_results_view_shows_the_summary_as_a_plain_table():
     html = results_view(FULL).text
     assert ">Statistic</th>" in html

@@ -13,6 +13,7 @@ from spacecraft_autonomy_challenge.judge.reporting import (
     EvaluationResult,
     ResultFormatError,
     SuiteSummary,
+    _numeric_columns,
     case_rows,
     missing_modules,
     problem_outcomes,
@@ -148,6 +149,22 @@ def test_case_rows_show_metrics_and_never_a_verdict():
     assert "FAIL" not in text
     with pytest.raises(ValueError, match="shorter"):
         case_rows(OUTCOMES, SCORES[:-1])
+
+
+def test_numeric_columns_hold_numbers_or_placeholders():
+    rows = case_rows(OUTCOMES, SCORES)
+    assert _numeric_columns(rows) == [
+        "Score",
+        "Delta-v error [m/s]",
+        "End time [s]",
+        "Min battery [Wh]",
+        "Max |wheel| [Nms]",
+        "Duration [s]",
+        "CPU [s]",
+    ]
+    rows = [{"Case": "1", "Note": "-", "Value": "-1.5"}, {"Case": "2", "Note": "-", "Value": "nan"}]
+    assert _numeric_columns(rows) == ["Case"]
+    assert _numeric_columns([]) == []
 
 
 def test_problem_outcomes_and_missing_modules():

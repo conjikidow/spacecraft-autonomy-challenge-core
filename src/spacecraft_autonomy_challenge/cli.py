@@ -18,7 +18,7 @@ import json
 import re
 import sys
 import zipfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -186,14 +186,18 @@ def _pack_command(args: argparse.Namespace) -> int:
 _OUTPUT_TAIL_LINES = 20
 
 
-def _format_table(rows: Sequence[Mapping[str, str]]) -> str:
-    """Rows of strings as a plain-text table with a header line."""
+def _format_table(rows: Sequence[Mapping[str, str]], right: Collection[str] = ()) -> str:
+    """Rows of strings as a plain-text table with a header line, with the columns of `right` aligned to the right."""
     if not rows:
         return ""
     columns = list(rows[0])
     widths = {column: max(len(column), *(len(row[column]) for row in rows)) for column in columns}
-    lines = ["  ".join(column.ljust(widths[column]) for column in columns).rstrip()]
-    lines += ["  ".join(row[column].ljust(widths[column]) for column in columns).rstrip() for row in rows]
+
+    def cell(column: str, text: str) -> str:
+        return text.rjust(widths[column]) if column in right else text.ljust(widths[column])
+
+    lines = ["  ".join(cell(column, column) for column in columns).rstrip()]
+    lines += ["  ".join(cell(column, row[column]) for column in columns).rstrip() for row in rows]
     return "\n".join(lines)
 
 
@@ -206,7 +210,13 @@ def _indented_tail(text: str) -> str:
 
 def format_check_report(source: str, result: "EvaluationResult") -> str:
     """Human-readable report of a `check` run: summary, per-case table, problems, and participant output."""
-    from spacecraft_autonomy_challenge.judge.reporting import case_rows, missing_modules, problem_outcomes, summary_rows
+    from spacecraft_autonomy_challenge.judge.reporting import (
+        _numeric_columns,
+        case_rows,
+        missing_modules,
+        problem_outcomes,
+        summary_rows,
+    )
 
     lines = [f"{'Submission:':<12}{source}", f"{'SHA-256:':<12}{result.submission_sha256}"]
     if result.skipped_entries:
@@ -219,7 +229,8 @@ def format_check_report(source: str, result: "EvaluationResult") -> str:
     width = max(len(row["Statistic"]) for row in statistics) + 2
     lines += ["", "Summary"]
     lines += [f"  {row['Statistic'] + ':':<{width}}{row['Value']}" for row in statistics]
-    lines += ["", "Cases", _format_table(case_rows(result.outcomes, result.scores))]
+    cases = case_rows(result.outcomes, result.scores)
+    lines += ["", "Cases", _format_table(cases, right=_numeric_columns(cases))]
 
     problems = problem_outcomes(result.outcomes)
     if problems:
