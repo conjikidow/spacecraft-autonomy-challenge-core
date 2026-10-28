@@ -139,6 +139,8 @@ def test_case_rows_show_metrics_and_never_a_verdict():
     assert rows[5]["Score"] == "0.00"
     assert rows[0]["Delta-v error [m/s]"] == "+0.1000"
     assert rows[0]["CPU [s]"] == "0.25"
+    assert (rows[0]["Min temp [C]"], rows[0]["Max temp [C]"]) == ("5.00", "40.00")
+    assert (rows[5]["Min temp [C]"], rows[5]["Max temp [C]"]) == ("-", "-")
     assert rows[3]["Safe"] == "no"
     assert rows[5]["Status"] == "LOAD_ERROR"
     assert rows[5]["Termination"] == "-"
@@ -158,6 +160,8 @@ def test_numeric_columns_hold_numbers_or_placeholders():
         "Delta-v error [m/s]",
         "End time [s]",
         "Min battery [Wh]",
+        "Min temp [C]",
+        "Max temp [C]",
         "Max |wheel| [Nms]",
         "Duration [s]",
         "CPU [s]",

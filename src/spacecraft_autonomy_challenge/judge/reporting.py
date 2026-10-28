@@ -206,7 +206,8 @@ def case_rows(outcomes: Iterable[CaseOutcome], scores: Iterable[CaseScore]) -> l
                     "Delta-v error [m/s]",
                     "End time [s]",
                     "Min battery [Wh]",
-                    "Temperature [C]",
+                    "Min temp [C]",
+                    "Max temp [C]",
                     "Max |wheel| [Nms]",
                 ),
                 "-",
@@ -219,9 +220,8 @@ def case_rows(outcomes: Iterable[CaseOutcome], scores: Iterable[CaseScore]) -> l
                 "Delta-v error [m/s]": f"{m['delta_v_error_mps']:+.4f}",
                 "End time [s]": f"{m['end_time_s']:.1f}",
                 "Min battery [Wh]": f"{m['min_battery_energy_wh']:.2f}",
-                "Temperature [C]": (
-                    f"{m['min_propulsion_temperature_c']:.2f} to {m['max_propulsion_temperature_c']:.2f}"
-                ),
+                "Min temp [C]": f"{m['min_propulsion_temperature_c']:.2f}",
+                "Max temp [C]": f"{m['max_propulsion_temperature_c']:.2f}",
                 "Max |wheel| [Nms]": f"{m['max_abs_wheel_momentum_nms']:.4f}",
             }
         row["Duration [s]"] = f"{outcome.duration_s:.1f}"
