@@ -62,6 +62,7 @@ mo.vstack([results_view(result), dependencies_view(result.dependencies)])
    どの評価ケースも何も出力しなければ，その旨の注記。
 
 集計と得点は，結果に保存されたとおりに表示し，結果から計算し直すことはありません。
+評価ケースの表と得点の内訳では，すべての行が数値（またはないことを示す `-`）の列を右寄せにし，小数点の位置を揃えます。
 絞り込まれた結果文書も表示できます。
 `None` の `participant`，`case_ids` より少ない結果，空の `stdout`，`stderr`，`detail`，`worker_error` がないことは，それぞれ対応する部分を省いて表示されます。
 

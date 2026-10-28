@@ -1,4 +1,5 @@
 import hashlib
+import re
 import subprocess
 import sys
 import textwrap
@@ -9,7 +10,14 @@ import pytest
 from judge_support import DECLARE_AT_START
 
 from spacecraft_autonomy_challenge.challenge import scenario_names
-from spacecraft_autonomy_challenge.cli import EXIT_INTERRUPTED, EXIT_OK, EXIT_STRATEGY_FAILURE, EXIT_USAGE, main
+from spacecraft_autonomy_challenge.cli import (
+    EXIT_INTERRUPTED,
+    EXIT_OK,
+    EXIT_STRATEGY_FAILURE,
+    EXIT_USAGE,
+    _format_table,
+    main,
+)
 from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult
 from spacecraft_autonomy_challenge.judge.submission import build_submission
 
@@ -78,6 +86,13 @@ def test_check_runs_the_public_scenarios_on_a_project(project, capsys):
     assert "Score:" in captured.out
     assert "COMPLETION_DECLARED" in captured.out
     assert "Problems" not in captured.out
+    lines = captured.out.splitlines()
+    header = lines.index("Cases") + 1
+    # Durations are shorter than their heading, so only right alignment ends them where the heading ends.
+    end = lines[header].index("Duration [s]") + len("Duration [s]")
+    for row in lines[header + 1 : header + 1 + total]:
+        assert re.fullmatch(r"\d+\.\d", row[:end].split()[-1])
+        assert row[end - 1].isdigit()
 
 
 def test_check_reads_an_archive_and_prints_json(project, tmp_path, capsys):
@@ -158,3 +173,14 @@ def test_pack_reports_a_symbolic_link_loop_as_a_usage_error(project, tmp_path, c
     (tmp_path / "loop").symlink_to(tmp_path / "loop")
     assert main(["pack", str(project), "-o", str(tmp_path / "loop" / "out.zip")]) == EXIT_USAGE
     assert capsys.readouterr().err.startswith("error:")
+
+
+def test_the_case_table_aligns_numeric_columns_to_the_right():
+    rows = [{"Case": "a", "Score": "1.00"}, {"Case": "long-case", "Score": "100.00"}, {"Case": "c", "Score": "-"}]
+    assert _format_table(rows, right=["Score"]).splitlines() == [
+        "Case        Score",
+        "a            1.00",
+        "long-case  100.00",
+        "c               -",
+    ]
+    assert _format_table(rows).splitlines()[1] == "a          1.00"

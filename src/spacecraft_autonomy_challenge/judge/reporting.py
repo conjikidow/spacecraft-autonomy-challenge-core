@@ -6,6 +6,7 @@ no case payloads are included: cases are identified by their ids, suites by a fi
 
 import json
 import math
+import re
 import statistics
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -227,6 +228,23 @@ def case_rows(outcomes: Iterable[CaseOutcome], scores: Iterable[CaseScore]) -> l
         row["CPU [s]"] = "-" if outcome.participant_cpu_s is None else f"{outcome.participant_cpu_s:.2f}"
         rows.append(row)
     return rows
+
+
+_NUMBER = re.compile(r"[+-]?\d+(?:\.\d+)?")
+
+
+def _numeric_columns(rows: Sequence[Mapping[str, str]]) -> list[str]:
+    """Columns of `rows` that hold a number in every row, or `-` for none, for aligning them to the right.
+
+    Rows that give each column a fixed number of decimals, as `case_rows` does, then line up at the decimal point.
+    """
+    columns = list(rows[0]) if rows else []
+    return [
+        column
+        for column in columns
+        if all(_NUMBER.fullmatch(row[column]) or row[column] == "-" for row in rows)
+        and any(row[column] != "-" for row in rows)
+    ]
 
 
 def missing_modules(outcomes: Iterable[CaseOutcome]) -> tuple[str, ...]:
