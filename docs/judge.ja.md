@@ -31,17 +31,17 @@ scenario = provider.build(suite.cases[0])
 - `to_dict()` は `{"id": ..., "payload": ...}` を返し，`EvaluationCase.from_dict` はその逆変換です。
 
 ID は空でない文字列でなければなりません。
-`payload`は有限の値からなる JSON データの辞書でなければならず，`NaN` と無限大は拒否されます。
+`payload` は有限の値からなる JSON データの辞書でなければならず，`NaN` と無限大は拒否されます。
 
-`payload`は，キーを整列し空白を除いた正規形の JSON として `payload_json` に格納されます。
-そのため，評価ケースは不変かつハッシュ可能で，ID と`payload`が等しい2つの評価ケースは，キーの順序によらず等しくなります。
+`payload` は，キーを整列し空白を除いた正規形の JSON として `payload_json` に格納されます。
+そのため，評価ケースは不変かつハッシュ可能で，ID と `payload` が等しい2つの評価ケースは，キーの順序によらず等しくなります。
 
 ## `Suite`
 
 `Suite` は，名前の付いた，順序のある評価ケースの集まりです。
 評価ケースの ID は重複してはなりません。
 
-`fingerprint` は，評価ケースの ID と`payload`を正規形の JSON にしたものの SHA-256 を，16進数の文字列で表したものです。
+`fingerprint` は，評価ケースの ID と `payload` を正規形の JSON にしたものの SHA-256 を，16進数の文字列で表したものです。
 評価ケースの内容を明かさずに，順序を含めて評価ケースを正確に識別できます。
 `Suite` の名前は `fingerprint` に含まれません。
 
@@ -79,6 +79,6 @@ scenarios = [PROVIDER.build(case) for case in suite.cases]
 ```
 
 - `PROVIDER` は，`spacecraft_autonomy_challenge.judge.public_scenarios:build_scenario` を指定する `ScenarioProvider` です。
-- `payload`は `{"scenario": name}` または `{"scenario": name, "seed": seed}` です。
+- `payload` は `{"scenario": name}` または `{"scenario": name, "seed": seed}` です。
   `name` は `scenario_names()` のいずれかで，`seed` が `None` でなければシナリオのシードを置き換えます。
-- `public_suite()` は，公開シナリオごとに1つの評価ケースを持つ 名前が `public` の `Suite` を返します。評価ケースの ID はシナリオ名です。
+- `public_suite()` は，公開シナリオごとに1つの評価ケースを持つ，名前が `public` の `Suite` を返します。評価ケースの ID はシナリオ名です。

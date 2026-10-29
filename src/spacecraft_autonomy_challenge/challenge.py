@@ -1,6 +1,6 @@
 """Public problem definition of the challenge and its public scenarios.
 
-The numbers are provisional placeholders for the toy spacecraft model. See `docs/challenge.md`.
+The numbers are for the toy spacecraft model. See `docs/challenge.md`.
 """
 
 from collections.abc import Callable

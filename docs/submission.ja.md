@@ -43,6 +43,7 @@ print(submission.strategy_file, submission.pyproject is not None)
 - `submission/strategy.py` がない。
 - `submission/` 自体，その中のいずれか，または `pyproject.toml` がシンボリックリンクである。シンボリックリンクはたどらずに拒否します。
 - `submission/` の中に，名前付きパイプなど，通常のファイルでないものがある。
+- `submission/` の中に，パスにバックスラッシュを含むファイルがある。
 - ファイルの合計サイズが `max_total_bytes`（デフォルトは `DEFAULT_MAX_TOTAL_BYTES` の 512 MiB）を超える。
 
 読み取れないファイルがある場合は，`OSError` が送出されます。
@@ -57,19 +58,21 @@ print(submission.strategy_file, submission.pyproject is not None)
 
 `extract_submission(archive, destination)` は，アーカイブを検証し，その `submission/` ディレクトリを `destination` に展開します。
 `archive` はパスまたはバイナリのファイルオブジェクトで，`destination` は空のディレクトリか，まだ存在しないパスでなければなりません。
-何かを書き込む前に，すべてのエントリを検証します。
+最初に `destination` と存在しない親ディレクトリを作成し，`destination` が空でなければ `ValueError` が送出されます。
+ファイルを展開する前に，すべてのエントリを検証します。
 
-次のいずれかに当てはまる場合は，何も書き込まずに `SubmissionError` が送出されます。
+次のいずれかに当てはまる場合は，ファイルを何も展開せずに `SubmissionError` が送出されます。
 
 - 絶対パス，ドライブ文字，`..`，バックスラッシュを含むエントリがある。
 - シンボリックリンクなどの特殊ファイルのエントリがある（`submission/` の外にあるものも含む）。
 - 暗号化されたエントリがある。
 - 展開するエントリまたはルートの `pyproject.toml` と同じ名前のエントリが複数ある，またはその名前がディレクトリとしても使われている。
 - アーカイブに `submission/strategy.py` がない。
-- 有効な ZIP アーカイブでない，または Python が読めない圧縮方式のエントリがある。
+- 有効な ZIP アーカイブでない。
 - 展開後のファイルの合計サイズが `max_total_bytes`（デフォルトは `DEFAULT_MAX_TOTAL_BYTES`）を超える。
 
-チェックサムの不一致など，展開の途中でエントリの破損がわかった場合は，`SubmissionError` が送出され，それまでに書き込んだファイルは削除されます。
+チェックサムの不一致など，展開の途中でエントリの破損がわかった場合や，エントリが Python の読めない圧縮方式を使っている場合は，
+`SubmissionError` が送出され，それまでに書き込んだファイルは削除されます。
 
 `submission/` の外にあるエントリと，アーカイブのルートに直接置かれたファイルは展開しません。
 ただし，アーカイブのルートにある `pyproject.toml` は，展開せずに内容を読み込みます。

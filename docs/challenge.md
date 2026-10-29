@@ -3,7 +3,7 @@
 **English** | [日本語](challenge.ja.md)
 
 `spacecraft_autonomy_challenge.challenge` defines the challenge problem and its public scenarios.
-All numbers are provisional placeholders for the toy spacecraft model.
+All numbers are for the toy spacecraft model described in [Spacecraft Model](spacecraft-model.md).
 
 ```python
 from spacecraft_autonomy_challenge.challenge import problem, scenario, scenario_names

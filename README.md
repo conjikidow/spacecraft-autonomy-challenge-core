@@ -17,8 +17,6 @@ the challenge problem with its public scenarios, per-run evaluation metrics, and
 The spacecraft model is a generic toy model and does not represent any particular spacecraft or mission.
 The distribution name is `spacecraft-autonomy-challenge-core` and the import package is `spacecraft_autonomy_challenge`.
 
-The project is in early development; the API may still change.
-
 ## Requirements
 
 - Python 3.12 or later
@@ -123,7 +121,9 @@ or a `submission.zip` file, which is read as it is.
 `--timeout` sets the wall-clock limit of one case (default 300 s),
 and `--scoring` reads the scoring configuration from a TOML file instead of the shipped one (see [Scoring](docs/scoring.md)).
 Progress goes to standard error.
-`check` then prints the suite score, the summary statistics,
+`check` then prints the `SUBMISSION` path and the SHA-256 of the archive,
+the archive entries that were skipped and the packages that were installed for the submission, if any;
+the suite score and the other summary statistics,
 and a table of the cases with its numeric columns aligned to the right;
 details of the cases that did not complete or ended with a strategy failure;
 the modules that the submission failed to import;

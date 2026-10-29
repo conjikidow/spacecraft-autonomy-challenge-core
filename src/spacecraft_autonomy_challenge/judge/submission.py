@@ -123,8 +123,9 @@ def build_submission(project_dir: str | Path, *, max_total_bytes: int = DEFAULT_
     file. The archive is deterministic: the same contents always give the same bytes, whatever the
     timestamps and permissions of the files.
     Raises `SubmissionError` for a missing `submission/strategy.py`, a symbolic link, which is rejected instead
-    of followed, or files whose total size exceeds `max_total_bytes`, and `OSError` for a file that cannot be
-    read. `extract_submission` accepts every archive this function returns.
+    of followed, a file that is not a regular file or has a backslash in its path, or files whose total size
+    exceeds `max_total_bytes`, and `OSError` for a file that cannot be read. `extract_submission` accepts every
+    archive this function returns.
     """
     project_dir = Path(project_dir)
     submission_dir = project_dir / SUBMISSION_DIRNAME
@@ -192,10 +193,10 @@ def extract_submission(
 ) -> Submission:
     """Validate `archive` and extract its `submission/` directory into the empty directory `destination`.
 
-    Every entry is validated before anything is written: absolute paths, `..` components, symbolic links,
+    Every entry is validated before any file is extracted: absolute paths, `..` components, symbolic links,
     and special files are rejected. Entries outside `submission/` are skipped; `pyproject.toml` at the archive
     root is read into `Submission.pyproject` instead.
-    Raises `SubmissionError` for an invalid archive.
+    Raises `SubmissionError` for an invalid archive and `ValueError` if `destination` is not empty.
     """
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)

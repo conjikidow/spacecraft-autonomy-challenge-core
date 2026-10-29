@@ -44,6 +44,7 @@ The constants `SUBMISSION_DIRNAME`, `STRATEGY_PATH`, `STRATEGY_CLASS`, and `PYPR
 - `submission/strategy.py` is missing.
 - `submission/` itself, anything inside it, or `pyproject.toml` is a symbolic link; links are rejected instead of followed.
 - A file inside `submission/` is not a regular file, such as a named pipe.
+- The path of a file inside `submission/` contains a backslash.
 - The files together exceed `max_total_bytes` (default `DEFAULT_MAX_TOTAL_BYTES`, 512 MiB).
 
 A file that cannot be read raises `OSError`.
@@ -58,9 +59,10 @@ Identical file contents therefore give identical bytes and SHA-256 hashes, regar
 
 `extract_submission(archive, destination)` validates an archive and extracts its `submission/` directory into `destination`.
 `archive` is a path or a binary file object, and `destination` must be empty or not exist yet.
-Every entry is validated before anything is written.
+`destination` and any missing parents are created first, and a non-empty `destination` raises `ValueError`.
+Every entry is validated before any file is extracted.
 
-`SubmissionError` is raised, and nothing is written, for an invalid archive:
+`SubmissionError` is raised, and no file is extracted, for an invalid archive:
 
 - An entry has an absolute path, a drive letter, a `..` component, or a backslash.
 - An entry is a symbolic link or another special file, even outside `submission/`.
@@ -68,11 +70,11 @@ Every entry is validated before anything is written.
 - An entry that would be extracted, or `pyproject.toml` at the root, appears more than once,
   or its name is also used as a directory.
 - The archive has no `submission/strategy.py`.
-- The archive is not a valid ZIP archive, or an entry uses a compression method that Python cannot read.
+- The archive is not a valid ZIP archive.
 - The extracted files would exceed `max_total_bytes` (default `DEFAULT_MAX_TOTAL_BYTES`) in total uncompressed size.
 
 If an entry turns out to be corrupt while it is extracted, such as a bad checksum,
-`SubmissionError` is raised and the files already written are removed.
+or uses a compression method that Python cannot read, `SubmissionError` is raised and the files already written are removed.
 
 Entries outside `submission/` and files directly at the archive root are skipped, with one exception:
 `pyproject.toml` at the archive root is read but not extracted.

@@ -32,14 +32,14 @@ The weights $w$ come from the configuration, are non-negative, and sum to 1,
 so the weighted sum of the base term and the terms $t$, $b$, and $c$ is at most 1.
 Every factor and term is from 0 to 1.
 
-| Symbol | Name | Definition |
+| Symbol | `CaseScore` field | Definition |
 |---|---|---|
-| $g$ | Gate | 1 if the case status is `COMPLETED`, the metric `safe` is true, and the termination reason is neither `STRATEGY_ERROR` nor `INVALID_COMMAND`; otherwise 0 |
-| $a$ | Accuracy | $\max\left(0, 1 - \lvert e \rvert / e_\mathrm{tol}\right)$ with the delta-v error $e$ and the tolerance $e_\mathrm{tol} = f_\mathrm{tol} \cdot \Delta v_\mathrm{target}$ |
-| $d$ | Declaration | 1 if the run declared completion, otherwise the undeclared factor $f_\mathrm{undeclared}$ |
-| $t$ | Completion time | $1 - t_\mathrm{declared} / T$ if the run declared completion, otherwise 0 |
-| $b$ | Battery margin | $\left(E_\mathrm{min} - E_\mathrm{limit}\right) / \left(C_\mathrm{nominal} - E_\mathrm{limit}\right)$, clipped to the range from 0 to 1 |
-| $c$ | CPU time | $\min\left(1, B / \tau\right)$ with the CPU time $\tau$ of the participant process and the budget $B = B_\mathrm{startup} + B_\mathrm{cycle} \cdot T / \Delta t$ |
+| $g$ | `gate` | 1 if the case status is `COMPLETED`, the metric `safe` is true, and the termination reason is neither `STRATEGY_ERROR` nor `INVALID_COMMAND`; otherwise 0 |
+| $a$ | `accuracy` | $\max\left(0, 1 - \lvert e \rvert / e_\mathrm{tol}\right)$ with the delta-v error $e$ and the tolerance $e_\mathrm{tol} = f_\mathrm{tol} \cdot \Delta v_\mathrm{target}$ |
+| $d$ | `declaration` | 1 if the run declared completion, otherwise the undeclared factor $f_\mathrm{undeclared}$ |
+| $t$ | `completion_time` | $1 - t_\mathrm{declared} / T$ if the run declared completion, otherwise 0 |
+| $b$ | `battery_margin` | $\left(E_\mathrm{min} - E_\mathrm{limit}\right) / \left(C_\mathrm{nominal} - E_\mathrm{limit}\right)$, clipped to the range from 0 to 1 |
+| $c$ | `cpu_time` | $\min\left(1, B / \tau\right)$ with the CPU time $\tau$ of the participant process and the budget $B = B_\mathrm{startup} + B_\mathrm{cycle} \cdot T / \Delta t$ |
 
 The quantities come from the run metrics and the outcome:
 
