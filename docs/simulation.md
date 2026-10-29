@@ -50,7 +50,7 @@ result = run(MyStrategy(), scenario)
 print(result.termination.reason, result.final_state.delta_v_mps)
 ```
 
-`run(strategy, scenario, config=None, seed=None)` uses the default `SimulationConfig` when `config` is `None`
+`run(strategy, scenario, *, config=None, seed=None)` uses the default `SimulationConfig` when `config` is `None`
 and overrides the scenario seed when `seed` is given.
 An `Exception` raised by the strategy does not propagate out of `run`; it ends the run instead.
 

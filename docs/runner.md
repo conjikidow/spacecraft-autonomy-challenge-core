@@ -54,7 +54,9 @@ with `submission/` first on the import path, and creates one instance for the ca
 It receives only what a strategy may see: the mission brief, telemetry, and the results of its commander requests.
 It never receives the case id, the payload, the scenario provider, the scenario, its seed or modifiers,
 or the true state, and it imports neither the module that defines cases nor the scenario provider.
-Its command-line arguments are the file descriptor of its socket, the directory of its copy of the submission,
+It is started with Python's `-P` option, which keeps its working directory off the import path.
+Its command-line arguments are the import root of the core package (appended to the import path),
+the file descriptor of its socket, the directory of its copy of the submission,
 and, with an `Overlay`, the overlay directory.
 Its standard input is empty.
 

@@ -3,7 +3,7 @@
 [English](challenge.md) | **日本語**
 
 `spacecraft_autonomy_challenge.challenge` は，チャレンジ問題とその公開シナリオを定義します。
-数値はすべて，簡易な宇宙機モデル向けの暫定値です。
+数値はすべて，[宇宙機モデル](spacecraft-model.ja.md)で説明する簡易モデル向けの値です。
 
 ```python
 from spacecraft_autonomy_challenge.challenge import problem, scenario, scenario_names

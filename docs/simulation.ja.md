@@ -49,7 +49,7 @@ result = run(MyStrategy(), scenario)
 print(result.termination.reason, result.final_state.delta_v_mps)
 ```
 
-`run(strategy, scenario, config=None, seed=None)` は，`config` が `None` ならデフォルトの `SimulationConfig` を使い，
+`run(strategy, scenario, *, config=None, seed=None)` は，`config` が `None` ならデフォルトの `SimulationConfig` を使い，
 `seed` が与えられればシナリオのシードを上書きします。
 戦略が送出した `Exception` は `run` の外には伝播せず，代わりにシミュレーションを終了させます。
 
