@@ -34,6 +34,7 @@ MAX_OUTPUT_BYTES = 100_000
 
 _POLL_INTERVAL_S = 0.01
 _READER_JOIN_TIMEOUT_S = 5.0
+_STOP_WAIT_S = 1.0
 
 _BOOTSTRAP = (
     "import sys; sys.path.append(sys.argv.pop(1)); "
@@ -185,6 +186,16 @@ def _has_exited(process: subprocess.Popen[bytes]) -> bool:
     return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
 
 
+def _wait_until_stopped(process: subprocess.Popen[bytes]) -> None:
+    """Wait briefly until the worker has stopped or exited after `SIGSTOP`, without reaping it; not without `waitid`."""
+    if not hasattr(os, "waitid"):
+        return
+    deadline = time.monotonic() + _STOP_WAIT_S
+    flags = os.WSTOPPED | os.WEXITED | os.WNOHANG | os.WNOWAIT
+    while os.waitid(os.P_PID, process.pid, flags) is None and time.monotonic() < deadline:
+        time.sleep(_POLL_INTERVAL_S)
+
+
 def _kill_case_processes(process: subprocess.Popen[bytes]) -> None:
     """Stop the worker and every process of its case, before the worker is reaped.
 
@@ -196,6 +207,7 @@ def _kill_case_processes(process: subprocess.Popen[bytes]) -> None:
         if os.name == "posix":
             if process.returncode is None:  # otherwise its PID may belong to another process by now
                 os.kill(process.pid, signal.SIGSTOP)
+                _wait_until_stopped(process)
                 kill_descendants(process.pid)
             os.killpg(process.pid, signal.SIGKILL)
         else:
