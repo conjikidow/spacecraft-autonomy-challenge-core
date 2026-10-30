@@ -111,6 +111,15 @@ The returned `Overlay` holds the directory and the installer runs.
 for the processes that run the participant's code;
 their packages then take precedence over those of the evaluating environment.
 
+A strategy that starts a Python helper process reaches these packages only through that `PYTHONPATH`.
+Start the process with `sys.executable`, without `-I` or `-E`, which ignore `PYTHONPATH`,
+and keep the inherited environment: omit `env`, or extend `os.environ` instead of replacing it.
+Otherwise the helper does not see the packages during evaluation,
+even though it finds them locally, where they are installed in the project environment.
+`PYTHONPATH` adds directories to the search path but does not process their `.pth` files;
+the participant process does so with `site.addsitedir`,
+so a helper needs that call as well for packages that rely on a `.pth` file.
+
 ## Reports
 
 `resolve_dependencies(pyproject, target)` returns a `DependencyReport` and the `Overlay`, or `None` if nothing was installed.
