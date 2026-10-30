@@ -33,8 +33,9 @@ class MyStrategy(Strategy):
 
 ## `MissionBrief`
 
-`MissionBrief` には，目標 Δv，制限時間，判断周期，`SafetyLimits`，公称の `SpacecraftParameters` が含まれます。
-実際の宇宙機は公称パラメータからずれていることがあり，テレメトリも真の状態からずれていることがあります。
+`MissionBrief` には，目標 Δv，制限時間，判断周期，`SafetyLimits`，公称の `SpacecraftParameters`（`nominal_parameters`），
+公称の初期状態を理想的に観測した `Telemetry`（`nominal_initial_telemetry`）が含まれます。
+実際の宇宙機は公称パラメータや公称の初期状態からずれていることがあり，テレメトリも真の状態からずれていることがあります。
 戦略がそうしたずれを推定する手がかりは，テレメトリしかありません。
 
 ## `Commander`

@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState
+from spacecraft_autonomy_challenge.modifiers import nominal_telemetry
 from spacecraft_autonomy_challenge.strategy import MissionBrief
 
 
@@ -35,4 +36,5 @@ class Problem:
             decision_period_s=self.decision_period_s,
             limits=self.limits,
             nominal_parameters=self.parameters,
+            nominal_initial_telemetry=nominal_telemetry(self.initial_state),
         )

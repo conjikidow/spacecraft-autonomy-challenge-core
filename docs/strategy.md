@@ -33,8 +33,11 @@ An adaptive strategy can schedule and cancel commands during `update`.
 
 ## Mission Brief
 
-`MissionBrief` contains the target delta-v, the time limit, the decision period, the `SafetyLimits`, and the nominal `SpacecraftParameters`.
-The actual spacecraft may deviate from the nominal parameters, and telemetry may deviate from the true state;
+`MissionBrief` contains the target delta-v, the time limit, the decision period, the `SafetyLimits`,
+the nominal `SpacecraftParameters` (`nominal_parameters`),
+and the ideal `Telemetry` of the nominal initial state (`nominal_initial_telemetry`).
+The actual spacecraft may deviate from the nominal parameters and the nominal initial state,
+and telemetry may deviate from the true state;
 strategies can only infer such deviations from telemetry.
 
 ## Commander

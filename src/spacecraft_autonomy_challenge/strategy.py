@@ -23,6 +23,8 @@ class MissionBrief:
     limits: SafetyLimits
     nominal_parameters: SpacecraftParameters
     """Published nominal model. The actual spacecraft may deviate from it."""
+    nominal_initial_telemetry: Telemetry
+    """Ideal observation of the nominal initial state. The actual initial state and its readings may deviate from it."""
 
 
 class Commander(Protocol):

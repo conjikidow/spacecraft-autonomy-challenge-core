@@ -2,7 +2,7 @@ import pytest
 
 from spacecraft_autonomy_challenge.challenge import TIME_LIMIT_S, problem, scenario, scenario_names
 from spacecraft_autonomy_challenge.commands import PropulsionMode
-from spacecraft_autonomy_challenge.modifiers import TelemetryBias, ThrusterEfficiency
+from spacecraft_autonomy_challenge.modifiers import TelemetryBias, ThrusterEfficiency, nominal_telemetry
 from spacecraft_autonomy_challenge.simulation import check_safety
 
 
@@ -27,6 +27,11 @@ def test_all_scenarios_share_the_challenge_problem():
 
 def test_time_limit_is_the_named_constant():
     assert problem().time_limit_s == TIME_LIMIT_S
+
+
+def test_brief_gives_the_nominal_initial_telemetry():
+    challenge = problem()
+    assert challenge.brief().nominal_initial_telemetry == nominal_telemetry(challenge.initial_state)
 
 
 def test_initial_state_is_within_limits():

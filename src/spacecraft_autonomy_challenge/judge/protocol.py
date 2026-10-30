@@ -103,7 +103,9 @@ class Channel:
 
 def encode_brief(brief: MissionBrief) -> dict[str, Any]:
     """JSON form of a mission brief."""
-    return asdict(brief)
+    data = asdict(brief)
+    data["nominal_initial_telemetry"] = encode_telemetry(brief.nominal_initial_telemetry)
+    return data
 
 
 def decode_brief(data: dict[str, Any]) -> MissionBrief:
@@ -117,6 +119,7 @@ def decode_brief(data: dict[str, Any]) -> MissionBrief:
         decision_period_s=data["decision_period_s"],
         limits=SafetyLimits(**data["limits"]),
         nominal_parameters=SpacecraftParameters(**parameters),
+        nominal_initial_telemetry=decode_telemetry(data["nominal_initial_telemetry"]),
     )
 
 
