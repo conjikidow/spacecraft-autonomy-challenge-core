@@ -60,3 +60,9 @@ nominal = scenario("nominal")
 3600秒以降，`THRUSTER_1` の加速度とホイール角運動量変化率は公称の80%になります。
 消費電力と発熱は変わりません。
 `MissionBrief` には公称パラメータがそのまま含まれるため，戦略がこの変化に気付く手段はテレメトリしかありません。
+
+### `delta-v-sensor-bias`
+
+`nominal` に，`TelemetryBias("delta_v_mps", bias=0.3, onset_time_s=3000.0)` という `Modifier` を1つだけ加えたシナリオです。
+3000秒以降，Δv の読み値は真の Δv より 0.3 m/s 大きくなります。
+真の状態は変わらず，安全制約と評価指標は真の状態を使います。

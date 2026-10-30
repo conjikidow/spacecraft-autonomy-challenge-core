@@ -59,3 +59,9 @@ Identical to `nominal`, plus one modifier: `ThrusterEfficiency(THRUSTER_1, facto
 From 3600 s onward, `THRUSTER_1` delivers 80 % of its nominal acceleration and wheel-momentum rate.
 Its power and heat are unchanged.
 The mission brief still shows the nominal parameters, so a strategy can only notice the change through telemetry.
+
+### `delta-v-sensor-bias`
+
+Identical to `nominal`, plus one modifier: `TelemetryBias("delta_v_mps", bias=0.3, onset_time_s=3000.0)`.
+From 3000 s onward, the delta-v reading is 0.3 m/s above the true delta-v.
+The true state is unchanged, and the safety limits and the metrics use the true state.

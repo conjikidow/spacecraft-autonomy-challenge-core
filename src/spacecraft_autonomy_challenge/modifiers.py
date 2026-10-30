@@ -150,14 +150,17 @@ BIASABLE_TELEMETRY_CHANNELS = frozenset(
 
 @dataclass(frozen=True)
 class TelemetryBias(Modifier):
-    """Add a constant `bias` to one numeric telemetry channel."""
+    """Add a constant `bias` to one numeric telemetry channel from `onset_time_s` onward."""
 
     channel: str
     bias: float
+    onset_time_s: float = 0.0
 
     def __post_init__(self) -> None:
         if self.channel not in BIASABLE_TELEMETRY_CHANNELS:
             raise ValueError(f"channel must be one of {sorted(BIASABLE_TELEMETRY_CHANNELS)}, got {self.channel!r}")
 
     def modify_telemetry(self, telemetry: Telemetry, state: SpacecraftState, rng: random.Random) -> Telemetry:
+        if state.time_s < self.onset_time_s:
+            return telemetry
         return replace(telemetry, **{self.channel: getattr(telemetry, self.channel) + self.bias})

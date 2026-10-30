@@ -135,7 +135,7 @@ C * dT/dt = heater_power + thruster_heat + dump_heat - G * (T - T_sink)
 |---|---|
 | `ThrusterEfficiency(thruster, factor, onset_time_s=0.0)` | `onset_time_s` 以降，1つのスラスタの加速度とホイール角運動量変化率を `factor` 倍する。電力負荷と発熱は変わらない |
 | `ThrusterFlow(thruster, factor, onset_time_s=0.0)` | `onset_time_s` 以降，1つのスラスタの加速度，ホイール角運動量変化率，発熱を `factor` 倍する。電力負荷は変わらない |
-| `TelemetryBias(channel, bias)` | 数値のテレメトリチャネル1つに定数を加える |
+| `TelemetryBias(channel, bias, onset_time_s=0.0)` | `onset_time_s` 以降，数値のテレメトリチャネル1つに定数を加える |
 
 `ThrusterEfficiency` は効率が低下したスラスタを，`ThrusterFlow` は推進剤の流量が減ったスラスタを表します。
 `factor=0` の `ThrusterFlow` を受けたスラスタは，加速度，ホイール角運動量変化率，発熱のいずれも生みませんが，選択されている間は電力負荷を消費し続けます。
