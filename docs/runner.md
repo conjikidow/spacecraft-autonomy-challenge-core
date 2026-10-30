@@ -60,10 +60,11 @@ with `submission/` first on the import path, and creates one instance for the ca
 It receives only what a strategy may see: the mission brief, telemetry, and the results of its commander requests.
 It never receives the case id, the payload, the scenario provider, the scenario, its seed or modifiers,
 or the true state, and it imports neither the module that defines cases nor the scenario provider.
-It is started with Python's `-P` option, which keeps its working directory off the import path.
-Its command-line arguments are the import root of the core package (appended to the import path),
-the file descriptor of its socket, its memory limit in bytes (0 for none), the directory of its copy of the submission,
-and, with an `Overlay`, the overlay directory.
+It is started with Python's `-P` option, which keeps its working directory off the import path,
+and with `-S`, which defers the initialization of `site` until it has set its memory limit (see [Memory Limit](#memory-limit)).
+Its command-line arguments are its memory limit in bytes (0 for none),
+the import root of the core package (appended to the import path), the file descriptor of its socket,
+the directory of its copy of the submission, and, with an `Overlay`, the overlay directory.
 Its standard input is empty.
 
 ## Messages
@@ -187,6 +188,7 @@ so that they do not remain as zombies.
 
 Before it runs any of the participant's code, the participant process limits its data memory to `memory_limit_bytes`
 with the resource limit `RLIMIT_DATA`.
+It does so before it initializes `site`, so the limit also covers `sitecustomize` modules and `.pth` files of an overlay.
 It sets both the soft and the hard limit, so neither the strategy nor the processes that it starts can raise it again;
 a lower hard limit that the case processes already have is kept.
 Every process that the participant process starts inherits the limit.

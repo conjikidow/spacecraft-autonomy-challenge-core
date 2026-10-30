@@ -367,9 +367,8 @@ def test_the_request_is_not_where_the_strategy_can_read_it(make_submission):
     hidden = case("hidden-id-58213", 7, {"type": "ThrusterEfficiency", "thruster": "THRUSTER_2", "factor": 0.5})
     outcome = run_case(make_submission({"strategy.py": inspecting}).root, hidden, PROVIDER)
     arguments, stdin, environment, files = json.loads(outcome.stdout)
-    socket_fd, memory_limit, submission_root = arguments
+    socket_fd, submission_root = arguments
     assert socket_fd.isdigit()
-    assert memory_limit == str(runner.DEFAULT_MEMORY_LIMIT_BYTES)
     assert Path(submission_root).name == "root"
     assert stdin == ""
     assert files == ["submission/strategy.py"]
@@ -768,6 +767,20 @@ def test_the_participant_process_and_its_children_have_a_data_memory_limit(make_
     soft, hard = resource.getrlimit(resource.RLIMIT_DATA)
     outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=None)
     assert f"participant: {soft} {hard}\nchild: {soft} {hard}\n" in outcome.stdout
+
+
+def test_the_memory_limit_is_set_before_startup_code_of_the_overlay_runs(make_submission, tmp_path):
+    overlay = tmp_path / "overlay"
+    overlay.mkdir()
+    reporting = "import resource; print('{}:', *resource.getrlimit(resource.RLIMIT_DATA), flush=True)\n"
+    (overlay / "sitecustomize.py").write_text(reporting.format("sitecustomize"))
+    (overlay / "startup.pth").write_text("import startup_hook\n")
+    (overlay / "startup_hook.py").write_text(reporting.format("pth"))
+    root = make_submission({"strategy.py": DECLARE_AT_START}).root
+    outcome = run_case(root, CASES[0], PROVIDER, overlay=Overlay(overlay), memory_limit_bytes=2**30)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert f"sitecustomize: {2**30} {2**30}\n" in outcome.stdout
+    assert f"pth: {2**30} {2**30}\n" in outcome.stdout
 
 
 @pytest.mark.parametrize("limit", [0, -1, 2.5e9])
