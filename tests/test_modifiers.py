@@ -107,6 +107,13 @@ def test_telemetry_bias_changes_observation_but_not_true_state(make_state):
     assert state.propulsion_temperature_c == 20.0
 
 
+def test_telemetry_bias_applies_from_onset(make_state):
+    modifier = TelemetryBias("delta_v_mps", 0.3, onset_time_s=100.0)
+    rng = random.Random(0)
+    assert observe(make_state(time_s=99.0, delta_v_mps=1.0), [modifier], rng).delta_v_mps == 1.0
+    assert observe(make_state(time_s=100.0, delta_v_mps=1.0), [modifier], rng).delta_v_mps == pytest.approx(1.3)
+
+
 @pytest.mark.parametrize("channel", ["time_s", "heater_on", "propulsion_mode", "momentum_dump_on", "fuel"])
 def test_telemetry_bias_rejects_unknown_or_non_numeric_channel(channel):
     with pytest.raises(ValueError, match="channel"):

@@ -2,18 +2,18 @@ import pytest
 
 from spacecraft_autonomy_challenge.challenge import TIME_LIMIT_S, problem, scenario, scenario_names
 from spacecraft_autonomy_challenge.commands import PropulsionMode
-from spacecraft_autonomy_challenge.modifiers import ThrusterEfficiency
+from spacecraft_autonomy_challenge.modifiers import TelemetryBias, ThrusterEfficiency
 from spacecraft_autonomy_challenge.simulation import check_safety
 
 
 def test_registry_lists_public_scenarios():
-    assert scenario_names() == ("nominal", "thruster-degradation")
+    assert scenario_names() == ("nominal", "thruster-degradation", "delta-v-sensor-bias")
     for name in scenario_names():
         assert scenario(name).name == name
 
 
 def test_unknown_scenario_raises_key_error_listing_names():
-    with pytest.raises(KeyError, match=r"nominal.*thruster-degradation"):
+    with pytest.raises(KeyError, match=r"nominal.*thruster-degradation.*delta-v-sensor-bias"):
         scenario("missing")
 
 
@@ -58,3 +58,8 @@ def test_thruster_degradation_degrades_thruster_1_partway():
     assert modifier.thruster is PropulsionMode.THRUSTER_1
     assert 0.0 < modifier.factor < 1.0
     assert 0.0 < modifier.onset_time_s < built.problem.time_limit_s
+
+
+def test_delta_v_sensor_bias_offsets_the_delta_v_reading_only():
+    built = scenario("delta-v-sensor-bias")
+    assert built.modifiers == (TelemetryBias("delta_v_mps", bias=0.3, onset_time_s=3000.0),)

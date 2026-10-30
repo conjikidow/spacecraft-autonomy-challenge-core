@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from spacecraft_autonomy_challenge.commands import PropulsionMode
 from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftParameters, SpacecraftState, ThrusterParameters
-from spacecraft_autonomy_challenge.modifiers import ThrusterEfficiency
+from spacecraft_autonomy_challenge.modifiers import TelemetryBias, ThrusterEfficiency
 from spacecraft_autonomy_challenge.problem import Problem
 from spacecraft_autonomy_challenge.scenario import Scenario
 
@@ -75,9 +75,19 @@ def _thruster_degradation() -> Scenario:
     )
 
 
+def _delta_v_sensor_bias() -> Scenario:
+    return Scenario(
+        name="delta-v-sensor-bias",
+        problem=problem(),
+        modifiers=(TelemetryBias("delta_v_mps", bias=0.3, onset_time_s=3000.0),),
+        description="The delta-v reading gains a constant offset partway through the run.",
+    )
+
+
 _SCENARIOS: dict[str, Callable[[], Scenario]] = {
     "nominal": _nominal,
     "thruster-degradation": _thruster_degradation,
+    "delta-v-sensor-bias": _delta_v_sensor_bias,
 }
 
 
