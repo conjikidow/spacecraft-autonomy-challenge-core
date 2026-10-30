@@ -271,7 +271,7 @@ def _check_command(args: argparse.Namespace) -> int:
     from spacecraft_autonomy_challenge.judge.judging import check_submission
     from spacecraft_autonomy_challenge.judge.public_scenarios import public_suite
     from spacecraft_autonomy_challenge.judge.reporting import EvaluationResult, problem_outcomes
-    from spacecraft_autonomy_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S
+    from spacecraft_autonomy_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S, DEFAULT_MEMORY_LIMIT_BYTES
     from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig, ScoringConfigError, score_case
     from spacecraft_autonomy_challenge.judge.submission import SubmissionError, build_submission
 
@@ -291,6 +291,9 @@ def _check_command(args: argparse.Namespace) -> int:
         evaluation = check_submission(
             archive,
             timeout_s=DEFAULT_CASE_TIMEOUT_S if args.timeout is None else args.timeout,
+            memory_limit_bytes=(
+                DEFAULT_MEMORY_LIMIT_BYTES if args.memory_limit is None else args.memory_limit * 1024**2 or None
+            ),
             scoring=scoring,
             on_status=lambda message: print(message, file=sys.stderr),
             on_case_done=on_case_done,
@@ -314,6 +317,16 @@ def _positive_seconds(text: str) -> float:
         value = float("nan")
     if not value > 0 or value == float("inf"):
         raise argparse.ArgumentTypeError(f"expected a positive number of seconds, got {text!r}")
+    return value
+
+
+def _mebibytes(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError:
+        value = -1
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"expected a non-negative whole number of MiB, got {text!r}")
     return value
 
 
@@ -365,6 +378,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="SECONDS",
         help="wall-clock limit of one case (default: 300)",
+    )
+    check_parser.add_argument(
+        "--memory-limit",
+        type=_mebibytes,
+        default=None,
+        metavar="MIB",
+        help="data memory limit of each participant process, 0 for none (default: 4096)",
     )
     check_parser.add_argument("--scoring", metavar="TOML", help="scoring configuration (default: the shipped one)")
     check_parser.add_argument("--json", action="store_true", help="print the result document as JSON")

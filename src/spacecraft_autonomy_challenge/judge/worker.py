@@ -23,6 +23,7 @@ from typing import Any
 from spacecraft_autonomy_challenge.evaluation import evaluate
 from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
 from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.processes import become_subreaper, kill_descendants
 from spacecraft_autonomy_challenge.judge.remote import ParticipantProcess, ParticipantStopError, RemoteStrategy
 from spacecraft_autonomy_challenge.simulation import run
 
@@ -42,18 +43,22 @@ def evaluate_case(
     overlay: Path | None = None,
     *,
     output: tuple[int, int] | None = None,
+    memory_limit_bytes: int | None = None,
 ) -> dict[str, Any]:
     """Run the case with a fresh strategy from `submission_root` in a participant process; return the JSON result.
 
     Only this process loads the scenario provider. Only the participant process gets the packages of
-    `overlay`, first on its import path. A completed case also reports the CPU time of the participant
+    `overlay`, first on its import path, and its data memory is limited to `memory_limit_bytes` (`None`: not
+    limited). A completed case also reports the CPU time of the participant
     process (see `ParticipantProcess.finish`); other cases report `None`.
     """
     # Taken before the provider runs, so that whatever it puts into the environment never reaches the participant.
     base_env = dict(os.environ)
     scenario = provider.build(case)
     env = base_env if overlay is None else Overlay(overlay).environment(base_env)
-    with ParticipantProcess(submission_root, env, overlay, output=output) as participant:
+    with ParticipantProcess(
+        submission_root, env, overlay, output=output, memory_limit_bytes=memory_limit_bytes
+    ) as participant:
         try:
             load_error = participant.wait_ready()
             if load_error is not None:
@@ -78,11 +83,14 @@ def _failed(status: str, detail: str) -> dict[str, Any]:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    """Entry point: evaluate the requested case, write the result file, and exit the process at once.
+    """Entry point: evaluate the requested case, kill the processes left, write the result file, and exit at once.
 
-    Exiting at once keeps threads or exit handlers from delaying or changing the outcome.
+    On Linux, this process is a child subreaper, so the processes left are all processes that the case started and
+    that are still running, including those that the participant process started (see `processes`). Exiting at once
+    keeps threads or exit handlers from delaying or changing the outcome.
     """
     (result_path,) = sys.argv[1:] if argv is None else argv
+    become_subreaper()
     request = json.loads(sys.stdin.read())
     # The runner captures the participant's output from the pipes on this process's descriptors 1 and 2. Keep them
     # for the participant process and point this process's own descriptors at the null device, so that what the
@@ -96,7 +104,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     try:
         case = EvaluationCase.from_dict(request["case"])
         provider = ScenarioProvider.from_dict(request["provider"])
-        result = evaluate_case(Path(request["submission_root"]), case, provider, overlay, output=output)
+        result = evaluate_case(
+            Path(request["submission_root"]),
+            case,
+            provider,
+            overlay,
+            output=output,
+            memory_limit_bytes=request.get("memory_limit_bytes"),
+        )
     except BaseException as error:
         # The traceback may show the scenario provider and data of the case, so the participant-visible detail
         # names the exception type only.
@@ -107,6 +122,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             "participant_cpu_s": None,
             "worker_error": "".join(traceback.format_exception(error)),
         }
+    kill_descendants(os.getpid())
     Path(result_path).write_text(json.dumps(result), encoding="utf-8")
     sys.__stdout__.flush()
     sys.__stderr__.flush()

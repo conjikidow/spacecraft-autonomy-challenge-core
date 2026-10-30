@@ -13,7 +13,12 @@ from pathlib import Path
 from spacecraft_autonomy_challenge.judge.cases import ScenarioProvider, Suite
 from spacecraft_autonomy_challenge.judge.dependencies import DependencyReport, resolve_dependencies
 from spacecraft_autonomy_challenge.judge.public_scenarios import PROVIDER, public_suite
-from spacecraft_autonomy_challenge.judge.runner import DEFAULT_CASE_TIMEOUT_S, CaseOutcome, run_suite
+from spacecraft_autonomy_challenge.judge.runner import (
+    DEFAULT_CASE_TIMEOUT_S,
+    DEFAULT_MEMORY_LIMIT_BYTES,
+    CaseOutcome,
+    run_suite,
+)
 from spacecraft_autonomy_challenge.judge.scoring import ScoringConfig
 from spacecraft_autonomy_challenge.judge.submission import extract_submission
 
@@ -69,6 +74,7 @@ def evaluate_submission(
     provider: ScenarioProvider,
     *,
     timeout_s: float = DEFAULT_CASE_TIMEOUT_S,
+    memory_limit_bytes: int | None = DEFAULT_MEMORY_LIMIT_BYTES,
     scoring: ScoringConfig | None = None,
     on_status: Callable[[str], None] | None = None,
     on_case_done: Callable[[CaseOutcome], None] | None = None,
@@ -100,6 +106,7 @@ def evaluate_submission(
             timeout_s=timeout_s,
             env=env,
             overlay=overlay,
+            memory_limit_bytes=memory_limit_bytes,
             on_case_done=on_case_done,
         )
     return SubmissionEvaluation(
@@ -118,6 +125,7 @@ def check_submission(
     archive: bytes,
     *,
     timeout_s: float = DEFAULT_CASE_TIMEOUT_S,
+    memory_limit_bytes: int | None = DEFAULT_MEMORY_LIMIT_BYTES,
     scoring: ScoringConfig | None = None,
     on_status: Callable[[str], None] | None = None,
     on_case_done: Callable[[CaseOutcome], None] | None = None,
@@ -128,6 +136,7 @@ def check_submission(
         public_suite(),
         PROVIDER,
         timeout_s=timeout_s,
+        memory_limit_bytes=memory_limit_bytes,
         scoring=scoring,
         on_status=on_status,
         on_case_done=on_case_done,

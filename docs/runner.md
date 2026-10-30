@@ -28,6 +28,7 @@ Both take these keyword arguments:
 | `timeout_s` | Wall-clock limit of one case (default `DEFAULT_CASE_TIMEOUT_S`, 300 s) |
 | `env` | Environment variables of the case processes (default: the current process environment); take it before any scenario provider runs in the calling process, since a provider may change the environment |
 | `overlay` | An `Overlay` of participant packages (see [Participant Packages](dependencies.md)), or `None` |
+| `memory_limit_bytes` | Data memory limit of the participant process and of each process that it starts (default `DEFAULT_MEMORY_LIMIT_BYTES`, 4 GiB), or `None` for no limit (see [Memory Limit](#memory-limit)); `run_case` raises `ValueError` for a value that is not a positive integer |
 
 Cases and scenario providers are described in [Evaluation Cases](judge.md).
 [Evaluating Submissions](evaluating.md) describes how a whole archive is evaluated and its outcomes recorded.
@@ -47,6 +48,11 @@ It builds the scenario with the provider and runs it with `run()` and `evaluate(
 Its strategy forwards every callback to the participant process.
 The participant process gets the worker's environment variables as they were before the provider ran,
 so variables that the provider sets never reach it.
+Of these, `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`, `NUMEXPR_NUM_THREADS`,
+and `VECLIB_MAXIMUM_THREADS` default to `1` when they are not set (`THREAD_POOL_LIMITS` of `remote`),
+so that the thread pools of numerical libraries, and with them the CPU time of the process,
+do not depend on the number of cores of the host.
+Processes that the participant process starts inherit them; set them in `env` to allow more threads.
 It writes its result to a file in a temporary directory apart from the participant's files.
 
 The participant process loads `submission/strategy.py:MyStrategy` like `autonomy-challenge run`,
@@ -54,10 +60,11 @@ with `submission/` first on the import path, and creates one instance for the ca
 It receives only what a strategy may see: the mission brief, telemetry, and the results of its commander requests.
 It never receives the case id, the payload, the scenario provider, the scenario, its seed or modifiers,
 or the true state, and it imports neither the module that defines cases nor the scenario provider.
-It is started with Python's `-P` option, which keeps its working directory off the import path.
-Its command-line arguments are the import root of the core package (appended to the import path),
-the file descriptor of its socket, the directory of its copy of the submission,
-and, with an `Overlay`, the overlay directory.
+It is started with Python's `-P` option, which keeps its working directory off the import path,
+and with `-S`, which defers the initialization of `site` until it has set its memory limit (see [Memory Limit](#memory-limit)).
+Its command-line arguments are its memory limit in bytes (0 for none),
+the import root of the core package (appended to the import path), the file descriptor of its socket,
+the directory of its copy of the submission, and, with an `Overlay`, the overlay directory.
 Its standard input is empty.
 
 ## Messages
@@ -153,13 +160,54 @@ if the participant process does not exit within 5 s after the run, and on platfo
 A case that exceeds it is `TIMEOUT`, even if the trusted worker writes a result while it is being stopped.
 
 Both processes exit right after their work, so threads or exit handlers left behind cannot delay a case.
-The trusted worker starts in a new session, and the participant process is part of its process group.
-When the trusted worker exits or the time limit is reached, every process remaining in that process group is stopped,
-which includes the participant process and the processes it started.
-A process that the strategy moves into a new session or process group is outside that group and may survive the case.
+When a case ends, normally, through a crash, through a failure of the trusted worker, or at the time limit,
+the processes that it started and that are still running are stopped, including every process that the strategy started.
+
+- On Linux, the trusted worker is a child subreaper: a process whose parent exits is reparented to the worker
+  instead of the init process.
+  Every process that the strategy starts therefore remains a descendant of the trusted worker,
+  even one that it moves into a new session or process group.
+  The trusted worker kills all its descendants with `SIGKILL` before it exits.
+  At the time limit, or when `run_case` is interrupted, `run_case` suspends the trusted worker with `SIGSTOP`
+  and then kills them.
+  A process whose parent exits during the case remains a zombie under the trusted worker until the case ends.
+- The trusted worker also starts in a new session, and the participant process is part of its process group.
+  When the trusted worker exits or the time limit is reached, every process remaining in that process group is stopped.
+  On other platforms, on Linux without `/proc` or where the kernel refuses to make the trusted worker a subreaper,
+  and when the trusted worker itself is killed by something else, this is all that is stopped,
+  so a process that the strategy moves into a new session or process group may survive the case.
+
+Only processes of the case are stopped: neither the process that runs the cases nor other cases,
+including cases that it runs at the same time, are affected.
+Killing gives up after 5 s against processes that keep starting new ones.
 Stopped processes other than the trusted worker, such as the participant process, are reaped by the init process.
 In a container, run an init process that reaps orphaned processes, for example with `docker run --init`,
 so that they do not remain as zombies.
+
+## Memory Limit
+
+Before it runs any of the participant's code, the participant process limits its data memory to `memory_limit_bytes`
+with the resource limit `RLIMIT_DATA`.
+It does so before it initializes `site`, so the limit also covers `sitecustomize` modules and `.pth` files of an overlay.
+It sets both the soft and the hard limit, so neither the strategy nor the processes that it starts can raise it again;
+a lower hard limit that the case processes already have is kept.
+Every process that the participant process starts inherits the limit.
+
+- On Linux 4.7 and later, the limit covers all private writable memory of a process,
+  such as the heap of Python and of native libraries.
+  Address space that is only reserved, as a JVM reserves its maximum heap, does not count until it is used,
+  so a JVM with its default options starts under the limit.
+  The limit on the address space (`RLIMIT_AS`) is not used, since such runtimes would fail to start under it.
+- An allocation beyond the limit fails.
+  In Python it raises `MemoryError`, which ends the run as `STRATEGY_ERROR` if a callback lets it escape,
+  or the case as `LOAD_ERROR` while the strategy is loaded and as `CRASHED` elsewhere in the participant process;
+  a JVM stops with a report of insufficient memory.
+  The trusted worker is not limited, so it still records the outcome.
+- The limit applies to each process separately: every process that the strategy starts gets its own limit.
+  It therefore bounds a runaway process, but not the total memory of many processes.
+- Other platforms may not enforce the limit in this way, and where it cannot be set, nothing is limited.
+
+Pass `memory_limit_bytes=None` to leave the memory unlimited; `autonomy-challenge check` has the option `--memory-limit`.
 
 ## Participant Packages
 
@@ -176,5 +224,6 @@ so even an overlay that provides a module of the core package cannot replace the
 The separate processes keep the case and the simulator out of ordinary introspection by the participant's code.
 They are an architectural boundary, not a sandbox against hostile code:
 the participant process runs as the same user, with the same file system access, as the code that runs the cases.
-Nor are its memory, processes, or open files limited, apart from the wall-clock limit and the captured output;
+Nor are its processes, open files, or the total memory of the case limited,
+apart from the wall-clock limit, the captured output, and the memory limit of each process;
 limit them for the whole evaluating environment, for example with the resource limits of a container.

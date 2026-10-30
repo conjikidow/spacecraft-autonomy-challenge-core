@@ -23,16 +23,21 @@ from typing import IO, Any
 
 from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
 from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.processes import kill_descendants
 from spacecraft_autonomy_challenge.judge.remote import PACKAGE_ROOT
 
 DEFAULT_CASE_TIMEOUT_S = 300.0
 """Wall-clock limit of one case, including interpreter start-up and loading the strategy."""
+
+DEFAULT_MEMORY_LIMIT_BYTES = 4 * 1024**3
+"""Data memory limit (`RLIMIT_DATA`) of the participant process, and of each process that it starts, in bytes."""
 
 MAX_OUTPUT_BYTES = 100_000
 """Captured standard output and standard error each keep at most this many bytes, from the start and the end."""
 
 _POLL_INTERVAL_S = 0.01
 _READER_JOIN_TIMEOUT_S = 5.0
+_STOP_WAIT_S = 1.0
 
 _BOOTSTRAP = (
     "import sys; sys.path.append(sys.argv.pop(1)); "
@@ -153,7 +158,7 @@ class _CappedOutput:
         self.thread.start()
 
     def _read(self) -> None:
-        # The thread owns the stream: a process that escaped the worker's session may hold the pipe open
+        # The thread owns the stream: a process that escaped the cleanup of the case may hold the pipe open
         # long after the case, and closing the stream from another thread would block until it lets go.
         with self._stream:
             while chunk := self._stream.read1(65536):
@@ -184,10 +189,29 @@ def _has_exited(process: subprocess.Popen[bytes]) -> bool:
     return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
 
 
-def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
-    """Stop the worker and every process remaining in its process group, before the worker is reaped if possible."""
+def _wait_until_stopped(process: subprocess.Popen[bytes]) -> None:
+    """Wait briefly until the worker has stopped or exited after `SIGSTOP`, without reaping it; not without `waitid`."""
+    if not hasattr(os, "waitid"):
+        return
+    deadline = time.monotonic() + _STOP_WAIT_S
+    flags = os.WSTOPPED | os.WEXITED | os.WNOHANG | os.WNOWAIT
+    while os.waitid(os.P_PID, process.pid, flags) is None and time.monotonic() < deadline:
+        time.sleep(_POLL_INTERVAL_S)
+
+
+def _kill_case_processes(process: subprocess.Popen[bytes]) -> None:
+    """Stop the worker and every process of its case, before the worker is reaped.
+
+    A worker that has not been reaped is stopped first, so that it neither starts nor reaps processes while its
+    descendants are killed (see `processes`). Then the worker and every process remaining in its process group are
+    killed, which is all that is stopped on platforms without `/proc`.
+    """
     try:
         if os.name == "posix":
+            if process.returncode is None:  # otherwise its PID may belong to another process by now
+                os.kill(process.pid, signal.SIGSTOP)
+                _wait_until_stopped(process)
+                kill_descendants(process.pid)
             os.killpg(process.pid, signal.SIGKILL)
         else:
             process.kill()
@@ -208,6 +232,7 @@ def run_case(
     timeout_s: float = DEFAULT_CASE_TIMEOUT_S,
     env: Mapping[str, str] | None = None,
     overlay: Overlay | None = None,
+    memory_limit_bytes: int | None = DEFAULT_MEMORY_LIMIT_BYTES,
 ) -> CaseOutcome:
     """Evaluate `case` on a fresh copy of the extracted submission at `submission_root` in a new case worker.
 
@@ -215,14 +240,18 @@ def run_case(
     strategy writes never reach later cases. The trusted worker runs with `env` as
     its environment (default: the current process environment); its participant process runs the strategy with the
     copy of `submission_root` as its working directory, the same environment, and the packages of `overlay`
-    in front of the packages of the environment. Their output is unbuffered, so it survives a crash or a timeout. When
-    the worker exits or the time limit is reached, the worker's whole process group is stopped, which
-    includes the participant process and every process remaining in that group.
+    in front of the packages of the environment, with its data memory limited to `memory_limit_bytes` (`None`: not
+    limited). Their output is unbuffered, so it survives a crash or a timeout. When
+    the case ends, every process that it started and that is still running is killed: on Linux, the worker kills
+    its descendants before it exits, and on a timeout the runner kills them (see `processes`). In addition, the
+    worker's whole process group is stopped, which is all that is stopped on platforms without `/proc`.
     Raises `RuntimeError` on platforms other than Linux and macOS, where the participant process cannot be
-    connected to the trusted worker.
+    connected to the trusted worker, and `ValueError` for a `memory_limit_bytes` that is not a positive integer.
     """
     if os.name != "posix":
         raise RuntimeError("running cases requires Linux or macOS")
+    if memory_limit_bytes is not None and (not isinstance(memory_limit_bytes, int) or memory_limit_bytes <= 0):
+        raise ValueError(f"memory_limit_bytes must be a positive integer or None, got {memory_limit_bytes!r}")
     with (
         tempfile.TemporaryDirectory(prefix="spacecraft-autonomy-case-", ignore_cleanup_errors=True) as scratch,
         tempfile.TemporaryDirectory(prefix="spacecraft-autonomy-result-", ignore_cleanup_errors=True) as results,
@@ -236,6 +265,7 @@ def run_case(
             "provider": provider.to_dict(),
             # Absolute: the worker and the participant process run in other directories.
             "overlay": None if overlay is None else str(overlay.path.resolve()),
+            "memory_limit_bytes": memory_limit_bytes,
         }
         worker_env = dict(os.environ if env is None else env)
         worker_env["PYTHONUNBUFFERED"] = "1"
@@ -263,7 +293,7 @@ def run_case(
         finally:
             # Also when waiting is interrupted, e.g. by KeyboardInterrupt: the worker runs in its own session, so
             # nothing else would stop it, and the time limit is enforced only here.
-            _kill_process_group(process)
+            _kill_case_processes(process)
             process.wait()
         readers_deadline = time.monotonic() + _READER_JOIN_TIMEOUT_S
         for output in (stdout, stderr):
@@ -305,6 +335,7 @@ def run_suite(
     timeout_s: float = DEFAULT_CASE_TIMEOUT_S,
     env: Mapping[str, str] | None = None,
     overlay: Overlay | None = None,
+    memory_limit_bytes: int | None = DEFAULT_MEMORY_LIMIT_BYTES,
     on_case_done: Callable[[CaseOutcome], None] | None = None,
 ) -> tuple[CaseOutcome, ...]:
     """Evaluate every case in order, each in its own worker process.
@@ -314,7 +345,15 @@ def run_suite(
     """
     outcomes = []
     for case in cases:
-        outcome = run_case(submission_root, case, provider, timeout_s=timeout_s, env=env, overlay=overlay)
+        outcome = run_case(
+            submission_root,
+            case,
+            provider,
+            timeout_s=timeout_s,
+            env=env,
+            overlay=overlay,
+            memory_limit_bytes=memory_limit_bytes,
+        )
         outcomes.append(outcome)
         if on_case_done is not None:
             on_case_done(outcome)

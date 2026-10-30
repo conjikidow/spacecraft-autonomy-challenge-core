@@ -1,7 +1,13 @@
+import contextlib
 import json
 import os
 import re
+import resource
+import shutil
 import signal
+import subprocess
+import sys
+import threading
 import time
 from pathlib import Path
 
@@ -11,6 +17,7 @@ from judge_support import DECLARE_AT_START, PROVIDER, case
 from spacecraft_autonomy_challenge.judge import runner
 from spacecraft_autonomy_challenge.judge.cases import ScenarioProvider
 from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.remote import THREAD_POOL_LIMITS
 from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus, run_case, run_suite
 
 
@@ -398,7 +405,110 @@ def test_a_helper_outside_the_session_holding_the_output_does_not_block(make_sub
         assert outcome.status is CaseStatus.COMPLETED
         assert outcome.duration_s < 15
     finally:
-        os.kill(int(outcome.stdout.split()[0]), signal.SIGKILL)
+        with contextlib.suppress(ProcessLookupError):  # already gone where the case kills its descendants
+            os.kill(int(outcome.stdout.split()[0]), signal.SIGKILL)
+
+
+ORPHAN_IN_NEW_SESSION = """
+import subprocess
+import sys
+
+SLEEPER = [sys.executable, "-c", "import time; time.sleep(60)"]
+DETACHED = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+STARTER = f"import subprocess; print(subprocess.Popen({SLEEPER!r}, start_new_session=True, **{DETACHED!r}).pid)"
+
+
+def start_orphan():
+    \"\"\"Start a process in a new session whose parent exits at once, and return its PID.\"\"\"
+    starter = subprocess.run([sys.executable, "-c", STARTER], capture_output=True, text=True, start_new_session=True)
+    return int(starter.stdout)
+"""
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux keeps the descendants of a case")
+@pytest.mark.parametrize(
+    ("ending", "status"),
+    [("complete", CaseStatus.COMPLETED), ("exit", CaseStatus.CRASHED), ("hang", CaseStatus.TIMEOUT)],
+)
+def test_orphans_in_new_sessions_are_killed_when_the_case_ends(make_submission, ending, status):
+    orphaning = f"""
+    import sys
+    import time
+
+    from orphans import start_orphan
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print(start_orphan(), flush=True)
+            if "{ending}" == "exit":
+                sys.exit(1)
+            if "{ending}" == "hang":
+                time.sleep(60)
+            commander.execute(DeclareCompletion())
+    """
+    submission = make_submission({"strategy.py": orphaning, "orphans.py": ORPHAN_IN_NEW_SESSION})
+    outcome = run_case(submission.root, CASES[0], PROVIDER, timeout_s=5.0)
+    assert outcome.status is status, outcome.detail
+    assert not process_is_running(int(outcome.stdout))
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux keeps the descendants of a case")
+def test_killing_the_descendants_of_a_case_spares_other_cases_and_the_caller(make_submission, tmp_path):
+    started, finished = tmp_path / "started", tmp_path / "finished"
+    waiting = f"""
+    import os
+    import time
+    from pathlib import Path
+
+    from orphans import start_orphan
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            orphan = start_orphan()
+            Path({str(started)!r}).touch()
+            deadline = time.monotonic() + 20.0
+            while not Path({str(finished)!r}).exists() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            os.kill(orphan, 0)
+            print(Path(f"/proc/{{orphan}}/stat").read_text().rsplit(")", 1)[1].split()[0])
+            commander.execute(DeclareCompletion())
+    """
+    quick = """
+    from orphans import start_orphan
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print(start_orphan(), flush=True)
+            commander.execute(DeclareCompletion())
+    """
+    slow_submission = make_submission({"strategy.py": waiting, "orphans.py": ORPHAN_IN_NEW_SESSION})
+    quick_submission = make_submission({"strategy.py": quick, "orphans.py": ORPHAN_IN_NEW_SESSION})
+    bystander = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        slow = []
+        thread = threading.Thread(target=lambda: slow.append(run_case(slow_submission.root, CASES[0], PROVIDER)))
+        thread.start()
+        deadline = time.monotonic() + 20.0
+        while not started.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert started.exists()
+        outcome = run_case(quick_submission.root, CASES[1], PROVIDER)
+        assert not process_is_running(int(outcome.stdout))
+        finished.touch()
+        thread.join(30.0)
+        (slow_outcome,) = slow
+        assert slow_outcome.status is CaseStatus.COMPLETED, slow_outcome.detail
+        assert slow_outcome.stdout == "S\n"
+        assert bystander.poll() is None
+    finally:
+        bystander.kill()
+        bystander.wait()
 
 
 def test_files_written_by_the_strategy_do_not_reach_later_cases(make_submission):
@@ -602,6 +712,133 @@ def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participa
     assert "hidden: None" in outcome.stdout
 
 
+def test_thread_pools_of_the_participant_default_to_one_thread(make_submission):
+    reading = """
+    import os
+    import subprocess
+    import sys
+
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge.judge.remote import THREAD_POOL_LIMITS
+
+    CHILD = "import os; print('child:', os.environ['OPENBLAS_NUM_THREADS'])"
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print("threads:", *(os.environ.get(name) for name in THREAD_POOL_LIMITS), flush=True)
+            subprocess.run([sys.executable, "-c", CHILD], check=True)
+            commander.execute(DeclareCompletion())
+    """
+    root = make_submission({"strategy.py": reading}).root
+    environment = {name: value for name, value in os.environ.items() if name not in THREAD_POOL_LIMITS}
+    outcome = run_case(root, CASES[0], PROVIDER, env=environment)
+    assert "threads: 1 1 1 1 1\nchild: 1\n" in outcome.stdout
+    outcome = run_case(root, CASES[0], PROVIDER, env=environment | {"OMP_NUM_THREADS": "4"})
+    assert "threads: 4 1 1 1 1\n" in outcome.stdout
+
+
+DATA_LIMITS = """
+import resource
+import subprocess
+import sys
+
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+CHILD = "import resource; print('child:', *resource.getrlimit(resource.RLIMIT_DATA))"
+
+
+class MyStrategy(Strategy):
+    def initialize(self, brief, telemetry, commander):
+        print("participant:", *resource.getrlimit(resource.RLIMIT_DATA), flush=True)
+        subprocess.run([sys.executable, "-c", CHILD], check=True)
+        commander.execute(DeclareCompletion())
+"""
+
+
+def test_the_participant_process_and_its_children_have_a_data_memory_limit(make_submission):
+    root = make_submission({"strategy.py": DATA_LIMITS}).root
+    limit = runner.DEFAULT_MEMORY_LIMIT_BYTES
+    outcome = run_case(root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert f"participant: {limit} {limit}\nchild: {limit} {limit}\n" in outcome.stdout
+    outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=2**30)
+    assert f"participant: {2**30} {2**30}\nchild: {2**30} {2**30}\n" in outcome.stdout
+    soft, hard = resource.getrlimit(resource.RLIMIT_DATA)
+    outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=None)
+    assert f"participant: {soft} {hard}\nchild: {soft} {hard}\n" in outcome.stdout
+
+
+def test_the_memory_limit_is_set_before_startup_code_of_the_overlay_runs(make_submission, tmp_path):
+    overlay = tmp_path / "overlay"
+    overlay.mkdir()
+    reporting = "import resource; print('{}:', *resource.getrlimit(resource.RLIMIT_DATA), flush=True)\n"
+    (overlay / "sitecustomize.py").write_text(reporting.format("sitecustomize"))
+    (overlay / "startup.pth").write_text("import startup_hook\n")
+    (overlay / "startup_hook.py").write_text(reporting.format("pth"))
+    root = make_submission({"strategy.py": DECLARE_AT_START}).root
+    outcome = run_case(root, CASES[0], PROVIDER, overlay=Overlay(overlay), memory_limit_bytes=2**30)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert f"sitecustomize: {2**30} {2**30}\n" in outcome.stdout
+    assert f"pth: {2**30} {2**30}\n" in outcome.stdout
+
+
+@pytest.mark.parametrize("limit", [0, -1, 2.5e9])
+def test_the_memory_limit_must_be_a_positive_integer(make_submission, limit):
+    submission = make_submission({"strategy.py": DECLARE_AT_START})
+    with pytest.raises(ValueError, match="memory_limit_bytes"):
+        run_case(submission.root, CASES[0], PROVIDER, memory_limit_bytes=limit)
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux counts all private memory")
+def test_allocations_beyond_the_memory_limit_fail_in_the_participant_and_its_children(make_submission):
+    allocating = """
+    import subprocess
+    import sys
+
+    from spacecraft_autonomy_challenge import Strategy
+
+    CHILD = "bytearray(512 * 1024**2)"
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            child = subprocess.run([sys.executable, "-c", CHILD], capture_output=True, text=True)
+            print("child:", child.returncode, child.stderr.splitlines()[-1], flush=True)
+            bytearray(512 * 1024**2)
+    """
+    root = make_submission({"strategy.py": allocating}).root
+    outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=256 * 1024**2)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert outcome.metrics["termination_reason"] == "STRATEGY_ERROR"
+    assert "MemoryError" in outcome.detail
+    assert "child: 1 MemoryError" in outcome.stdout
+
+
+@pytest.mark.skipif(shutil.which("java") is None, reason="needs a Java runtime")
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux counts all private memory")
+def test_a_jvm_starts_under_the_default_memory_limit_and_fails_beyond_it(make_submission):
+    starting = """
+    import os
+    import subprocess
+
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+    ENV = {k: v for k, v in os.environ.items() if k not in ("JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS")}
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            for options in ([], ["-Xms6g"]):
+                java = subprocess.run(["java", *options, "-version"], env=ENV, capture_output=True, text=True)
+                print("java", *options, java.returncode, "insufficient memory" in java.stdout + java.stderr)
+            commander.execute(DeclareCompletion())
+    """
+    outcome = run_case(make_submission({"strategy.py": starting}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert "java 0 False\njava -Xms6g 1 True\n" in outcome.stdout
+
+
 def test_huge_strategy_errors_are_shortened_instead_of_breaking_the_protocol(make_submission):
     raising = """
     from spacecraft_autonomy_challenge import Strategy
@@ -675,6 +912,22 @@ def test_an_interrupted_case_stops_its_processes(make_submission, monkeypatch):
         time.sleep(0.05)
     else:
         pytest.fail("processes of the interrupted case are still running")
+
+
+def test_the_process_group_is_killed_after_a_worker_that_was_already_reaped(make_submission, monkeypatch):
+    # Without `os.waitid`, as on macOS, the runner learns that the worker exited by reaping it.
+    monkeypatch.delattr(runner.os, "waitid", raising=False)
+    killed = []
+    original_killpg = runner.os.killpg
+
+    def killpg(pgid, sig):
+        killed.append(pgid)
+        original_killpg(pgid, sig)
+
+    monkeypatch.setattr(runner.os, "killpg", killpg)
+    outcome = run_case(make_submission({"strategy.py": DECLARE_AT_START}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED
+    assert len(killed) == 1
 
 
 def test_a_relative_overlay_path_is_resolved_against_the_caller(make_submission, tmp_path, monkeypatch):

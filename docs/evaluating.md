@@ -42,6 +42,7 @@ Both take these keyword arguments:
 | Argument | Meaning |
 |---|---|
 | `timeout_s` | Wall-clock limit of one case (default `DEFAULT_CASE_TIMEOUT_S`, 300 s) |
+| `memory_limit_bytes` | Data memory limit of the participant process and of each process that it starts (default `DEFAULT_MEMORY_LIMIT_BYTES`, 4 GiB), or `None` for no limit (see [Running Cases](runner.md#memory-limit)) |
 | `scoring` | `ScoringConfig` that scores the outcomes (default `None`, which means `ScoringConfig.default()`; see [Scoring](scoring.md)) |
 | `on_status` | Called with a short progress message before the packages are prepared and before the cases run |
 | `on_case_done` | Called with each `CaseOutcome` as soon as it is available |

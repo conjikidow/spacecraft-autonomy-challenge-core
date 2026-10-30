@@ -32,10 +32,31 @@ from spacecraft_autonomy_challenge.judge.protocol import (
 PACKAGE_ROOT = str(Path(spacecraft_autonomy_challenge.__file__).resolve().parent.parent)
 """Import root of the core package, appended (not prepended) to the import path of the case processes."""
 
-_PARTICIPANT_BOOTSTRAP = (
-    "import sys; sys.path.append(sys.argv.pop(1)); "
-    "from spacecraft_autonomy_challenge.judge.participant import main; main(sys.argv[1:])"
-)
+_PARTICIPANT_BOOTSTRAP = """\
+import resource, site, sys
+limit = int(sys.argv.pop(1))
+if limit:
+    try:
+        hard = resource.getrlimit(resource.RLIMIT_DATA)[1]
+        limit = limit if hard == resource.RLIM_INFINITY else min(limit, hard)
+        resource.setrlimit(resource.RLIMIT_DATA, (limit, limit))
+    except (OSError, ValueError):
+        pass
+site.main()
+sys.path.append(sys.argv.pop(1))
+from spacecraft_autonomy_challenge.judge.participant import main
+main(sys.argv[1:])
+"""
+"""Started with `-S`: the data memory limit is set before `site` runs the `.pth` files and `sitecustomize` modules on
+the import path, which an overlay may provide."""
+THREAD_POOL_LIMITS = {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+}
+"""Thread pool sizes of numerical libraries in the participant process, unless its environment sets them."""
 _EXIT_WAIT_S = 5.0
 _POLL_INTERVAL_S = 0.05
 
@@ -62,10 +83,20 @@ class ParticipantProcess:
         overlay: Path | None = None,
         *,
         output: tuple[int, int] | None = None,
+        memory_limit_bytes: int | None = None,
     ) -> None:
-        """Start the process; `output` gives its standard output and error descriptors (default: inherited)."""
+        """Start the process; `output` gives its standard output and error descriptors (default: inherited).
+
+        `THREAD_POOL_LIMITS` sets the variables that `env` lacks, so that the thread pools of numerical libraries,
+        and with them the CPU time of the process, do not depend on the number of cores of the host.
+
+        The process limits its data memory (`RLIMIT_DATA`), and that of every process that it starts, to
+        `memory_limit_bytes` before it runs any of the participant's code (`None`: not limited). It sets both the soft
+        and the hard limit, so the participant's code cannot raise them again, and keeps a lower hard limit that is
+        already in place. Where the limit cannot be set, nothing is limited.
+        """
         trusted, participant = socket.socketpair()
-        command = [sys.executable, "-P", "-c", _PARTICIPANT_BOOTSTRAP, PACKAGE_ROOT]
+        command = [sys.executable, "-P", "-S", "-c", _PARTICIPANT_BOOTSTRAP, str(memory_limit_bytes or 0), PACKAGE_ROOT]
         command += [str(participant.fileno()), str(submission_root)]
         if overlay is not None:
             command.append(str(overlay))
@@ -73,7 +104,7 @@ class ParticipantProcess:
             self.process = subprocess.Popen(
                 command,
                 cwd=submission_root,
-                env=dict(env),
+                env=THREAD_POOL_LIMITS | dict(env),
                 stdin=subprocess.DEVNULL,
                 stdout=None if output is None else output[0],
                 stderr=None if output is None else output[1],
