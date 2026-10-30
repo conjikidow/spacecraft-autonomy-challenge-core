@@ -79,6 +79,14 @@ At every event time `t` the simulation:
    Commands and the decision at exactly the time limit still take effect.
    Commands scheduled after the time limit never execute.
 
+The telemetry given to `update` at `t` is sampled after the commands already scheduled for `t` have executed (step 3)
+and before the commands registered during `update` execute (step 4).
+Its `propulsion_mode`, `heater_on`, and `momentum_dump_on` therefore show the state at `t` that results from
+the previously scheduled commands,
+not the effect of the commands issued in that `update`.
+A command executed or scheduled for `t` in `update` first shows in the telemetry of the next decision time,
+as does a command scheduled for a time between two decision times.
+
 The next event time is the earliest of the next integration step, the next decision time,
 the next pending command, and the time limit.
 

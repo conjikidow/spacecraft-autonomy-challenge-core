@@ -26,6 +26,11 @@ class MyStrategy(Strategy):
 2. `update(telemetry, commander)` is called at every decision time `k * brief.decision_period_s` for `k >= 1`
    until the run ends.
 
+The `telemetry` passed to `update` is sampled before the commands that `update` registers execute.
+It reflects the state at that time after the previously scheduled commands,
+and those registered commands first show in the next call's telemetry.
+See [Order of Events](simulation.md#order-of-events).
+
 Both callbacks are optional.
 A strategy that follows a fixed command sequence can schedule the whole sequence in `initialize` and leave `update` empty;
 scheduled commands execute at their times without any further callbacks.
