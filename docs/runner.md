@@ -153,10 +153,26 @@ if the participant process does not exit within 5 s after the run, and on platfo
 A case that exceeds it is `TIMEOUT`, even if the trusted worker writes a result while it is being stopped.
 
 Both processes exit right after their work, so threads or exit handlers left behind cannot delay a case.
-The trusted worker starts in a new session, and the participant process is part of its process group.
-When the trusted worker exits or the time limit is reached, every process remaining in that process group is stopped,
-which includes the participant process and the processes it started.
-A process that the strategy moves into a new session or process group is outside that group and may survive the case.
+When a case ends, normally, through a crash, through a failure of the trusted worker, or at the time limit,
+the processes that it started and that are still running are stopped, including every process that the strategy started.
+
+- On Linux, the trusted worker is a child subreaper: a process whose parent exits is reparented to the worker
+  instead of the init process.
+  Every process that the strategy starts therefore remains a descendant of the trusted worker,
+  even one that it moves into a new session or process group.
+  The trusted worker kills all its descendants with `SIGKILL` before it exits.
+  At the time limit, or when `run_case` is interrupted, `run_case` suspends the trusted worker with `SIGSTOP`
+  and then kills them.
+  A process whose parent exits during the case remains a zombie under the trusted worker until the case ends.
+- The trusted worker also starts in a new session, and the participant process is part of its process group.
+  When the trusted worker exits or the time limit is reached, every process remaining in that process group is stopped.
+  On other platforms, on Linux without `/proc`, and when the trusted worker itself is killed by something else,
+  this is all that is stopped,
+  so a process that the strategy moves into a new session or process group may survive the case.
+
+Only processes of the case are stopped: neither the process that runs the cases nor other cases,
+including cases that it runs at the same time, are affected.
+Killing gives up after 5 s against processes that keep starting new ones.
 Stopped processes other than the trusted worker, such as the participant process, are reaped by the init process.
 In a container, run an init process that reaps orphaned processes, for example with `docker run --init`,
 so that they do not remain as zombies.

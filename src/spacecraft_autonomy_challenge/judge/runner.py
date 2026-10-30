@@ -23,6 +23,7 @@ from typing import IO, Any
 
 from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
 from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.processes import kill_descendants
 from spacecraft_autonomy_challenge.judge.remote import PACKAGE_ROOT
 
 DEFAULT_CASE_TIMEOUT_S = 300.0
@@ -153,7 +154,7 @@ class _CappedOutput:
         self.thread.start()
 
     def _read(self) -> None:
-        # The thread owns the stream: a process that escaped the worker's session may hold the pipe open
+        # The thread owns the stream: a process that escaped the cleanup of the case may hold the pipe open
         # long after the case, and closing the stream from another thread would block until it lets go.
         with self._stream:
             while chunk := self._stream.read1(65536):
@@ -184,10 +185,17 @@ def _has_exited(process: subprocess.Popen[bytes]) -> bool:
     return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
 
 
-def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
-    """Stop the worker and every process remaining in its process group, before the worker is reaped if possible."""
+def _kill_case_processes(process: subprocess.Popen[bytes]) -> None:
+    """Stop the worker and every process of its case, before the worker is reaped.
+
+    A worker that is still running is stopped first, so that it reaps no children while its descendants are
+    killed (see `processes`). Then the worker and every process remaining in its process group are killed, which
+    is all that is stopped on platforms without `/proc`.
+    """
     try:
         if os.name == "posix":
+            os.kill(process.pid, signal.SIGSTOP)
+            kill_descendants(process.pid)
             os.killpg(process.pid, signal.SIGKILL)
         else:
             process.kill()
@@ -216,8 +224,9 @@ def run_case(
     its environment (default: the current process environment); its participant process runs the strategy with the
     copy of `submission_root` as its working directory, the same environment, and the packages of `overlay`
     in front of the packages of the environment. Their output is unbuffered, so it survives a crash or a timeout. When
-    the worker exits or the time limit is reached, the worker's whole process group is stopped, which
-    includes the participant process and every process remaining in that group.
+    the case ends, every process that it started and that is still running is killed: on Linux, the worker kills
+    its descendants before it exits, and on a timeout the runner kills them (see `processes`). In addition, the
+    worker's whole process group is stopped, which is all that is stopped on platforms without `/proc`.
     Raises `RuntimeError` on platforms other than Linux and macOS, where the participant process cannot be
     connected to the trusted worker.
     """
@@ -263,7 +272,7 @@ def run_case(
         finally:
             # Also when waiting is interrupted, e.g. by KeyboardInterrupt: the worker runs in its own session, so
             # nothing else would stop it, and the time limit is enforced only here.
-            _kill_process_group(process)
+            _kill_case_processes(process)
             process.wait()
         readers_deadline = time.monotonic() + _READER_JOIN_TIMEOUT_S
         for output in (stdout, stderr):

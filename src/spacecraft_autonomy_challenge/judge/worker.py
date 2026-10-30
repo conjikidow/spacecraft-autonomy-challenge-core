@@ -23,6 +23,7 @@ from typing import Any
 from spacecraft_autonomy_challenge.evaluation import evaluate
 from spacecraft_autonomy_challenge.judge.cases import EvaluationCase, ScenarioProvider
 from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.processes import become_subreaper, kill_descendants
 from spacecraft_autonomy_challenge.judge.remote import ParticipantProcess, ParticipantStopError, RemoteStrategy
 from spacecraft_autonomy_challenge.simulation import run
 
@@ -78,11 +79,14 @@ def _failed(status: str, detail: str) -> dict[str, Any]:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    """Entry point: evaluate the requested case, write the result file, and exit the process at once.
+    """Entry point: evaluate the requested case, kill the processes left, write the result file, and exit at once.
 
-    Exiting at once keeps threads or exit handlers from delaying or changing the outcome.
+    On Linux, this process is a child subreaper, so the processes left are all processes that the case started and
+    that are still running, including those that the participant process started (see `processes`). Exiting at once
+    keeps threads or exit handlers from delaying or changing the outcome.
     """
     (result_path,) = sys.argv[1:] if argv is None else argv
+    become_subreaper()
     request = json.loads(sys.stdin.read())
     # The runner captures the participant's output from the pipes on this process's descriptors 1 and 2. Keep them
     # for the participant process and point this process's own descriptors at the null device, so that what the
@@ -107,6 +111,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             "participant_cpu_s": None,
             "worker_error": "".join(traceback.format_exception(error)),
         }
+    kill_descendants(os.getpid())
     Path(result_path).write_text(json.dumps(result), encoding="utf-8")
     sys.__stdout__.flush()
     sys.__stderr__.flush()

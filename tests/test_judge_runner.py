@@ -1,7 +1,11 @@
+import contextlib
 import json
 import os
 import re
 import signal
+import subprocess
+import sys
+import threading
 import time
 from pathlib import Path
 
@@ -398,7 +402,110 @@ def test_a_helper_outside_the_session_holding_the_output_does_not_block(make_sub
         assert outcome.status is CaseStatus.COMPLETED
         assert outcome.duration_s < 15
     finally:
-        os.kill(int(outcome.stdout.split()[0]), signal.SIGKILL)
+        with contextlib.suppress(ProcessLookupError):  # already gone where the case kills its descendants
+            os.kill(int(outcome.stdout.split()[0]), signal.SIGKILL)
+
+
+ORPHAN_IN_NEW_SESSION = """
+import subprocess
+import sys
+
+SLEEPER = [sys.executable, "-c", "import time; time.sleep(60)"]
+DETACHED = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+STARTER = f"import subprocess; print(subprocess.Popen({SLEEPER!r}, start_new_session=True, **{DETACHED!r}).pid)"
+
+
+def start_orphan():
+    \"\"\"Start a process in a new session whose parent exits at once, and return its PID.\"\"\"
+    starter = subprocess.run([sys.executable, "-c", STARTER], capture_output=True, text=True, start_new_session=True)
+    return int(starter.stdout)
+"""
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux keeps the descendants of a case")
+@pytest.mark.parametrize(
+    ("ending", "status"),
+    [("complete", CaseStatus.COMPLETED), ("exit", CaseStatus.CRASHED), ("hang", CaseStatus.TIMEOUT)],
+)
+def test_orphans_in_new_sessions_are_killed_when_the_case_ends(make_submission, ending, status):
+    orphaning = f"""
+    import sys
+    import time
+
+    from orphans import start_orphan
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print(start_orphan(), flush=True)
+            if "{ending}" == "exit":
+                sys.exit(1)
+            if "{ending}" == "hang":
+                time.sleep(60)
+            commander.execute(DeclareCompletion())
+    """
+    submission = make_submission({"strategy.py": orphaning, "orphans.py": ORPHAN_IN_NEW_SESSION})
+    outcome = run_case(submission.root, CASES[0], PROVIDER, timeout_s=5.0)
+    assert outcome.status is status, outcome.detail
+    assert not process_is_running(int(outcome.stdout))
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux keeps the descendants of a case")
+def test_killing_the_descendants_of_a_case_spares_other_cases_and_the_caller(make_submission, tmp_path):
+    started, finished = tmp_path / "started", tmp_path / "finished"
+    waiting = f"""
+    import os
+    import time
+    from pathlib import Path
+
+    from orphans import start_orphan
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            orphan = start_orphan()
+            Path({str(started)!r}).touch()
+            deadline = time.monotonic() + 20.0
+            while not Path({str(finished)!r}).exists() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            os.kill(orphan, 0)
+            print(Path(f"/proc/{{orphan}}/stat").read_text().rsplit(")", 1)[1].split()[0])
+            commander.execute(DeclareCompletion())
+    """
+    quick = """
+    from orphans import start_orphan
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print(start_orphan(), flush=True)
+            commander.execute(DeclareCompletion())
+    """
+    slow_submission = make_submission({"strategy.py": waiting, "orphans.py": ORPHAN_IN_NEW_SESSION})
+    quick_submission = make_submission({"strategy.py": quick, "orphans.py": ORPHAN_IN_NEW_SESSION})
+    bystander = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        slow = []
+        thread = threading.Thread(target=lambda: slow.append(run_case(slow_submission.root, CASES[0], PROVIDER)))
+        thread.start()
+        deadline = time.monotonic() + 20.0
+        while not started.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert started.exists()
+        outcome = run_case(quick_submission.root, CASES[1], PROVIDER)
+        assert not process_is_running(int(outcome.stdout))
+        finished.touch()
+        thread.join(30.0)
+        (slow_outcome,) = slow
+        assert slow_outcome.status is CaseStatus.COMPLETED, slow_outcome.detail
+        assert slow_outcome.stdout == "S\n"
+        assert bystander.poll() is None
+    finally:
+        bystander.kill()
+        bystander.wait()
 
 
 def test_files_written_by_the_strategy_do_not_reach_later_cases(make_submission):
