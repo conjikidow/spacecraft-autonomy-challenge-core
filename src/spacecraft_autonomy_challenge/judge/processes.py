@@ -13,6 +13,7 @@ import os
 import signal
 import sys
 import time
+from collections.abc import Mapping
 from pathlib import Path
 
 _PR_SET_CHILD_SUBREAPER = 36
@@ -54,11 +55,12 @@ def _live_children() -> dict[int, list[tuple[int, bytes]]]:
     return children
 
 
-def _kill(pid: int, started: bytes) -> None:
-    """Kill process `pid` with `SIGKILL` if it is still the process that started at `started`.
+def _kill(pid: int, started: bytes, parents: Mapping[int, bytes]) -> None:
+    """Kill process `pid` with `SIGKILL` if it is still the process that started at `started`, and its parent is
+    still the process that `parents` maps its PID to the start time of.
 
-    The process is held by a pidfd while its start time is checked and while it is signalled, so that a PID that
-    another process reuses is never signalled. Without pidfds, a PID reused right after the check could still be.
+    The process is held by a pidfd while it is checked and while it is signalled, so that a PID that another process
+    reuses is never signalled. Without pidfds, a PID reused right after the check could still be.
     """
     try:
         pidfd = os.pidfd_open(pid)
@@ -68,7 +70,8 @@ def _kill(pid: int, started: bytes) -> None:
         pidfd = None
     try:
         stat = _stat(pid)
-        if stat is not None and stat[2] == started:
+        parent = None if stat is None else _stat(stat[1])
+        if stat is not None and parent is not None and stat[2] == started and parents.get(stat[1]) == parent[2]:
             if pidfd is None:
                 os.kill(pid, signal.SIGKILL)
             else:
@@ -83,12 +86,13 @@ def _kill(pid: int, started: bytes) -> None:
 def kill_descendants(pid: int) -> None:
     """Kill every descendant of process `pid` with `SIGKILL` until none is left running; nothing without `/proc`.
 
-    Each descendant is identified by its PID and start time, so a process that exits and whose PID is reused
-    meanwhile is not killed. A descendant whose parent was killed is reparented to `pid` if it is a subreaper, and
-    killed in the next round. Gives up after a few seconds.
+    Each descendant and its parent are identified by their PIDs and start times, so neither a process that reuses
+    the PID of a descendant meanwhile nor its children are killed. Children are killed before their parents, while
+    their parents are still the same. A child that a killed process started meanwhile is reparented to `pid` if it is
+    a subreaper, and killed in the next round. Gives up after a few seconds.
     """
     deadline = time.monotonic() + _KILL_DEADLINE_S
-    while True:
+    while (root := _stat(pid)) is not None:
         children = _live_children()
         found, pending = [], list(children.get(pid, ()))
         while pending:
@@ -97,6 +101,7 @@ def kill_descendants(pid: int) -> None:
             pending += children.get(descendant[0], ())
         if not found or time.monotonic() >= deadline:
             return
-        for descendant, started in found:
-            _kill(descendant, started)
+        parents = {pid: root[2], **dict(found)}
+        for descendant, started in reversed(found):
+            _kill(descendant, started, parents)
         time.sleep(_POLL_INTERVAL_S)
