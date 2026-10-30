@@ -27,8 +27,8 @@ class MyStrategy(Strategy):
    until the run ends.
 
 The `telemetry` passed to `update` is sampled before the commands that `update` registers execute.
-It reflects the state at that time after the previously scheduled commands,
-and the earliest telemetry that can show the effect of a registered command is the next call's.
+It reflects the state at that time after the previously scheduled commands.
+A registered command executes at its scheduled time, so the next call's telemetry is the earliest that can show its effect.
 See [Order of Events](simulation.md#order-of-events).
 
 Both callbacks are optional.
