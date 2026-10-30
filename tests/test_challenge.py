@@ -1,6 +1,6 @@
 import pytest
 
-from spacecraft_autonomy_challenge.challenge import problem, scenario, scenario_names
+from spacecraft_autonomy_challenge.challenge import TIME_LIMIT_S, problem, scenario, scenario_names
 from spacecraft_autonomy_challenge.commands import PropulsionMode
 from spacecraft_autonomy_challenge.modifiers import ThrusterEfficiency
 from spacecraft_autonomy_challenge.simulation import check_safety
@@ -23,6 +23,10 @@ def test_all_scenarios_share_the_challenge_problem():
         assert built.problem == problem()
         assert built.brief() == problem().brief()
         assert built.description
+
+
+def test_time_limit_is_the_named_constant():
+    assert problem().time_limit_s == TIME_LIMIT_S
 
 
 def test_initial_state_is_within_limits():

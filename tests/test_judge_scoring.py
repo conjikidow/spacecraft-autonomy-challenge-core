@@ -11,6 +11,7 @@ from spacecraft_autonomy_challenge.judge.scoring import (
     ZERO_SCORE,
     AccuracyParameters,
     CaseScore,
+    CompletionTimeParameters,
     CpuTimeParameters,
     DeclarationParameters,
     ScoreWeights,
@@ -20,7 +21,7 @@ from spacecraft_autonomy_challenge.judge.scoring import (
     suite_score,
 )
 
-DEFAULT_TOML = """\
+CONFIG_TOML = """\
 version = 1
 [accuracy]
 tolerance_fraction = 0.1
@@ -36,7 +37,7 @@ startup_allowance_s = 5.0
 per_decision_cycle_s = 0.1
 """
 
-CONFIG = ScoringConfig.from_toml(DEFAULT_TOML)
+CONFIG = ScoringConfig.from_toml(CONFIG_TOML)
 CPU_BUDGET_S = 5.0 + 0.1 * 21600.0 / 60.0
 """Budget of `metrics()`: start-up allowance plus 360 decision cycles."""
 
@@ -70,13 +71,28 @@ def outcome(run_metrics=None, *, status=CaseStatus.COMPLETED, cpu_s=CPU_BUDGET_S
 
 
 def test_default_config_is_the_shipped_file():
-    assert ScoringConfig.default() == CONFIG
-    assert CONFIG.accuracy == AccuracyParameters(tolerance_fraction=0.1)
-    assert CONFIG.declaration == DeclarationParameters(undeclared_factor=0.5)
-    assert CONFIG.weights == ScoreWeights(base=0.7, completion_time=0.15, battery_margin=0.1, cpu_time=0.05)
-    assert CONFIG.cpu_time == CpuTimeParameters(startup_allowance_s=5.0, per_decision_cycle_s=0.1)
+    default = ScoringConfig.default()
+    assert default.accuracy == AccuracyParameters(tolerance_fraction=0.075)
+    assert default.declaration == DeclarationParameters(undeclared_factor=0.5)
+    assert default.weights == ScoreWeights(base=0.65, completion_time=0.3, battery_margin=0.03, cpu_time=0.02)
+    assert default.cpu_time == CpuTimeParameters(startup_allowance_s=5.0, per_decision_cycle_s=0.1)
+    assert default.completion_time == CompletionTimeParameters(reference_time_s=10660.0)
     shipped = files("spacecraft_autonomy_challenge.judge").joinpath("scoring.toml").read_text(encoding="utf-8")
-    assert tomllib.loads(shipped) == CONFIG.to_dict()
+    assert tomllib.loads(shipped) == default.to_dict()
+
+
+def test_a_config_without_a_completion_time_section_has_no_reference_time():
+    assert CONFIG.completion_time == CompletionTimeParameters(reference_time_s=None)
+    assert "completion_time" not in CONFIG.to_dict()
+    assert CompletionTimeParameters().term(10800.0, 21600.0) == pytest.approx(0.5)
+
+
+def test_a_config_with_a_reference_time_round_trips():
+    config = ScoringConfig.from_toml(CONFIG_TOML + "[completion_time]\nreference_time_s = 10500.0\n")
+    assert config.completion_time.reference_time_s == 10500.0
+    data = config.to_dict()
+    assert list(data) == ["version", "accuracy", "declaration", "weights", "cpu_time", "completion_time"]
+    assert ScoringConfig.from_dict(json.loads(json.dumps(data))) == config
 
 
 def test_config_round_trips_through_dictionaries_json_and_files(tmp_path):
@@ -85,9 +101,9 @@ def test_config_round_trips_through_dictionaries_json_and_files(tmp_path):
     assert list(data) == ["version", "accuracy", "declaration", "weights", "cpu_time"]
     assert ScoringConfig.from_dict(json.loads(json.dumps(data))) == CONFIG
     path = tmp_path / "scoring.toml"
-    path.write_text(DEFAULT_TOML, encoding="utf-8")
+    path.write_text(CONFIG_TOML, encoding="utf-8")
     assert ScoringConfig.from_toml(path) == CONFIG
-    assert ScoringConfig.from_toml(DEFAULT_TOML.encode()) == CONFIG
+    assert ScoringConfig.from_toml(CONFIG_TOML.encode()) == CONFIG
 
 
 def test_a_missing_config_file_raises_file_not_found(tmp_path):
@@ -125,6 +141,12 @@ def _changed(change):
         (lambda d: d["weights"].update(base=0.75, cpu_time=-0.05), "weight cpu_time must not be negative"),
         (lambda d: d["cpu_time"].update(startup_allowance_s=0.0), "startup_allowance_s must be positive"),
         (lambda d: d["cpu_time"].update(per_decision_cycle_s=-1.0), "per_decision_cycle_s must be positive"),
+        (lambda d: d.update(completion_time={}), "missing keys in section completion_time: reference_time_s"),
+        (lambda d: d.update(completion_time={"reference_time_s": -1.0}), "reference_time_s must not be negative"),
+        (lambda d: d.update(completion_time={"reference_time_s": "1"}), "reference_time_s must be a finite number"),
+        (lambda d: d.update(completion_time={"reference_time_s": True}), "reference_time_s must be a finite number"),
+        (lambda d: d.update(completion_time={"reference_time_s": 1.0, "x": 1}), "unknown keys in section completion"),
+        (lambda d: d.update(completion_time=1.0), "section completion_time must be a table"),
     ],
 )
 def test_invalid_configs_are_rejected(change, message):
@@ -145,9 +167,9 @@ def test_weights_are_checked_with_a_small_tolerance():
     "text",
     [
         "version = ",
-        "version = 2\n" + DEFAULT_TOML.split("\n", 1)[1],
-        DEFAULT_TOML + "[extra]\nvalue = 1\n",
-        DEFAULT_TOML.replace("cpu_time = 0.05", "cpu_time = 0.05\ncpu = 0.0"),
+        "version = 2\n" + CONFIG_TOML.split("\n", 1)[1],
+        CONFIG_TOML + "[extra]\nvalue = 1\n",
+        CONFIG_TOML.replace("cpu_time = 0.05", "cpu_time = 0.05\ncpu = 0.0"),
         b"\xff",
         "[]",
     ],
@@ -250,6 +272,22 @@ def test_completion_time_term(declared_s, term):
 
 
 @pytest.mark.parametrize(
+    ("declared_s", "term"), [(0.0, 1.0), (10500.0, 1.0), (16050.0, 0.5), (21600.0, 0.0), (30000.0, 0.0)]
+)
+def test_completion_time_term_is_relative_to_the_reference_time(declared_s, term):
+    config = ScoringConfig.from_dict(CONFIG.to_dict() | {"completion_time": {"reference_time_s": 10500.0}})
+    run_metrics = metrics(end_time_s=declared_s, completion_declared_time_s=declared_s)
+    assert score_case(outcome(run_metrics), config).completion_time == pytest.approx(term)
+
+
+@pytest.mark.parametrize("reference_s", [21600.0, 30000.0])
+def test_a_reference_time_not_below_the_time_limit_measures_against_time_0(reference_s):
+    config = ScoringConfig.from_dict(CONFIG.to_dict() | {"completion_time": {"reference_time_s": reference_s}})
+    run_metrics = metrics(end_time_s=10800.0, completion_declared_time_s=10800.0)
+    assert score_case(outcome(run_metrics), config).completion_time == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
     ("min_battery_wh", "term"),
     [(20.0, 0.0), (15.0, 0.0), (60.0, 0.5), (100.0, 1.0), (120.0, 1.0)],
 )
@@ -347,7 +385,7 @@ def test_degenerate_metrics_give_no_credit_instead_of_failing(overrides, term):
 
 def test_integers_too_large_for_a_float_are_config_errors():
     with pytest.raises(ScoringConfigError, match="finite number"):
-        ScoringConfig.from_toml(DEFAULT_TOML.replace("tolerance_fraction = 0.1", "tolerance_fraction = 1" + "0" * 400))
+        ScoringConfig.from_toml(CONFIG_TOML.replace("tolerance_fraction = 0.1", "tolerance_fraction = 1" + "0" * 400))
 
 
 def test_weights_whose_sum_overflows_are_config_errors():

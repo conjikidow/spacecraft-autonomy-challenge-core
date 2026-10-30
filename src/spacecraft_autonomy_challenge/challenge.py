@@ -11,6 +11,9 @@ from spacecraft_autonomy_challenge.modifiers import ThrusterEfficiency
 from spacecraft_autonomy_challenge.problem import Problem
 from spacecraft_autonomy_challenge.scenario import Scenario
 
+TIME_LIMIT_S = 21320.0
+"""Time limit of the challenge problem."""
+
 
 def problem() -> Problem:
     """The challenge problem shared by all of its scenarios."""
@@ -46,7 +49,7 @@ def problem() -> Problem:
             max_abs_wheel_momentum_nms=5.0,
         ),
         target_delta_v_mps=10.0,
-        time_limit_s=21600.0,
+        time_limit_s=TIME_LIMIT_S,
         decision_period_s=60.0,
     )
 

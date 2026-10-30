@@ -3,7 +3,7 @@ version = 1
 
 [accuracy]
 # Absolute delta-v error, as a fraction of the target delta-v, at which the accuracy factor reaches 0.
-tolerance_fraction = 0.1
+tolerance_fraction = 0.075
 
 [declaration]
 # Declaration factor of a run that did not declare completion.
@@ -11,12 +11,16 @@ undeclared_factor = 0.5
 
 [weights]
 # Non-negative weights of the terms of the score, summing to 1.
-base = 0.70
-completion_time = 0.15
-battery_margin = 0.10
-cpu_time = 0.05
+base = 0.65
+completion_time = 0.30
+battery_margin = 0.03
+cpu_time = 0.02
 
 [cpu_time]
 # CPU time budget of the participant process: the allowance plus this much per decision cycle of the time limit.
 startup_allowance_s = 5.0
 per_decision_cycle_s = 0.1
+
+[completion_time]
+# Completion time at which the completion time term reaches 1; the term falls linearly to 0 at the time limit.
+reference_time_s = 10660.0
