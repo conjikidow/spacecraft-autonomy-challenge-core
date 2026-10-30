@@ -784,6 +784,22 @@ def test_an_interrupted_case_stops_its_processes(make_submission, monkeypatch):
         pytest.fail("processes of the interrupted case are still running")
 
 
+def test_the_process_group_is_killed_after_a_worker_that_was_already_reaped(make_submission, monkeypatch):
+    # Without `os.waitid`, as on macOS, the runner learns that the worker exited by reaping it.
+    monkeypatch.delattr(runner.os, "waitid", raising=False)
+    killed = []
+    original_killpg = runner.os.killpg
+
+    def killpg(pgid, sig):
+        killed.append(pgid)
+        original_killpg(pgid, sig)
+
+    monkeypatch.setattr(runner.os, "killpg", killpg)
+    outcome = run_case(make_submission({"strategy.py": DECLARE_AT_START}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED
+    assert len(killed) == 1
+
+
 def test_a_relative_overlay_path_is_resolved_against_the_caller(make_submission, tmp_path, monkeypatch):
     (tmp_path / "overlay").mkdir()
     (tmp_path / "overlay" / "participant_only.py").write_text("VALUE = 42\n")
