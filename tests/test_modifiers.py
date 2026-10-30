@@ -26,11 +26,12 @@ def test_base_modifier_changes_nothing(parameters, make_state):
 
 
 def test_nominal_telemetry_is_a_separate_type_with_true_values(make_state):
-    state = make_state(delta_v_mps=1.5, wheel_momentum_nms=-0.3)
+    state = make_state(delta_v_mps=1.5, wheel_momentum_nms=-0.3, momentum_dump_on=True)
     telemetry = nominal_telemetry(state)
     assert type(telemetry) is Telemetry
     assert not isinstance(telemetry, SpacecraftState)
     assert (telemetry.delta_v_mps, telemetry.wheel_momentum_nms) == (1.5, -0.3)
+    assert telemetry.momentum_dump_on is True
 
 
 def test_thruster_efficiency_applies_from_onset_to_one_thruster_only(parameters, make_state):
@@ -106,7 +107,7 @@ def test_telemetry_bias_changes_observation_but_not_true_state(make_state):
     assert state.propulsion_temperature_c == 20.0
 
 
-@pytest.mark.parametrize("channel", ["time_s", "heater_on", "propulsion_mode", "fuel"])
+@pytest.mark.parametrize("channel", ["time_s", "heater_on", "propulsion_mode", "momentum_dump_on", "fuel"])
 def test_telemetry_bias_rejects_unknown_or_non_numeric_channel(channel):
     with pytest.raises(ValueError, match="channel"):
         TelemetryBias(channel, 1.0)

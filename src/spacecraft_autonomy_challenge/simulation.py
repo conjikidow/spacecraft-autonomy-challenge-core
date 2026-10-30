@@ -27,10 +27,11 @@ from spacecraft_autonomy_challenge.commands import (
     CommandError,
     DeclareCompletion,
     SetHeater,
+    SetMomentumDump,
     SetPropulsionMode,
 )
 from spacecraft_autonomy_challenge.config import SimulationConfig
-from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftState, integrate
+from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftState, add_momentum_dump, integrate
 from spacecraft_autonomy_challenge.modifiers import effective_parameters, effective_rates, observe
 from spacecraft_autonomy_challenge.results import RunResult, SafetyViolation, Termination, TerminationReason
 from spacecraft_autonomy_challenge.scenario import Scenario
@@ -239,6 +240,7 @@ class Simulation:
         state = self._state
         parameters = effective_parameters(self._problem.parameters, state, self.scenario.modifiers, self._rng)
         rates = effective_rates(state, parameters, self.scenario.modifiers, self._rng)
+        rates = add_momentum_dump(state, rates, time_s - state.time_s, parameters)
         state = integrate(state, rates, time_s - state.time_s, parameters)
         self._state = replace(state, time_s=time_s)
         self._trajectory.append(self._state)
@@ -257,6 +259,8 @@ class Simulation:
                     self._state = replace(self._state, propulsion_mode=mode)
                 case SetHeater(on=on):
                     self._state = replace(self._state, heater_on=on)
+                case SetMomentumDump(on=on):
+                    self._state = replace(self._state, momentum_dump_on=on)
                 case DeclareCompletion():
                     self._terminate(TerminationReason.COMPLETION_DECLARED)
 

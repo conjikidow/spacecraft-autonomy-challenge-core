@@ -19,3 +19,4 @@ class Telemetry:
     wheel_momentum_nms: float
     heater_on: bool
     propulsion_mode: PropulsionMode
+    momentum_dump_on: bool

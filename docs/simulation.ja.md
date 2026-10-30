@@ -68,7 +68,8 @@ print(result.termination.reason, result.final_state.delta_v_mps)
 
 シミュレーションは，各イベント時刻 `t` で次の処理を行います。
 
-1. `Modifier` の `modify_parameters` フックと `modify_rates` フックを適用しながら，真の状態を `t` まで積分します。
+1. `Modifier` の `modify_parameters` フックと `modify_rates` フック，続いて角運動量ダンプを適用しながら，
+   真の状態を `t` まで積分します。
 2. 真の状態が安全制約を満たしているかを検査し，違反があればシミュレーションを終了します。
 3. `t` にスケジュールされた実行待ちのコマンドをタイムラインの順に実行し，`DeclareCompletion` が実行されたらシミュレーションを終了します。
 4. 判断時刻であれば，`Modifier` の `modify_telemetry` フックを通してテレメトリを取得し，

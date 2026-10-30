@@ -70,7 +70,7 @@ so floating-point error in multiples such as `3 * 0.1` does not skip a decision.
 
 At every event time `t` the simulation:
 
-1. Integrates the true state up to `t`, applying the modifiers' parameter and rate hooks.
+1. Integrates the true state up to `t`, applying the modifiers' parameter and rate hooks and then the momentum dump.
 2. Checks the safety limits against the true state; a violation ends the run.
 3. Executes pending commands due at `t` in timeline order; `DeclareCompletion` ends the run.
 4. At a decision time, samples telemetry through the modifiers' telemetry hooks, calls `update`,

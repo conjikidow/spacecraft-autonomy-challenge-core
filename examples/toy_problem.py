@@ -27,6 +27,9 @@ def toy_scenario() -> Scenario:
             thruster_2=ThrusterParameters(
                 acceleration_mps2=0.01, power_w=1.0, heat_w=1.0, wheel_momentum_rate_nms_per_s=-0.001
             ),
+            momentum_dump_rate_nms_per_s=0.01,
+            momentum_dump_power_w=1.0,
+            momentum_dump_heat_w=1.0,
             power_generation_w=10.0,
             bus_load_w=1.0,
             heater_power_w=1.0,
@@ -44,6 +47,7 @@ def toy_scenario() -> Scenario:
             wheel_momentum_nms=0.0,
             heater_on=False,
             propulsion_mode=PropulsionMode.OFF,
+            momentum_dump_on=False,
         ),
         limits=SafetyLimits(
             max_propulsion_temperature_c=200.0,

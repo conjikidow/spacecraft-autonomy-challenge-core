@@ -11,6 +11,7 @@ from spacecraft_autonomy_challenge.commands import (
     DeclareCompletion,
     PropulsionMode,
     SetHeater,
+    SetMomentumDump,
     SetPropulsionMode,
 )
 from spacecraft_autonomy_challenge.model import SafetyLimits, SpacecraftParameters, ThrusterParameters
@@ -30,6 +31,7 @@ __all__ = [
     "SafetyLimits",
     "ScheduledCommand",
     "SetHeater",
+    "SetMomentumDump",
     "SetPropulsionMode",
     "SpacecraftParameters",
     "Strategy",

@@ -5,11 +5,14 @@ seconds (`_s`), meters per second (`_mps`), meters per second squared (`_mps2`),
 watts (`_w`), watt-hours (`_wh`), joules per kelvin (`_j_per_k`), and newton-meter-seconds (`_nms`).
 """
 
+import math
 from dataclasses import dataclass, replace
 
 from spacecraft_autonomy_challenge.commands import PropulsionMode
 
 SECONDS_PER_HOUR = 3600.0
+WHEEL_MOMENTUM_ZERO_NMS = 1e-9
+"""Wheel momentum at or below which, in magnitude, the momentum dump counts it as zero."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +35,12 @@ class SpacecraftParameters:
 
     thruster_1: ThrusterParameters
     thruster_2: ThrusterParameters
+    momentum_dump_rate_nms_per_s: float
+    """Rate at which the momentum dump moves the wheel momentum toward zero."""
+    momentum_dump_power_w: float
+    """Electrical load of the momentum dump at its full rate."""
+    momentum_dump_heat_w: float
+    """Heat delivered to the propulsion thermal node by the momentum dump at its full rate."""
     power_generation_w: float
     bus_load_w: float
     heater_power_w: float
@@ -52,6 +61,8 @@ class SpacecraftParameters:
             raise ValueError("heat_capacity_j_per_k must be positive")
         if self.thermal_conductance_w_per_k < 0:
             raise ValueError("thermal_conductance_w_per_k must not be negative")
+        if self.momentum_dump_rate_nms_per_s < 0:
+            raise ValueError("momentum_dump_rate_nms_per_s must not be negative")
 
     def thruster(self, mode: PropulsionMode) -> ThrusterParameters | None:
         """Parameters of the thruster selected by `mode`, or `None` when propulsion is off."""
@@ -88,6 +99,7 @@ class SpacecraftState:
     wheel_momentum_nms: float
     heater_on: bool
     propulsion_mode: PropulsionMode
+    momentum_dump_on: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,13 +113,14 @@ class StateRates:
 
 
 def compute_rates(state: SpacecraftState, parameters: SpacecraftParameters) -> StateRates:
-    """Nominal state rates for the current state and effective parameters.
+    """Nominal state rates for the current state and effective parameters, without the momentum dump.
 
-    The selected thruster fires only while the propulsion temperature is at or above
-    `parameters.min_firing_temperature_c`; below it, the thruster contributes nothing.
+    The selected thruster fires only while the momentum dump is off and the propulsion temperature is at or above
+    `parameters.min_firing_temperature_c`; otherwise, the thruster contributes nothing.
+    The momentum dump itself is added by `add_momentum_dump`.
     """
     thruster = parameters.thruster(state.propulsion_mode)
-    if state.propulsion_temperature_c < parameters.min_firing_temperature_c:
+    if state.momentum_dump_on or state.propulsion_temperature_c < parameters.min_firing_temperature_c:
         thruster = None
     heater_power_w = parameters.heater_power_w if state.heater_on else 0.0
     thruster_power_w = thruster.power_w if thruster else 0.0
@@ -127,6 +140,34 @@ def compute_rates(state: SpacecraftState, parameters: SpacecraftParameters) -> S
     )
 
 
+def add_momentum_dump(
+    state: SpacecraftState,
+    rates: StateRates,
+    duration_s: float,
+    parameters: SpacecraftParameters,
+) -> StateRates:
+    """Add the momentum dump to `rates` for a step of `duration_s`, if the dump is on.
+
+    The dump's wheel-momentum rate is the one, at most `parameters.momentum_dump_rate_nms_per_s` in magnitude,
+    that brings the wheel momentum closest to zero at the end of the step, together with the wheel-momentum rate
+    already in `rates`. Its electrical load and heat are those of the parameters, scaled by the fraction of the
+    full rate that it uses.
+    """
+    full_rate = parameters.momentum_dump_rate_nms_per_s
+    if not state.momentum_dump_on or duration_s <= 0 or full_rate <= 0:
+        return rates
+    needed = -(state.wheel_momentum_nms + rates.wheel_momentum_rate_nms_per_s * duration_s) / duration_s
+    dump_rate = min(full_rate, max(-full_rate, needed))
+    fraction = abs(dump_rate) / full_rate
+    return replace(
+        rates,
+        temperature_rate_c_per_s=rates.temperature_rate_c_per_s
+        + parameters.momentum_dump_heat_w * fraction / parameters.heat_capacity_j_per_k,
+        net_power_w=rates.net_power_w - parameters.momentum_dump_power_w * fraction,
+        wheel_momentum_rate_nms_per_s=rates.wheel_momentum_rate_nms_per_s + dump_rate,
+    )
+
+
 def integrate(
     state: SpacecraftState,
     rates: StateRates,
@@ -137,13 +178,20 @@ def integrate(
 
     Battery energy above the capacity is discarded. Energy is not clamped at zero,
     so depletion remains visible to the safety checks.
+    If the momentum dump is on and the wheel momentum ends the step at zero, within `WHEEL_MOMENTUM_ZERO_NMS`,
+    the wheel momentum is set to exactly zero and the dump switches itself off.
     """
     battery_energy_wh = state.battery_energy_wh + rates.net_power_w * duration_s / SECONDS_PER_HOUR
+    wheel_momentum_nms = state.wheel_momentum_nms + rates.wheel_momentum_rate_nms_per_s * duration_s
+    momentum_dump_on = state.momentum_dump_on
+    if momentum_dump_on and math.isclose(wheel_momentum_nms, 0.0, abs_tol=WHEEL_MOMENTUM_ZERO_NMS):
+        wheel_momentum_nms, momentum_dump_on = 0.0, False
     return replace(
         state,
         time_s=state.time_s + duration_s,
         delta_v_mps=state.delta_v_mps + rates.delta_v_rate_mps2 * duration_s,
         propulsion_temperature_c=state.propulsion_temperature_c + rates.temperature_rate_c_per_s * duration_s,
         battery_energy_wh=min(battery_energy_wh, parameters.battery_capacity_wh),
-        wheel_momentum_nms=state.wheel_momentum_nms + rates.wheel_momentum_rate_nms_per_s * duration_s,
+        wheel_momentum_nms=wheel_momentum_nms,
+        momentum_dump_on=momentum_dump_on,
     )

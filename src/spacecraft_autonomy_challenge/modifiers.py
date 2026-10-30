@@ -78,6 +78,7 @@ def nominal_telemetry(state: SpacecraftState) -> Telemetry:
         wheel_momentum_nms=state.wheel_momentum_nms,
         heater_on=state.heater_on,
         propulsion_mode=state.propulsion_mode,
+        momentum_dump_on=state.momentum_dump_on,
     )
 
 

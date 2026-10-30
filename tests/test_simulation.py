@@ -9,6 +9,7 @@ from spacecraft_autonomy_challenge.commands import (
     DeclareCompletion,
     PropulsionMode,
     SetHeater,
+    SetMomentumDump,
     SetPropulsionMode,
 )
 from spacecraft_autonomy_challenge.config import SimulationConfig
@@ -396,3 +397,38 @@ def test_simulation_config_is_validated_defaulted_and_recorded(make_scenario):
     assert run(Strategy(), make_scenario(time_limit_s=60.0)).config == SimulationConfig()
     config = SimulationConfig(integration_step_s=5.0)
     assert run(Strategy(), make_scenario(time_limit_s=60.0), config=config).config is config
+
+
+def test_momentum_dump_inhibits_thrust_and_switches_itself_off_at_zero(make_scenario):
+    strategy = Scripted(schedule_all((0.0, FIRE_1), (100.0, SetMomentumDump(on=True)), (300.0, OFF)))
+    result = run(strategy, make_scenario())
+    at = {state.time_s: state for state in result.trajectory}
+    assert at[100.0].wheel_momentum_nms == pytest.approx(1.0)
+    assert at[120.0].momentum_dump_on is True
+    assert at[120.0].delta_v_mps == pytest.approx(at[100.0].delta_v_mps)
+    assert at[120.0].wheel_momentum_nms == pytest.approx(0.6)
+    assert at[150.0].wheel_momentum_nms == 0.0
+    assert at[150.0].momentum_dump_on is False
+    assert at[150.0].propulsion_mode is PropulsionMode.THRUSTER_1
+    assert result.final_state.delta_v_mps == pytest.approx(250.0 * ACCELERATION_MPS2)
+    assert result.final_state.wheel_momentum_nms == pytest.approx(1.5)
+    readings = {telemetry.time_s: telemetry.momentum_dump_on for telemetry in result.telemetry}
+    assert (readings[60.0], readings[120.0], readings[180.0]) == (False, True, False)
+
+
+def test_momentum_dump_can_be_switched_off_before_zero(make_scenario):
+    strategy = Scripted(
+        schedule_all((0.0, FIRE_1), (100.0, SetMomentumDump(on=True)), (110.0, SetMomentumDump(on=False)))
+    )
+    result = run(strategy, make_scenario(time_limit_s=110.0))
+    assert result.final_state.wheel_momentum_nms == pytest.approx(0.8)
+    assert result.final_state.momentum_dump_on is False
+    assert result.final_state.delta_v_mps == pytest.approx(100.0 * ACCELERATION_MPS2)
+
+
+def test_momentum_dump_draws_power(make_scenario, make_state):
+    start = make_state(wheel_momentum_nms=1.0)
+    strategy = Scripted(schedule_all((0.0, SetMomentumDump(on=True))))
+    result = run(strategy, make_scenario(initial_state=start, time_limit_s=36.0))
+    assert result.final_state.battery_energy_wh == pytest.approx(50.0 + (60.0 - 40.0 - 20.0) * 36.0 / 3600.0)
+    assert result.final_state.wheel_momentum_nms == pytest.approx(1.0 - 0.02 * 36.0)

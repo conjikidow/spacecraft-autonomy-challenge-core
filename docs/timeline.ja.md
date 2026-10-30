@@ -10,12 +10,17 @@
 |---|---|
 | `SetPropulsionMode(mode)` | 推進モードを `PropulsionMode.OFF`，`THRUSTER_1`，`THRUSTER_2` のいずれかに切り替える |
 | `SetHeater(on)` | 推進系のヒータをオン（`True`）またはオフ（`False`）にする |
+| `SetMomentumDump(on)` | 角運動量ダンプをオン（`True`）またはオフ（`False`）にする |
 | `DeclareCompletion()` | 戦略がマヌーバを完了したとみなしたことを宣言し，シミュレーションを終了させる。成功を意味するものではない |
 
 推進モードは排他的で，一方のスラスタを選ぶともう一方は暗黙のうちに停止するため，2つのスラスタが同時に噴射することはありません。
+角運動量ダンプがオンの間は，推進モードにかかわらず，どちらのスラスタも噴射しません。
+角運動量ダンプは，ホイール角運動量が0になると自らオフになります。
+詳しくは[宇宙機モデル](spacecraft-model.ja.md#角運動量ダンプ)を参照してください。
 
 コマンドは，作成後に変更できないデータクラスです。
 `SetPropulsionMode` には `"THRUSTER_1"` のようなモード名も渡せます。
+`SetHeater` と `SetMomentumDump` は `bool` を取ります。
 不正な値を渡すと，`ValueError` のサブクラスである `CommandError` が送出されます。
 
 ## タイムライン

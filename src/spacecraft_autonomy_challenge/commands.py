@@ -42,6 +42,21 @@ class SetHeater:
 
 
 @dataclass(frozen=True, slots=True)
+class SetMomentumDump:
+    """Switch the momentum dump on or off.
+
+    While it is on, the main thrusters do not fire and the wheel momentum moves toward zero.
+    The dump switches itself off when the wheel momentum reaches zero.
+    """
+
+    on: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.on, bool):
+            raise CommandError(f"momentum dump state must be a bool, got {self.on!r}")
+
+
+@dataclass(frozen=True, slots=True)
 class DeclareCompletion:
     """Declare that the strategy considers the maneuver complete.
 
@@ -49,4 +64,4 @@ class DeclareCompletion:
     """
 
 
-Command = SetPropulsionMode | SetHeater | DeclareCompletion
+Command = SetPropulsionMode | SetHeater | SetMomentumDump | DeclareCompletion

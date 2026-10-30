@@ -26,6 +26,9 @@ nominal = scenario("nominal")
 | Thruster power | 30 W (both thrusters) |
 | Thruster heat | 40 W (both thrusters) |
 | Wheel-momentum rate | +0.002 Nms/s (`THRUSTER_1`), −0.002 Nms/s (`THRUSTER_2`) |
+| Momentum dump rate | 0.005 Nms/s |
+| Momentum dump power | 30 W |
+| Momentum dump heat | 12 W |
 | Power generation | 60 W |
 | Bus load | 40 W |
 | Heater power | 10 W |
@@ -40,7 +43,7 @@ nominal = scenario("nominal")
 | Initial temperature | 20 °C |
 | Initial battery energy | 80 Wh |
 | Initial delta-v and wheel momentum | 0 |
-| Initial heater and propulsion | off |
+| Initial heater, propulsion, and momentum dump | off |
 
 ## Scenarios
 
