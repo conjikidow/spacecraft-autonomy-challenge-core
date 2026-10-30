@@ -16,6 +16,7 @@ This page describes the command types in `spacecraft_autonomy_challenge.commands
 The propulsion mode is exclusive: selecting one thruster implicitly stops the other,
 so both thrusters never fire at the same time.
 While the momentum dump is on, neither thruster fires, whatever the propulsion mode.
+`SetPropulsionMode` changes only the propulsion mode, and `SetMomentumDump` changes only the momentum dump state.
 The momentum dump switches itself off when the wheel momentum reaches zero;
 see [Spacecraft Model](spacecraft-model.md#momentum-dump).
 
