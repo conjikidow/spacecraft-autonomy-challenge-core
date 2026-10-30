@@ -1,6 +1,6 @@
 [project]
 name = "spacecraft-autonomy-challenge-core"
-version = "2.0.0"
+version = "2.0.1"
 description = "Participant API, reference simulator, and evaluation tools for the Spacecraft Autonomy Challenge"
 readme = "README.md"
 requires-python = ">=3.12"
