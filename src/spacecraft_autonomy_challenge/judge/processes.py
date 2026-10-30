@@ -8,7 +8,6 @@ the kernel refuses to make the worker a subreaper, a process whose parent exits 
 so only the process group of the worker can still stop it.
 """
 
-import contextlib
 import ctypes
 import os
 import signal
@@ -31,30 +30,62 @@ def become_subreaper() -> bool:
         return False
 
 
-def _live_children() -> dict[int, list[int]]:
-    """PIDs of the processes that have not exited, by the PID of their parent; empty without `/proc`."""
-    children: dict[int, list[int]] = {}
+def _stat(pid: int | str) -> tuple[bytes, int, bytes] | None:
+    """State, parent PID, and start time of a process, from `/proc`; `None` if it is gone."""
     try:
-        entries = [entry for entry in Path("/proc").iterdir() if entry.name.isdigit()]
+        # The command name in parentheses may contain anything, so split after its last parenthesis.
+        fields = Path(f"/proc/{pid}/stat").read_bytes().rsplit(b")", 1)[1].split()
+        return fields[0], int(fields[1]), fields[19]
+    except (OSError, IndexError, ValueError):
+        return None
+
+
+def _live_children() -> dict[int, list[tuple[int, bytes]]]:
+    """PIDs and start times of the processes that have not exited, by the PID of their parent; empty without `/proc`."""
+    children: dict[int, list[tuple[int, bytes]]] = {}
+    try:
+        entries = [entry.name for entry in Path("/proc").iterdir() if entry.name.isdigit()]
     except OSError:
         return children
     for entry in entries:
-        try:
-            # The command name in parentheses may contain anything, so split after its last parenthesis.
-            state, parent = (entry / "stat").read_bytes().rsplit(b")", 1)[1].split()[:2]
-        except (OSError, IndexError, ValueError):  # gone meanwhile
-            continue
-        if state not in (b"Z", b"X"):
-            children.setdefault(int(parent), []).append(int(entry.name))
+        stat = _stat(entry)
+        if stat is not None and stat[0] not in (b"Z", b"X"):
+            children.setdefault(stat[1], []).append((int(entry), stat[2]))
     return children
+
+
+def _kill(pid: int, started: bytes) -> None:
+    """Kill process `pid` with `SIGKILL` if it is still the process that started at `started`.
+
+    The process is held by a pidfd while its start time is checked and while it is signalled, so that a PID that
+    another process reuses is never signalled. Without pidfds, a PID reused right after the check could still be.
+    """
+    try:
+        pidfd = os.pidfd_open(pid)
+    except ProcessLookupError:
+        return
+    except (AttributeError, OSError):
+        pidfd = None
+    try:
+        stat = _stat(pid)
+        if stat is not None and stat[2] == started:
+            if pidfd is None:
+                os.kill(pid, signal.SIGKILL)
+            else:
+                signal.pidfd_send_signal(pidfd, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    finally:
+        if pidfd is not None:
+            os.close(pidfd)
 
 
 def kill_descendants(pid: int) -> None:
     """Kill every descendant of process `pid` with `SIGKILL` until none is left running; nothing without `/proc`.
 
-    `pid` must not reap its children meanwhile, because it is stopped or is the calling process, so that its
-    children that were killed stay zombies and their PIDs cannot be reused. A descendant whose parent was killed is
-    then reparented to `pid` if it is a subreaper, and killed in the next round. Gives up after a few seconds.
+    Each descendant is identified by its PID and start time, so a process that exits and whose PID is reused
+    meanwhile is not killed. A descendant whose parent was killed is reparented to `pid` if it is a subreaper, and
+    killed in the next round. Gives up after a few seconds.
     """
     deadline = time.monotonic() + _KILL_DEADLINE_S
     while True:
@@ -63,11 +94,9 @@ def kill_descendants(pid: int) -> None:
         while pending:
             descendant = pending.pop()
             found.append(descendant)
-            pending += children.get(descendant, ())
+            pending += children.get(descendant[0], ())
         if not found or time.monotonic() >= deadline:
             return
-        # Parents first, so that a parent is being killed before its child exits and could be reaped by it.
-        for descendant in found:
-            with contextlib.suppress(ProcessLookupError):
-                os.kill(descendant, signal.SIGKILL)
+        for descendant, started in found:
+            _kill(descendant, started)
         time.sleep(_POLL_INTERVAL_S)

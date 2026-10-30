@@ -199,9 +199,9 @@ def _wait_until_stopped(process: subprocess.Popen[bytes]) -> None:
 def _kill_case_processes(process: subprocess.Popen[bytes]) -> None:
     """Stop the worker and every process of its case, before the worker is reaped.
 
-    A worker that has not been reaped is stopped first, so that it reaps no children while its descendants are
-    killed (see `processes`). Then the worker and every process remaining in its process group are killed, which
-    is all that is stopped on platforms without `/proc`.
+    A worker that has not been reaped is stopped first, so that it neither starts nor reaps processes while its
+    descendants are killed (see `processes`). Then the worker and every process remaining in its process group are
+    killed, which is all that is stopped on platforms without `/proc`.
     """
     try:
         if os.name == "posix":
