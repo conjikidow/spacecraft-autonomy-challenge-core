@@ -53,6 +53,6 @@ nominal = scenario("nominal")
 ### `thruster-degradation`
 
 `nominal` に，`ThrusterEfficiency(THRUSTER_1, factor=0.8, onset_time_s=3600.0)` という `Modifier` を1つだけ加えたシナリオです。
-3600秒以降，`THRUSTER_1` は公称の80%の加速度しか出せなくなります。
-消費電力，発熱，ホイール角運動量変化率は変わりません。
+3600秒以降，`THRUSTER_1` の加速度とホイール角運動量変化率は公称の80%になります。
+消費電力と発熱は変わりません。
 `MissionBrief` には公称パラメータがそのまま含まれるため，戦略がこの変化に気付く手段はテレメトリしかありません。

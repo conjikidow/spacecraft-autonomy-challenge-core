@@ -4,11 +4,12 @@ from dataclasses import replace
 import pytest
 
 from spacecraft_autonomy_challenge.commands import PropulsionMode
-from spacecraft_autonomy_challenge.model import SpacecraftState, StateRates
+from spacecraft_autonomy_challenge.model import SpacecraftState, StateRates, compute_rates
 from spacecraft_autonomy_challenge.modifiers import (
     Modifier,
     TelemetryBias,
     ThrusterEfficiency,
+    ThrusterFlow,
     effective_parameters,
     effective_rates,
     nominal_telemetry,
@@ -39,8 +40,38 @@ def test_thruster_efficiency_applies_from_onset_to_one_thruster_only(parameters,
     after = effective_parameters(parameters, make_state(time_s=100.0), [modifier], rng)
     assert before == parameters
     assert after.thruster_1.acceleration_mps2 == pytest.approx(parameters.thruster_1.acceleration_mps2 / 2)
+    assert after.thruster_1.wheel_momentum_rate_nms_per_s == pytest.approx(
+        parameters.thruster_1.wheel_momentum_rate_nms_per_s / 2
+    )
     assert after.thruster_1.power_w == parameters.thruster_1.power_w
+    assert after.thruster_1.heat_w == parameters.thruster_1.heat_w
     assert after.thruster_2 == parameters.thruster_2
+    assert replace(after, thruster_1=parameters.thruster_1) == parameters
+
+
+def test_thruster_flow_applies_from_onset_to_one_thruster_only(parameters, make_state):
+    modifier = ThrusterFlow(PropulsionMode.THRUSTER_2, factor=0.25, onset_time_s=100.0)
+    rng = random.Random(0)
+    before = effective_parameters(parameters, make_state(time_s=99.0), [modifier], rng)
+    after = effective_parameters(parameters, make_state(time_s=100.0), [modifier], rng)
+    nominal = parameters.thruster_2
+    assert before == parameters
+    assert after.thruster_2.acceleration_mps2 == pytest.approx(nominal.acceleration_mps2 / 4)
+    assert after.thruster_2.wheel_momentum_rate_nms_per_s == pytest.approx(nominal.wheel_momentum_rate_nms_per_s / 4)
+    assert after.thruster_2.heat_w == pytest.approx(nominal.heat_w / 4)
+    assert after.thruster_2.power_w == nominal.power_w
+    assert replace(after, thruster_2=nominal) == parameters
+
+
+def test_thruster_flow_of_zero_is_a_complete_failure_that_still_draws_power(parameters, make_state):
+    failed = effective_parameters(parameters, make_state(), [ThrusterFlow("THRUSTER_1", factor=0.0)], random.Random(0))
+    firing = make_state(propulsion_mode=PropulsionMode.THRUSTER_1)
+    rates = compute_rates(firing, failed)
+    off = compute_rates(make_state(), failed)
+    assert rates.delta_v_rate_mps2 == 0.0
+    assert rates.wheel_momentum_rate_nms_per_s == 0.0
+    assert rates.temperature_rate_c_per_s == off.temperature_rate_c_per_s
+    assert rates.net_power_w == off.net_power_w - parameters.thruster_1.power_w
 
 
 def test_thruster_efficiency_accepts_mode_names(parameters, make_state):
@@ -50,15 +81,22 @@ def test_thruster_efficiency_accepts_mode_names(parameters, make_state):
     assert after.thruster_2 == parameters.thruster_2
 
 
+@pytest.mark.parametrize("modifier_type", [ThrusterEfficiency, ThrusterFlow])
 @pytest.mark.parametrize(("thruster", "factor"), [(PropulsionMode.OFF, 0.5), ("OFF", 0.5), ("bogus", 0.5)])
-def test_thruster_efficiency_rejects_invalid_thruster(thruster, factor):
+def test_thruster_modifiers_reject_invalid_thruster(modifier_type, thruster, factor):
     with pytest.raises(ValueError, match=r"THRUSTER|bogus"):
-        ThrusterEfficiency(thruster, factor=factor)
+        modifier_type(thruster, factor=factor)
 
 
-def test_thruster_efficiency_rejects_negative_factor():
+@pytest.mark.parametrize("modifier_type", [ThrusterEfficiency, ThrusterFlow])
+def test_thruster_modifiers_reject_negative_factor(modifier_type):
     with pytest.raises(ValueError, match="factor"):
-        ThrusterEfficiency(PropulsionMode.THRUSTER_2, factor=-0.1)
+        modifier_type(PropulsionMode.THRUSTER_2, factor=-0.1)
+
+
+def test_thruster_modifiers_of_different_types_differ():
+    assert ThrusterEfficiency("THRUSTER_1", 0.5) != ThrusterFlow("THRUSTER_1", 0.5)
+    assert repr(ThrusterFlow("THRUSTER_1", 0.5)).startswith("ThrusterFlow(")
 
 
 def test_telemetry_bias_changes_observation_but_not_true_state(make_state):

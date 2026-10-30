@@ -90,12 +90,13 @@ def observe(state: SpacecraftState, modifiers: Sequence[Modifier], rng: random.R
 
 
 @dataclass(frozen=True)
-class ThrusterEfficiency(Modifier):
-    """Scale one thruster's acceleration by `factor` from `onset_time_s` onward."""
+class _ThrusterScaling(Modifier):
+    """Scale some parameters of one thruster by `factor` from `onset_time_s` onward."""
 
     thruster: PropulsionMode
     factor: float
     onset_time_s: float = 0.0
+    _SCALED_PARAMETERS: typing.ClassVar[tuple[str, ...]] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "thruster", PropulsionMode(self.thruster))
@@ -114,8 +115,31 @@ class ThrusterEfficiency(Modifier):
             return parameters
         name = "thruster_1" if self.thruster is PropulsionMode.THRUSTER_1 else "thruster_2"
         thruster = getattr(parameters, name)
-        degraded = replace(thruster, acceleration_mps2=thruster.acceleration_mps2 * self.factor)
+        degraded = replace(
+            thruster, **{field: getattr(thruster, field) * self.factor for field in self._SCALED_PARAMETERS}
+        )
         return replace(parameters, **{name: degraded})
+
+
+@dataclass(frozen=True)
+class ThrusterEfficiency(_ThrusterScaling):
+    """Lower one thruster's efficiency from `onset_time_s` onward.
+
+    Its acceleration and its wheel-momentum rate are scaled by `factor`; its electrical load and heat are unchanged.
+    """
+
+    _SCALED_PARAMETERS = ("acceleration_mps2", "wheel_momentum_rate_nms_per_s")
+
+
+@dataclass(frozen=True)
+class ThrusterFlow(_ThrusterScaling):
+    """Reduce one thruster's propellant flow from `onset_time_s` onward.
+
+    Its acceleration, its wheel-momentum rate, and its heat are scaled by `factor`; its electrical load is unchanged.
+    A factor of 0 is a thruster that produces no thrust, torque, or heat but still draws its electrical load.
+    """
+
+    _SCALED_PARAMETERS = ("acceleration_mps2", "wheel_momentum_rate_nms_per_s", "heat_w")
 
 
 BIASABLE_TELEMETRY_CHANNELS = frozenset(

@@ -110,5 +110,12 @@ Built-in modifiers:
 
 | Modifier | Effect |
 |---|---|
-| `ThrusterEfficiency(thruster, factor, onset_time_s=0.0)` | Scales one thruster's acceleration by `factor` from `onset_time_s` onward |
+| `ThrusterEfficiency(thruster, factor, onset_time_s=0.0)` | From `onset_time_s` onward, scales one thruster's acceleration and wheel-momentum rate by `factor`; its electrical load and heat are unchanged |
+| `ThrusterFlow(thruster, factor, onset_time_s=0.0)` | From `onset_time_s` onward, scales one thruster's acceleration, wheel-momentum rate, and heat by `factor`; its electrical load is unchanged |
 | `TelemetryBias(channel, bias)` | Adds a constant to one numeric telemetry channel |
+
+`ThrusterEfficiency` models a thruster that fires at a lower efficiency,
+and `ThrusterFlow` a thruster with a reduced propellant flow.
+With `factor=0`, a thruster under `ThrusterFlow` produces no acceleration, wheel-momentum rate, or heat,
+but still draws its electrical load while it is selected.
+Both take `thruster` as `THRUSTER_1` or `THRUSTER_2` (a member or its name) and reject a negative `factor`.

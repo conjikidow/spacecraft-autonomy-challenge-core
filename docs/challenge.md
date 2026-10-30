@@ -52,6 +52,6 @@ There are no modifiers.
 ### `thruster-degradation`
 
 Identical to `nominal`, plus one modifier: `ThrusterEfficiency(THRUSTER_1, factor=0.8, onset_time_s=3600.0)`.
-From 3600 s onward, `THRUSTER_1` delivers 80 % of its nominal acceleration.
-Its power, heat, and wheel-momentum rate are unchanged.
+From 3600 s onward, `THRUSTER_1` delivers 80 % of its nominal acceleration and wheel-momentum rate.
+Its power and heat are unchanged.
 The mission brief still shows the nominal parameters, so a strategy can only notice the change through telemetry.
