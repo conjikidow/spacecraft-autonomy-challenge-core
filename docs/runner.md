@@ -165,7 +165,9 @@ so that they do not remain as zombies.
 
 With an `Overlay`, only the participant process gets it, first on `PYTHONPATH`.
 The participant process also processes the `.pth` files in the overlay directory,
-and processes that the strategy starts inherit `PYTHONPATH`.
+and processes that the strategy starts inherit `PYTHONPATH`;
+a Python process started with `-I` or `-E`, or with an `env` that lacks it,
+does not see the packages (see [Participant Packages](dependencies.md)).
 The trusted worker runs with the packages of the current environment alone,
 so even an overlay that provides a module of the core package cannot replace the trusted side.
 
