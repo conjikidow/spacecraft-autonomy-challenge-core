@@ -48,6 +48,10 @@ for outcome in run_suite(submission.root, public_suite().cases, PROVIDER):
 その戦略は，すべてのコールバックを参加者のプロセスに転送します。
 参加者のプロセスには，`ScenarioProvider` が実行される前の環境変数を渡すため，
 `ScenarioProvider` が設定した環境変数は参加者のプロセスに届きません。
+ただし，`OMP_NUM_THREADS`，`OPENBLAS_NUM_THREADS`，`MKL_NUM_THREADS`，`NUMEXPR_NUM_THREADS`，`VECLIB_MAXIMUM_THREADS` は，
+設定されていなければ `1` にします（`remote` の `THREAD_POOL_LIMITS`）。
+数値計算ライブラリのスレッドプール，ひいてはプロセスの CPU 時間が，ホストのコア数に依存しないようにするためです。
+参加者のプロセスが起動するプロセスはこれらを引き継ぎます。より多くのスレッドを許す場合は，`env` で設定してください。
 結果は，参加者のファイルとは別の一時ディレクトリにあるファイルに書き込みます。
 
 参加者のプロセスは，`autonomy-challenge run` と同じように，

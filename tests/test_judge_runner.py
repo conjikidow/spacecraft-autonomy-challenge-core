@@ -17,6 +17,7 @@ from judge_support import DECLARE_AT_START, PROVIDER, case
 from spacecraft_autonomy_challenge.judge import runner
 from spacecraft_autonomy_challenge.judge.cases import ScenarioProvider
 from spacecraft_autonomy_challenge.judge.dependencies import Overlay
+from spacecraft_autonomy_challenge.judge.remote import THREAD_POOL_LIMITS
 from spacecraft_autonomy_challenge.judge.runner import CaseOutcome, CaseStatus, run_case, run_suite
 
 
@@ -710,6 +711,32 @@ def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participa
     outcome = run_case(make_submission({"strategy.py": reading}).root, CASES[0], provider)
     assert outcome.status is CaseStatus.COMPLETED
     assert "hidden: None" in outcome.stdout
+
+
+def test_thread_pools_of_the_participant_default_to_one_thread(make_submission):
+    reading = """
+    import os
+    import subprocess
+    import sys
+
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+    from spacecraft_autonomy_challenge.judge.remote import THREAD_POOL_LIMITS
+
+    CHILD = "import os; print('child:', os.environ['OPENBLAS_NUM_THREADS'])"
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            print("threads:", *(os.environ.get(name) for name in THREAD_POOL_LIMITS), flush=True)
+            subprocess.run([sys.executable, "-c", CHILD], check=True)
+            commander.execute(DeclareCompletion())
+    """
+    root = make_submission({"strategy.py": reading}).root
+    environment = {name: value for name, value in os.environ.items() if name not in THREAD_POOL_LIMITS}
+    outcome = run_case(root, CASES[0], PROVIDER, env=environment)
+    assert "threads: 1 1 1 1 1\nchild: 1\n" in outcome.stdout
+    outcome = run_case(root, CASES[0], PROVIDER, env=environment | {"OMP_NUM_THREADS": "4"})
+    assert "threads: 4 1 1 1 1\n" in outcome.stdout
 
 
 DATA_LIMITS = """

@@ -36,6 +36,14 @@ _PARTICIPANT_BOOTSTRAP = (
     "import sys; sys.path.append(sys.argv.pop(1)); "
     "from spacecraft_autonomy_challenge.judge.participant import main; main(sys.argv[1:])"
 )
+THREAD_POOL_LIMITS = {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+}
+"""Thread pool sizes of numerical libraries in the participant process, unless its environment sets them."""
 _EXIT_WAIT_S = 5.0
 _POLL_INTERVAL_S = 0.05
 
@@ -66,6 +74,9 @@ class ParticipantProcess:
     ) -> None:
         """Start the process; `output` gives its standard output and error descriptors (default: inherited).
 
+        `THREAD_POOL_LIMITS` sets the variables that `env` lacks, so that the thread pools of numerical libraries,
+        and with them the CPU time of the process, do not depend on the number of cores of the host.
+
         The process limits its own data memory to `memory_limit_bytes` before it runs any of the participant's code
         (`None`: not limited); see `participant.limit_memory`.
         """
@@ -78,7 +89,7 @@ class ParticipantProcess:
             self.process = subprocess.Popen(
                 command,
                 cwd=submission_root,
-                env=dict(env),
+                env=THREAD_POOL_LIMITS | dict(env),
                 stdin=subprocess.DEVNULL,
                 stdout=None if output is None else output[0],
                 stderr=None if output is None else output[1],

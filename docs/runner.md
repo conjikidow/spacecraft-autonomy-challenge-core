@@ -48,6 +48,11 @@ It builds the scenario with the provider and runs it with `run()` and `evaluate(
 Its strategy forwards every callback to the participant process.
 The participant process gets the worker's environment variables as they were before the provider ran,
 so variables that the provider sets never reach it.
+Of these, `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`, `NUMEXPR_NUM_THREADS`,
+and `VECLIB_MAXIMUM_THREADS` default to `1` when they are not set (`THREAD_POOL_LIMITS` of `remote`),
+so that the thread pools of numerical libraries, and with them the CPU time of the process,
+do not depend on the number of cores of the host.
+Processes that the participant process starts inherit them; set them in `env` to allow more threads.
 It writes its result to a file in a temporary directory apart from the participant's files.
 
 The participant process loads `submission/strategy.py:MyStrategy` like `autonomy-challenge run`,
