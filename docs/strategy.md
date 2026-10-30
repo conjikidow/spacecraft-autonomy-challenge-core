@@ -26,6 +26,9 @@ class MyStrategy(Strategy):
 2. `update(telemetry, commander)` is called at every decision time `k * brief.decision_period_s` for `k >= 1`
    until the run ends.
 
+`update` is not called again once the run has ended, whether through a limit violation, the time limit, or any other termination.
+There is no end-of-run callback.
+
 The `telemetry` passed to `update` is sampled before the commands that `update` registers execute.
 It reflects the state at that time after the previously scheduled commands.
 A registered command executes at its scheduled time, so the next call's telemetry is the earliest that can show its effect.
