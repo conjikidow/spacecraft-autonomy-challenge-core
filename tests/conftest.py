@@ -24,6 +24,9 @@ def parameters() -> SpacecraftParameters:
         thruster_2=ThrusterParameters(
             acceleration_mps2=0.002, power_w=30.0, heat_w=40.0, wheel_momentum_rate_nms_per_s=-0.01
         ),
+        momentum_dump_rate_nms_per_s=0.02,
+        momentum_dump_power_w=20.0,
+        momentum_dump_heat_w=10.0,
         power_generation_w=60.0,
         bus_load_w=40.0,
         heater_power_w=10.0,
@@ -48,6 +51,7 @@ def make_state() -> Callable[..., SpacecraftState]:
             "wheel_momentum_nms": 0.0,
             "heater_on": False,
             "propulsion_mode": PropulsionMode.OFF,
+            "momentum_dump_on": False,
         }
         return SpacecraftState(**(values | overrides))
 

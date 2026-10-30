@@ -10,13 +10,18 @@ This page describes the command types in `spacecraft_autonomy_challenge.commands
 |---|---|
 | `SetPropulsionMode(mode)` | Selects the propulsion mode: `PropulsionMode.OFF`, `THRUSTER_1`, or `THRUSTER_2` |
 | `SetHeater(on)` | Switches the propulsion heater on (`True`) or off (`False`) |
+| `SetMomentumDump(on)` | Switches the momentum dump on (`True`) or off (`False`) |
 | `DeclareCompletion()` | Declares that the strategy considers the maneuver complete, which ends the run; it says nothing about success |
 
 The propulsion mode is exclusive: selecting one thruster implicitly stops the other,
 so both thrusters never fire at the same time.
+While the momentum dump is on, neither thruster fires, whatever the propulsion mode.
+The momentum dump switches itself off when the wheel momentum reaches zero;
+see [Spacecraft Model](spacecraft-model.md#momentum-dump).
 
 Commands are immutable dataclasses.
 `SetPropulsionMode` also accepts a mode name such as `"THRUSTER_1"`.
+`SetHeater` and `SetMomentumDump` take a `bool`.
 Invalid values raise `CommandError`, a subclass of `ValueError`.
 
 ## Timeline

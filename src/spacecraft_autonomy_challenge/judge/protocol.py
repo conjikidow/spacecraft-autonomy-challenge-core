@@ -20,6 +20,7 @@ from spacecraft_autonomy_challenge import (
     SafetyLimits,
     ScheduledCommand,
     SetHeater,
+    SetMomentumDump,
     SetPropulsionMode,
     SpacecraftParameters,
     Telemetry,
@@ -138,6 +139,8 @@ def encode_command(command: Command) -> dict[str, Any]:
             return {"command": "SetPropulsionMode", "mode": mode.value}
         case SetHeater(on=on):
             return {"command": "SetHeater", "on": on}
+        case SetMomentumDump(on=on):
+            return {"command": "SetMomentumDump", "on": on}
         case DeclareCompletion():
             return {"command": "DeclareCompletion"}
     raise TypeError(f"not a command: {command!r}")
@@ -150,6 +153,8 @@ def decode_command(data: dict[str, Any]) -> Command:
             return SetPropulsionMode(PropulsionMode(mode))
         case {"command": "SetHeater", "on": bool(on)}:
             return SetHeater(on)
+        case {"command": "SetMomentumDump", "on": bool(on)}:
+            return SetMomentumDump(on)
         case {"command": "DeclareCompletion"}:
             return DeclareCompletion()
     raise ProtocolError(f"unknown command {data!r}")

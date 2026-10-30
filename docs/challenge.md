@@ -27,6 +27,9 @@ Its time limit is also available as `TIME_LIMIT_S`.
 | Thruster power | 30 W (both thrusters) |
 | Thruster heat | 40 W (both thrusters) |
 | Wheel-momentum rate | +0.002 Nms/s (`THRUSTER_1`), −0.002 Nms/s (`THRUSTER_2`) |
+| Momentum dump rate | 0.005 Nms/s |
+| Momentum dump power | 30 W |
+| Momentum dump heat | 12 W |
 | Power generation | 60 W |
 | Bus load | 40 W |
 | Heater power | 10 W |
@@ -41,7 +44,7 @@ Its time limit is also available as `TIME_LIMIT_S`.
 | Initial temperature | 20 °C |
 | Initial battery energy | 80 Wh |
 | Initial delta-v and wheel momentum | 0 |
-| Initial heater and propulsion | off |
+| Initial heater, propulsion, and momentum dump | off |
 
 ## Scenarios
 
@@ -53,6 +56,6 @@ There are no modifiers.
 ### `thruster-degradation`
 
 Identical to `nominal`, plus one modifier: `ThrusterEfficiency(THRUSTER_1, factor=0.8, onset_time_s=3600.0)`.
-From 3600 s onward, `THRUSTER_1` delivers 80 % of its nominal acceleration.
-Its power, heat, and wheel-momentum rate are unchanged.
+From 3600 s onward, `THRUSTER_1` delivers 80 % of its nominal acceleration and wheel-momentum rate.
+Its power and heat are unchanged.
 The mission brief still shows the nominal parameters, so a strategy can only notice the change through telemetry.

@@ -25,6 +25,9 @@ def problem() -> Problem:
             thruster_2=ThrusterParameters(
                 acceleration_mps2=0.001, power_w=30.0, heat_w=40.0, wheel_momentum_rate_nms_per_s=-0.002
             ),
+            momentum_dump_rate_nms_per_s=0.005,
+            momentum_dump_power_w=30.0,
+            momentum_dump_heat_w=12.0,
             power_generation_w=60.0,
             bus_load_w=40.0,
             heater_power_w=10.0,
@@ -42,6 +45,7 @@ def problem() -> Problem:
             wheel_momentum_nms=0.0,
             heater_on=False,
             propulsion_mode=PropulsionMode.OFF,
+            momentum_dump_on=False,
         ),
         limits=SafetyLimits(
             max_propulsion_temperature_c=60.0,
@@ -67,7 +71,7 @@ def _thruster_degradation() -> Scenario:
         name="thruster-degradation",
         problem=problem(),
         modifiers=(ThrusterEfficiency(PropulsionMode.THRUSTER_1, factor=0.8, onset_time_s=3600.0),),
-        description="Thruster 1 loses part of its acceleration partway through the run.",
+        description="Thruster 1 loses part of its efficiency partway through the run.",
     )
 
 

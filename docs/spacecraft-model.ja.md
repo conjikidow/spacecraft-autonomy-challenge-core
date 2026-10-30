@@ -23,6 +23,7 @@
 | `wheel_momentum_nms` | ホイール角運動量（スカラ） |
 | `heater_on` | ヒータの状態 |
 | `propulsion_mode` | `OFF`，`THRUSTER_1`，`THRUSTER_2` のいずれか |
+| `momentum_dump_on` | 角運動量ダンプの状態 |
 
 ## パラメータ
 
@@ -37,10 +38,14 @@
 
 この図は，2つのスラスタのずれと推力が異なる一般の場合について，ホイール角運動量変化率の背後にある物理的なイメージを示しています。
 各スラスタの推力の作用線は重心からずれているため，噴射すると1軸まわりのトルクが生じ，それをリアクションホイールが吸収します。
-トルクが1軸まわりであるため，ホイール角運動量はスカラであり，モデルの中でそれを変化させるのはスラスタだけです。
+トルクが1軸まわりであるため，ホイール角運動量はスカラであり，モデルの中でそれを変化させるのはスラスタと角運動量ダンプだけです。
 モデルはこのトルクを幾何から計算せず，その結果としての変化率を `wheel_momentum_rate_nms_per_s` として直接受け取ります。
 
 `min_firing_temperature_c` は，選択されたスラスタが噴射できる推進系温度の下限です。
+
+角運動量ダンプ（momentum dump）は，RCS（姿勢制御用スラスタ）を使ってホイールの角運動量を抜きます。
+`momentum_dump_rate_nms_per_s` はホイール角運動量を0に向けて動かす速さで，
+`momentum_dump_power_w` と `momentum_dump_heat_w` は，その速さで動作しているときの電力負荷と推進系への入熱です。
 
 `SafetyLimits` は，推進系温度の上限，バッテリ蓄電量の下限，ホイール角運動量の絶対値の上限を定めます。
 
@@ -49,26 +54,30 @@
 `compute_rates(state, parameters)` は，状態の時間微分を `StateRates` として返します。
 寄与するのは推進モードで選択されたスラスタだけで，それも推進系温度が `min_firing_temperature_c` 以上である間に限られます。
 この温度を下回ると，選択されたスラスタは，推進がオフのときと同様に，加速度，電力負荷，推進系への入熱，ホイール角運動量変化率のいずれにも寄与しません。
+角運動量ダンプがオンの間は，温度にかかわらず同じです。
 推進モード自体は指令されたまま変わらないため，テレメトリは引き続きそのモードを示します。
+
+`add_momentum_dump(state, rates, duration_s, parameters)` は，角運動量ダンプがオンの間，積分1ステップ分の変化率に角運動量ダンプの寄与を加えます。
+オフのときは変化率をそのまま返します。
 
 Δv と角運動量は次のとおりです。
 
 ```text
 d(delta_v)/dt = thruster acceleration
-dH/dt         = thruster wheel-momentum rate
+dH/dt         = thruster wheel-momentum rate + dump wheel-momentum rate
 ```
 
 電力は次のとおりです。
-ヒータとスラスタの負荷は，動作している間だけ計上します。
+ヒータ，スラスタ，角運動量ダンプの負荷は，動作している間だけ計上します。
 
 ```text
-P_net = power_generation - bus_load - heater_load - thruster_load
+P_net = power_generation - bus_load - heater_load - thruster_load - dump_load
 ```
 
 熱は，熱容量 `C`，熱コンダクタンス `G`，シンク温度 `T_sink` を持つ1節点の集中熱容量モデルで表します。
 
 ```text
-C * dT/dt = heater_power + thruster_heat - G * (T - T_sink)
+C * dT/dt = heater_power + thruster_heat + dump_heat - G * (T - T_sink)
 ```
 
 ヒータの消費電力は，すべて推進系の熱になります。
@@ -76,6 +85,25 @@ C * dT/dt = heater_power + thruster_heat - G * (T - T_sink)
 `integrate(state, rates, duration_s, parameters)` は，陽的オイラー法で状態を1ステップ進めます。
 バッテリの蓄電量は，正味電力による変化をワット時に換算して更新され，バッテリ容量を超えた分は切り捨てられます。
 ただし，0を下限とする制限はかけません。
+
+### 角運動量ダンプ
+
+角運動量ダンプがオンの間，積分1ステップにおけるそのホイール角運動量変化率は，
+大きさが `momentum_dump_rate_nms_per_s` 以下の範囲で，
+モデルの他の部分と `Modifier` によるホイール角運動量変化率と合わせて，ステップの終わりのホイール角運動量を最も0に近づける値です。
+したがって，角運動量ダンプはホイール角運動量を最大の速さで0に向けて動かし，0を越えては動かしません。
+その電力負荷と入熱は，`momentum_dump_power_w` と `momentum_dump_heat_w` に，そのステップで使った速さの最大の速さに対する割合を掛けた値です。
+
+角運動量ダンプがオンのまま積分ステップの終わりにホイール角運動量が0になると，
+`integrate` はホイール角運動量をちょうど0にして，角運動量ダンプをオフにします。
+`momentum_dump_on` は `False` になり，それ以降は選択されたスラスタが再び寄与します。
+ホイール角運動量は，`WHEEL_MOMENTUM_ZERO_NMS`（`1e-9` Nms）以内であれば0とみなします。
+そのため，ホイール角運動量が0のときに角運動量ダンプをオンにすると，他にホイールを動かすものがなければ，次の積分ステップの終わりにオフになります。
+
+角運動量ダンプのモデルは次のように簡略化されています。
+正味の力を生まないため，Δv を変化させません。
+推進剤を消費しません（主スラスタの推進剤もモデル化していません）。
+動作可能温度の下限はありません。
 
 ## テレメトリ
 
@@ -91,7 +119,7 @@ C * dT/dt = heater_power + thruster_heat - G * (T - T_sink)
 | フック | 変更する対象 |
 |---|---|
 | `modify_parameters(parameters, state, rng)` | `state.time_s` における実効パラメータ |
-| `modify_rates(rates, state, parameters, rng)` | 公称モデルで計算した後の状態の変化率 |
+| `modify_rates(rates, state, parameters, rng)` | 公称モデルで計算した後，角運動量ダンプの寄与を加える前の状態の変化率 |
 | `modify_telemetry(telemetry, state, rng)` | 戦略に渡す観測 |
 
 フックは真の状態を受け取るため，時刻や状態に応じて効果を変えられます。
@@ -105,5 +133,10 @@ C * dT/dt = heater_power + thruster_heat - G * (T - T_sink)
 
 | `Modifier` | 効果 |
 |---|---|
-| `ThrusterEfficiency(thruster, factor, onset_time_s=0.0)` | `onset_time_s` 以降，1つのスラスタの加速度を `factor` 倍する |
+| `ThrusterEfficiency(thruster, factor, onset_time_s=0.0)` | `onset_time_s` 以降，1つのスラスタの加速度とホイール角運動量変化率を `factor` 倍する。電力負荷と発熱は変わらない |
+| `ThrusterFlow(thruster, factor, onset_time_s=0.0)` | `onset_time_s` 以降，1つのスラスタの加速度，ホイール角運動量変化率，発熱を `factor` 倍する。電力負荷は変わらない |
 | `TelemetryBias(channel, bias)` | 数値のテレメトリチャネル1つに定数を加える |
+
+`ThrusterEfficiency` は効率が低下したスラスタを，`ThrusterFlow` は推進剤の流量が減ったスラスタを表します。
+`factor=0` の `ThrusterFlow` を受けたスラスタは，加速度，ホイール角運動量変化率，発熱のいずれも生みませんが，選択されている間は電力負荷を消費し続けます。
+どちらも `thruster` に `THRUSTER_1` または `THRUSTER_2`（メンバまたはその名前）を取り，負の `factor` を受け付けません。

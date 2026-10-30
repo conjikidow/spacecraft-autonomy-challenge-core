@@ -9,6 +9,7 @@ from spacecraft_autonomy_challenge import (
     PropulsionMode,
     ScheduledCommand,
     SetHeater,
+    SetMomentumDump,
     SetPropulsionMode,
     Telemetry,
 )
@@ -73,14 +74,20 @@ def test_malformed_messages(data, message):
 def test_brief_and_telemetry_round_trip_exactly():
     brief = problem().brief()
     assert decode_brief(json.loads(json.dumps(encode_brief(brief)))) == brief
-    telemetry = Telemetry(0.1, 1 / 3, -7.25, 79.999, -0.0002, True, PropulsionMode.THRUSTER_2)
+    telemetry = Telemetry(0.1, 1 / 3, -7.25, 79.999, -0.0002, True, PropulsionMode.THRUSTER_2, True)
     assert decode_telemetry(json.loads(json.dumps(encode_telemetry(telemetry)))) == telemetry
     assert encode_telemetry(telemetry)["propulsion_mode"] == "THRUSTER_2"
 
 
 @pytest.mark.parametrize(
     "command",
-    [SetPropulsionMode(PropulsionMode.THRUSTER_1), SetHeater(on=False), DeclareCompletion()],
+    [
+        SetPropulsionMode(PropulsionMode.THRUSTER_1),
+        SetHeater(on=False),
+        SetMomentumDump(on=True),
+        SetMomentumDump(on=False),
+        DeclareCompletion(),
+    ],
 )
 def test_commands_round_trip(command):
     assert decode_command(json.loads(json.dumps(encode_command(command)))) == command
@@ -95,6 +102,8 @@ def test_unknown_commands():
         decode_command({"command": "SelfDestruct"})
     with pytest.raises(ProtocolError, match="unknown command"):
         decode_command({"command": "SetHeater", "on": "yes"})
+    with pytest.raises(ProtocolError, match="unknown command"):
+        decode_command({"command": "SetMomentumDump", "on": 1})
 
 
 def test_messages_above_the_limit_are_not_sent(monkeypatch):

@@ -3,7 +3,7 @@ from dataclasses import replace
 import pytest
 
 from spacecraft_autonomy_challenge.commands import PropulsionMode
-from spacecraft_autonomy_challenge.model import SafetyLimits, compute_rates, integrate
+from spacecraft_autonomy_challenge.model import SafetyLimits, StateRates, add_momentum_dump, compute_rates, integrate
 
 
 def test_thrusters_have_symmetric_thrust_power_and_heat(parameters, make_state):
@@ -94,7 +94,12 @@ def test_integration_advances_delta_v_and_momentum(parameters, make_state):
 
 @pytest.mark.parametrize(
     "overrides",
-    [{"battery_capacity_wh": 0.0}, {"heat_capacity_j_per_k": 0.0}, {"thermal_conductance_w_per_k": -1.0}],
+    [
+        {"battery_capacity_wh": 0.0},
+        {"heat_capacity_j_per_k": 0.0},
+        {"thermal_conductance_w_per_k": -1.0},
+        {"momentum_dump_rate_nms_per_s": -0.001},
+    ],
 )
 def test_parameters_reject_invalid_values(parameters, overrides):
     with pytest.raises(ValueError, match="must"):
@@ -118,3 +123,74 @@ def test_thruster_fires_at_min_firing_temperature(parameters, make_state):
         propulsion_temperature_c=parameters.min_firing_temperature_c, propulsion_mode=PropulsionMode.THRUSTER_1
     )
     assert compute_rates(state, parameters).delta_v_rate_mps2 == parameters.thruster_1.acceleration_mps2
+
+
+def _dump_step(state, parameters, duration_s):
+    rates = add_momentum_dump(state, compute_rates(state, parameters), duration_s, parameters)
+    return rates, integrate(state, rates, duration_s, parameters)
+
+
+@pytest.mark.parametrize("mode", [PropulsionMode.OFF, PropulsionMode.THRUSTER_1, PropulsionMode.THRUSTER_2])
+def test_momentum_dump_inhibits_the_main_thrusters(parameters, make_state, mode):
+    dumping = make_state(propulsion_mode=mode, momentum_dump_on=True)
+    assert compute_rates(dumping, parameters) == compute_rates(make_state(), parameters)
+
+
+def test_momentum_dump_moves_wheel_momentum_toward_zero_at_its_rate(parameters, make_state):
+    for sign in (1.0, -1.0):
+        state = make_state(wheel_momentum_nms=sign * 1.0, momentum_dump_on=True)
+        rates, end = _dump_step(state, parameters, 10.0)
+        assert rates.wheel_momentum_rate_nms_per_s == -sign * 0.02
+        assert end.wheel_momentum_nms == pytest.approx(sign * 0.8)
+        assert end.momentum_dump_on is True
+        assert end.delta_v_mps == 0.0
+
+
+def test_momentum_dump_draws_power_and_heats_the_propulsion_node(parameters, make_state):
+    state = make_state(wheel_momentum_nms=1.0, momentum_dump_on=True, propulsion_temperature_c=-10.0)
+    rates, _ = _dump_step(state, parameters, 1.0)
+    assert rates.net_power_w == pytest.approx(60.0 - 40.0 - 20.0)
+    assert rates.temperature_rate_c_per_s == pytest.approx(10.0 / 2000.0)
+
+
+def test_momentum_dump_stops_at_zero_and_switches_itself_off(parameters, make_state):
+    state = make_state(wheel_momentum_nms=0.05, momentum_dump_on=True, propulsion_temperature_c=-10.0)
+    rates, end = _dump_step(state, parameters, 10.0)
+    assert rates.wheel_momentum_rate_nms_per_s == pytest.approx(-0.005)
+    assert rates.net_power_w == pytest.approx(20.0 - 20.0 * 0.25)
+    assert rates.temperature_rate_c_per_s == pytest.approx(10.0 * 0.25 / 2000.0)
+    assert end.wheel_momentum_nms == 0.0
+    assert end.momentum_dump_on is False
+
+
+def test_momentum_dump_at_zero_has_no_effect_and_switches_itself_off(parameters, make_state):
+    state = make_state(momentum_dump_on=True)
+    rates, end = _dump_step(state, parameters, 1.0)
+    assert rates == compute_rates(make_state(), parameters)
+    assert end.momentum_dump_on is False
+
+
+def test_momentum_dump_accounts_for_other_wheel_momentum_rates(parameters, make_state):
+    state = make_state(wheel_momentum_nms=1.0, momentum_dump_on=True)
+    pushed = StateRates(0.0, 0.0, 0.0, 0.015)
+    assert add_momentum_dump(state, pushed, 1.0, parameters).wheel_momentum_rate_nms_per_s == pytest.approx(-0.005)
+    near = make_state(wheel_momentum_nms=0.01, momentum_dump_on=True)
+    pulled = StateRates(0.0, 0.0, 0.0, -0.025)
+    rates = add_momentum_dump(near, pulled, 1.0, parameters)
+    assert rates.wheel_momentum_rate_nms_per_s == pytest.approx(-0.01)
+    assert integrate(near, rates, 1.0, parameters).momentum_dump_on is False
+
+
+def test_momentum_dump_off_changes_nothing(parameters, make_state):
+    state = make_state(wheel_momentum_nms=1.0)
+    rates = compute_rates(state, parameters)
+    assert add_momentum_dump(state, rates, 1.0, parameters) == rates
+    assert integrate(make_state(), rates, 1.0, parameters).momentum_dump_on is False
+
+
+def test_momentum_dump_with_zero_rate_does_nothing_and_stays_on(parameters, make_state):
+    stuck = replace(parameters, momentum_dump_rate_nms_per_s=0.0)
+    state = make_state(wheel_momentum_nms=1.0, momentum_dump_on=True)
+    rates, end = _dump_step(state, stuck, 1.0)
+    assert rates == compute_rates(state, stuck)
+    assert (end.wheel_momentum_nms, end.momentum_dump_on) == (1.0, True)
