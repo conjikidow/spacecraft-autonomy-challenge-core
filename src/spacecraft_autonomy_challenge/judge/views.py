@@ -154,6 +154,13 @@ def scoring_view(config: ScoringConfig) -> mo.Html:
     startup = _number(config.cpu_time.startup_allowance_s)
     cycle = _number(config.cpu_time.per_decision_cycle_s)
     clip = r"\operatorname{clip}_{[0,1]}"
+    reference = config.completion_time.reference_time_s
+    time_term = (
+        rf"${clip}(1 - t_\mathrm{{declared}} / T)$"
+        if reference is None
+        else rf"${clip}((T - t_\mathrm{{declared}}) / (T - {_number(reference)}\,\mathrm{{s}}))$"
+        rf" if $T > {_number(reference)}\,\mathrm{{s}}$, else ${clip}(1 - t_\mathrm{{declared}} / T)$,"
+    )
     return mo.md(
         rf"""
 $$
@@ -168,7 +175,7 @@ $$
 | $g$ | Gate | 1 if completed and safe without a strategy failure, else 0 |
 | $a$ | Accuracy | $\max(0,\ 1 - \lvert e \rvert / ({tolerance}\,\Delta v_\mathrm{{target}}))$ |
 | $d$ | Declaration | 1 if completion is declared, else {undeclared} |
-| $t$ | Completion time | ${clip}(1 - t_\mathrm{{declared}} / T)$ if declared, else 0 |
+| $t$ | Completion time | {time_term} if declared, else 0 |
 | $b$ | Battery margin | ${clip}((E_\mathrm{{min}} - E_\mathrm{{lim}}) / (C_\mathrm{{nom}} - E_\mathrm{{lim}}))$ |
 | $c$ | CPU time | $\min(1,\ B / \tau)$ with $B = ({startup} + {cycle}\,T / \Delta t)\,\mathrm{{s}}$ |
 

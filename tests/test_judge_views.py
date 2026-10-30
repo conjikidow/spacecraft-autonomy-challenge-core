@@ -156,6 +156,11 @@ def test_scoring_view_shows_the_parameters_of_the_configuration():
     for expected in (r"0.4 + 0.3\,t + 0.2\,b + 0.1\,c", "0.123456789", "else 0.3", "7 + 0.00001"):
         assert expected in html
     assert "e-05" not in html
+    assert r"T - 10660\," in html
+    assert r"T &gt; 10660\," in html
+    assert r"1 - t_\mathrm{declared} / T" in html
+    without_reference = ScoringConfig.from_dict({k: v for k, v in config.to_dict().items() if k != "completion_time"})
+    assert r"1 - t_\mathrm{declared} / T" in scoring_view(without_reference).text
 
 
 def test_score_view_requires_a_score_per_outcome():

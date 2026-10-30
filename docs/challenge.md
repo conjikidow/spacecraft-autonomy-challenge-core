@@ -13,6 +13,7 @@ nominal = scenario("nominal")
 ```
 
 `problem()` returns the `Problem` shared by every scenario.
+Its time limit is also available as `TIME_LIMIT_S`.
 `scenario(name)` builds a new `Scenario` and raises `KeyError` listing the available names for an unknown name.
 
 ## Problem
@@ -20,7 +21,7 @@ nominal = scenario("nominal")
 | Quantity | Value |
 |---|---|
 | Target delta-v | 10 m/s |
-| Time limit | 21600 s |
+| Time limit | 21320 s |
 | Decision period | 60 s |
 | Thruster acceleration | 0.001 m/s² (both thrusters) |
 | Thruster power | 30 W (both thrusters) |

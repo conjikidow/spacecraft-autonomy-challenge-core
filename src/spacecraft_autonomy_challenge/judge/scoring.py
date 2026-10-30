@@ -5,6 +5,8 @@ The score of a case is a number from 0 to 1:
     gate * accuracy * declaration * (w_base + w_time * completion_time + w_battery * battery_margin + w_cpu * cpu_time)
 
 and the score of a suite is 100 times the mean score of its cases. No pass threshold is applied.
+The completion time term is measured from the time limit down to a reference completion time of the configuration,
+or down to time 0 without one.
 """
 
 import math
@@ -113,12 +115,39 @@ class CpuTimeParameters:
         return self.startup_allowance_s + self.per_decision_cycle_s * time_limit_s / decision_period_s
 
 
+@dataclass(frozen=True, slots=True)
+class CompletionTimeParameters:
+    """Declaration time that earns the full completion time term."""
+
+    reference_time_s: float | None = None
+    """Completion time at which the term reaches 1; `None` measures the term against time 0."""
+
+    def __post_init__(self) -> None:
+        if self.reference_time_s is None:
+            return
+        _check_finite(asdict(self))
+        if self.reference_time_s < 0:
+            raise ScoringConfigError(f"reference_time_s must not be negative, got {self.reference_time_s!r}")
+
+    def term(self, declared_at_s: float, time_limit_s: float) -> float:
+        """Completion time term, clipped to the range from 0 to 1, of a declaration at `declared_at_s`.
+
+        Without a reference time below `time_limit_s`, the term is `1 - declared_at_s / time_limit_s`.
+        """
+        reference_s = self.reference_time_s
+        if reference_s is None or reference_s >= time_limit_s:
+            reference_s = 0.0
+        return _clip((time_limit_s - declared_at_s) / (time_limit_s - reference_s))
+
+
 _SECTIONS: Mapping[str, type] = {
     "accuracy": AccuracyParameters,
     "declaration": DeclarationParameters,
     "weights": ScoreWeights,
     "cpu_time": CpuTimeParameters,
+    "completion_time": CompletionTimeParameters,
 }
+_OPTIONAL_SECTIONS = frozenset({"completion_time"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +158,7 @@ class ScoringConfig:
     declaration: DeclarationParameters
     weights: ScoreWeights
     cpu_time: CpuTimeParameters
+    completion_time: CompletionTimeParameters = CompletionTimeParameters()
 
     @classmethod
     def default(cls) -> "ScoringConfig":
@@ -154,7 +184,8 @@ class ScoringConfig:
     def from_dict(cls, data: Mapping[str, Any]) -> "ScoringConfig":
         """Inverse of `to_dict`. Raises `ScoringConfigError` for data that does not describe a configuration.
 
-        Every section and key is required, and keys that the format does not define are rejected.
+        Every section and key is required, except the section `completion_time`, and keys that the format does
+        not define are rejected.
         """
         if not isinstance(data, Mapping):
             raise ScoringConfigError(f"a scoring configuration must be a mapping, got {type(data).__name__}")
@@ -163,9 +194,11 @@ class ScoringConfig:
             raise ScoringConfigError(
                 f"unsupported scoring configuration version {version!r}; this version reads {SCORING_CONFIG_VERSION}"
             )
-        _check_keys("the scoring configuration", data, {"version", *_SECTIONS})
+        _check_keys("the scoring configuration", data, {"version", *_SECTIONS}, _OPTIONAL_SECTIONS)
         sections = {}
         for name, section_type in _SECTIONS.items():
+            if name not in data:
+                continue
             section = data[name]
             if not isinstance(section, Mapping):
                 raise ScoringConfigError(f"section {name} must be a table, got {section!r}")
@@ -174,14 +207,24 @@ class ScoringConfig:
         return cls(**sections)
 
     def to_dict(self) -> dict[str, Any]:
-        """JSON-serializable dictionary of the configuration, in the layout of the TOML file."""
-        return {"version": SCORING_CONFIG_VERSION} | {name: asdict(getattr(self, name)) for name in _SECTIONS}
+        """JSON-serializable dictionary of the configuration, in the layout of the TOML file.
+
+        The section `completion_time` is left out without a reference time.
+        """
+        data: dict[str, Any] = {"version": SCORING_CONFIG_VERSION}
+        for name in _SECTIONS:
+            if name in _OPTIONAL_SECTIONS and getattr(self, name) == _SECTIONS[name]():
+                continue
+            data[name] = asdict(getattr(self, name))
+        return data
 
 
-def _check_keys(where: str, data: Mapping[str, Any], expected: set[str]) -> None:
+def _check_keys(
+    where: str, data: Mapping[str, Any], expected: set[str], optional: frozenset[str] = frozenset()
+) -> None:
     if unknown := sorted(str(key) for key in set(data) - expected):
         raise ScoringConfigError(f"unknown keys in {where}: {', '.join(unknown)}")
-    if missing := sorted(expected - set(data)):
+    if missing := sorted(expected - optional - set(data)):
         raise ScoringConfigError(f"missing keys in {where}: {', '.join(missing)}")
 
 
@@ -252,7 +295,9 @@ def score_case(outcome: CaseOutcome, config: ScoringConfig) -> CaseScore:
     declaration = 1.0 if declared else config.declaration.undeclared_factor
     declared_at_s, time_limit_s = m["completion_declared_time_s"], m["time_limit_s"]
     completion_time = (
-        _clip(1 - declared_at_s / time_limit_s) if declared and declared_at_s is not None and time_limit_s > 0 else 0.0
+        config.completion_time.term(declared_at_s, time_limit_s)
+        if declared and declared_at_s is not None and time_limit_s > 0
+        else 0.0
     )
     battery_span_wh = m["nominal_battery_capacity_wh"] - m["min_battery_energy_limit_wh"]
     battery_margin = (

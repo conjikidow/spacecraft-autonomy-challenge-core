@@ -93,7 +93,7 @@ def test_run_emits_json(idle_strategy_file, capsys):
     assert payload["seed"] == 5
     assert payload["metrics"]["termination_reason"] == "COMPLETION_DECLARED"
     assert payload["metrics"]["completion_declared"] is True
-    assert payload["metrics"]["time_limit_s"] == 21600.0
+    assert payload["metrics"]["time_limit_s"] == 21320.0
     assert payload["metrics"]["decision_period_s"] == 60.0
     assert payload["metrics"]["nominal_battery_capacity_wh"] == 100.0
     assert payload["metrics"]["min_battery_energy_limit_wh"] == 10.0

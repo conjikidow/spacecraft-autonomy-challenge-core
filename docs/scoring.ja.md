@@ -36,7 +36,7 @@ $g$，$a$，$d$ の3つの係数は，得点全体に掛かります。
 | $g$ | `gate` | 評価ケースの状態が `COMPLETED` で，評価指標 `safe` が真で，終了理由が `STRATEGY_ERROR` でも `INVALID_COMMAND` でもなければ1，それ以外は0 |
 | $a$ | `accuracy` | $\max\left(0, 1 - \lvert e \rvert / e_\mathrm{tol}\right)$。$e$ は Δv の誤差，$e_\mathrm{tol} = f_\mathrm{tol} \cdot \Delta v_\mathrm{target}$ は許容誤差 |
 | $d$ | `declaration` | 完了を宣言した実行なら1，そうでなければ未宣言の係数 $f_\mathrm{undeclared}$ |
-| $t$ | `completion_time` | 完了を宣言した実行なら $1 - t_\mathrm{declared} / T$，そうでなければ0 |
+| $t$ | `completion_time` | 完了を宣言した実行なら $\left(T - t_\mathrm{declared}\right) / \left(T - t_\mathrm{ref}\right)$ を0から1の範囲に切り詰めた値，そうでなければ0 |
 | $b$ | `battery_margin` | $\left(E_\mathrm{min} - E_\mathrm{limit}\right) / \left(C_\mathrm{nominal} - E_\mathrm{limit}\right)$ を0から1の範囲に切り詰めた値 |
 | $c$ | `cpu_time` | $\min\left(1, B / \tau\right)$。$\tau$ は参加者のプロセスの CPU 時間，$B = B_\mathrm{startup} + B_\mathrm{cycle} \cdot T / \Delta t$ は CPU 時間の予算 |
 
@@ -48,6 +48,7 @@ $g$，$a$，$d$ の3つの係数は，得点全体に掛かります。
 | $\Delta v_\mathrm{target}$ | `target_delta_v_mps` |
 | $t_\mathrm{declared}$ | `completion_declared_time_s` |
 | $T$ | `time_limit_s` |
+| $t_\mathrm{ref}$ | 設定の `completion_time.reference_time_s`。設定にないとき，または $T$ 未満でないときは0 |
 | $\Delta t$ | `decision_period_s` |
 | $E_\mathrm{min}$ | `min_battery_energy_wh` |
 | $E_\mathrm{limit}$ | `min_battery_energy_limit_wh` |
@@ -55,6 +56,8 @@ $g$，$a$，$d$ の3つの係数は，得点全体に掛かります。
 | $\tau$ | `CaseOutcome` の `participant_cpu_s` |
 
 バッテリの余裕は，`MissionBrief` が戦略に与える公称容量と安全制約を基準に測ります。
+完了時刻の項は，基準時刻以前の宣言で1となり，制限時間で0になるまで線形に減ります。
+$t_\mathrm{ref} = 0$ のときは $1 - t_\mathrm{declared} / T$ です。
 
 次の場合には注意が必要です。
 
@@ -84,50 +87,59 @@ $N$ は `Suite` の評価ケースの数，$s_i$ は評価ケース $i$ の得�
 ## 設定
 
 計算式の値はコードに固定されていません。
-`ScoringConfig` は，TOML から読み込んだ値を4つのセクションに分けて持ちます。
+`ScoringConfig` は，TOML から読み込んだ値を4つのセクションと省略可能な5つ目のセクションに分けて持ちます。
 このパッケージは，次の設定を `spacecraft_autonomy_challenge/judge/scoring.toml` として含みます。
 
 ```toml
 version = 1
 
 [accuracy]
-tolerance_fraction = 0.1
+tolerance_fraction = 0.075
 
 [declaration]
 undeclared_factor = 0.5
 
 [weights]
-base = 0.70
-completion_time = 0.15
-battery_margin = 0.10
-cpu_time = 0.05
+base = 0.65
+completion_time = 0.30
+battery_margin = 0.03
+cpu_time = 0.02
 
 [cpu_time]
 startup_allowance_s = 5.0
 per_decision_cycle_s = 0.1
+
+[completion_time]
+reference_time_s = 10660.0
 ```
 
 | キー | 記号 | 意味 | 同梱の値 |
 |---|---|---|---|
 | `version` | | 設定の形式のバージョン。1でなければならない | `1` |
-| `accuracy.tolerance_fraction` | $f_\mathrm{tol}$ | $a$ が0になる Δv の誤差の絶対値の，目標 Δv に対する比 | `0.1` |
+| `accuracy.tolerance_fraction` | $f_\mathrm{tol}$ | $a$ が0になる Δv の誤差の絶対値の，目標 Δv に対する比 | `0.075` |
 | `declaration.undeclared_factor` | $f_\mathrm{undeclared}$ | 完了を宣言しなかった実行の $d$ | `0.5` |
-| `weights.base` | $w_\mathrm{base}$ | 基本項の重み | `0.70` |
-| `weights.completion_time` | $w_\mathrm{time}$ | 完了時刻の項の重み | `0.15` |
-| `weights.battery_margin` | $w_\mathrm{battery}$ | バッテリの余裕の項の重み | `0.10` |
-| `weights.cpu_time` | $w_\mathrm{cpu}$ | CPU 時間の項の重み | `0.05` |
+| `weights.base` | $w_\mathrm{base}$ | 基本項の重み | `0.65` |
+| `weights.completion_time` | $w_\mathrm{time}$ | 完了時刻の項の重み | `0.30` |
+| `weights.battery_margin` | $w_\mathrm{battery}$ | バッテリの余裕の項の重み | `0.03` |
+| `weights.cpu_time` | $w_\mathrm{cpu}$ | CPU 時間の項の重み | `0.02` |
 | `cpu_time.startup_allowance_s` | $B_\mathrm{startup}$ | インタプリタの起動と戦略の読み込みに対する CPU 時間の予算（秒） | `5.0` |
 | `cpu_time.per_decision_cycle_s` | $B_\mathrm{cycle}$ | 制限時間内の判断周期1回あたりの CPU 時間の予算（秒） | `0.1` |
+| `completion_time.reference_time_s` | $t_\mathrm{ref}$ | 完了時刻の項が1に達する完了時刻（秒） | `10660.0` |
 
-同梱の値とチャレンジ問題（制限時間 21600 s，判断周期 60 s）では，CPU 時間の予算は $5 + 0.1 \cdot 360 = 41$ 秒です。
+同梱の値とチャレンジ問題（制限時間 21320 s，判断周期 60 s）では，
+CPU 時間の予算は $5 + 0.1 \cdot 21320 / 60 \approx 40.5$ 秒で，
+完了時刻の項は $(21320 - t_\mathrm{declared}) / 10660$ を0から1の範囲に切り詰めた値です。
+基準時刻 $t_\mathrm{ref}$ は参照実行のうち公称の最短の完了時刻で，制限時間 $T$ は $t_\mathrm{ref}$ の2倍です。
 
 設定は，次の規則を満たさなければなりません。
 
-- すべてのセクションとキーが必要で，形式が定義していないキーとセクションは拒否されます。
+- セクション `completion_time` を除くすべてのセクションとキーが必要で，形式が定義していないキーとセクションは拒否されます。
+  セクション `completion_time` がなければ基準時刻はなく，`to_dict()` はそのセクションを出力しません。
 - すべての値は有限の数です。
 - 重みは負でなく，合計は $10^{-9}$ の範囲で1です。
 - `tolerance_fraction`，`startup_allowance_s`，`per_decision_cycle_s` は正です。
 - `undeclared_factor` は0から1までです。
+- `reference_time_s` は負ではありません。
 
 規則を満たさない設定に対しては，`ValueError` のサブクラスである `ScoringConfigError` が送出されます。
 
