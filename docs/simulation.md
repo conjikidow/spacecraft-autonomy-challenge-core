@@ -84,8 +84,8 @@ and before the commands registered during `update` execute (step 4).
 Its `propulsion_mode`, `heater_on`, and `momentum_dump_on` therefore show the state at `t` that results from
 the previously scheduled commands,
 not the effect of the commands issued in that `update`.
-A command executed or scheduled for `t` in `update`, or scheduled for a time before the next decision time,
-first shows in the telemetry of the next decision time.
+A command executed or scheduled for `t` in `update`, or scheduled for a time up to the next decision time,
+can first show in the telemetry of the next decision time.
 
 The next event time is the earliest of the next integration step, the next decision time,
 the next pending command, and the time limit.
