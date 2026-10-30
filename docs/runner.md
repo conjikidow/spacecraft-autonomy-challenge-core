@@ -166,8 +166,8 @@ the processes that it started and that are still running are stopped, including 
   A process whose parent exits during the case remains a zombie under the trusted worker until the case ends.
 - The trusted worker also starts in a new session, and the participant process is part of its process group.
   When the trusted worker exits or the time limit is reached, every process remaining in that process group is stopped.
-  On other platforms, on Linux without `/proc`, and when the trusted worker itself is killed by something else,
-  this is all that is stopped,
+  On other platforms, on Linux without `/proc` or where the kernel refuses to make the trusted worker a subreaper,
+  and when the trusted worker itself is killed by something else, this is all that is stopped,
   so a process that the strategy moves into a new session or process group may survive the case.
 
 Only processes of the case are stopped: neither the process that runs the cases nor other cases,

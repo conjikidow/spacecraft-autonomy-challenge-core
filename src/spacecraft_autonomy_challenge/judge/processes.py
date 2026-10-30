@@ -3,7 +3,9 @@
 On Linux, the trusted worker becomes a child subreaper. A process whose parent exits is then reparented to the
 worker instead of the init process, so every process that the participant's code starts stays a descendant of the
 worker, even one that moved into a new session or process group. When the case ends, every descendant of the
-worker is killed. Elsewhere, both functions do nothing, and only the process group of the worker is stopped.
+worker is killed. Elsewhere, both functions do nothing, and only the process group of the worker is stopped. Where
+the kernel refuses to make the worker a subreaper, a process whose parent exits leaves the descendants of the worker,
+so only the process group of the worker can still stop it.
 """
 
 import contextlib
