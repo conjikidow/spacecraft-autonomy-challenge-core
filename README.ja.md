@@ -78,7 +78,7 @@ API の詳細は [戦略の書き方](docs/strategy.ja.md) を参照してくだ
 autonomy-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
 autonomy-challenge scenarios
 autonomy-challenge pack [PROJECT_DIR] [-o FILE]
-autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
+autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--memory-limit MIB] [--scoring TOML] [--json]
 ```
 
 `python -m spacecraft_autonomy_challenge` は `autonomy-challenge` と同じ働きをします。
@@ -117,7 +117,9 @@ autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--js
 評価の手順は，ほかの提出アーカイブの評価と同じです（[提出物の評価](docs/evaluating.ja.md)を参照）。
 `SUBMISSION` には，プロジェクトディレクトリ（デフォルトはカレントディレクトリ）か `submission.zip` ファイルを指定します。
 プロジェクトディレクトリは `pack` と同じ方法でメモリ上でアーカイブにし，`submission.zip` ファイルはそのまま読み込みます。
-`--timeout` で1つの評価ケースの実時間の上限（デフォルトは 300 秒）を設定し，
+`--timeout` で1つの評価ケースの実時間の上限（デフォルトは 300 秒）を，
+`--memory-limit` で参加者のプロセスと，それが起動する各プロセスのデータメモリの上限を MiB 単位で
+（デフォルトは 4096，上限なしは 0。[評価ケースの実行](docs/runner.ja.md#メモリの上限)を参照）設定し，
 `--scoring` で同梱の得点設定の代わりに TOML ファイルの得点設定を読み込みます（[得点](docs/scoring.ja.md)を参照）。
 進捗は標準エラー出力に送られます。
 その後 `check` は，`SUBMISSION` のパス，アーカイブの SHA-256，展開しなかったアーカイブのエントリと提出物のためにインストールしたパッケージ（あれば），

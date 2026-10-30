@@ -62,11 +62,16 @@ class ParticipantProcess:
         overlay: Path | None = None,
         *,
         output: tuple[int, int] | None = None,
+        memory_limit_bytes: int | None = None,
     ) -> None:
-        """Start the process; `output` gives its standard output and error descriptors (default: inherited)."""
+        """Start the process; `output` gives its standard output and error descriptors (default: inherited).
+
+        The process limits its own data memory to `memory_limit_bytes` before it runs any of the participant's code
+        (`None`: not limited); see `participant.limit_memory`.
+        """
         trusted, participant = socket.socketpair()
         command = [sys.executable, "-P", "-c", _PARTICIPANT_BOOTSTRAP, PACKAGE_ROOT]
-        command += [str(participant.fileno()), str(submission_root)]
+        command += [str(participant.fileno()), str(memory_limit_bytes or 0), str(submission_root)]
         if overlay is not None:
             command.append(str(overlay))
         with participant:

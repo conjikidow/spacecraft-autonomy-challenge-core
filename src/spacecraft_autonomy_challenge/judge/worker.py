@@ -43,18 +43,22 @@ def evaluate_case(
     overlay: Path | None = None,
     *,
     output: tuple[int, int] | None = None,
+    memory_limit_bytes: int | None = None,
 ) -> dict[str, Any]:
     """Run the case with a fresh strategy from `submission_root` in a participant process; return the JSON result.
 
     Only this process loads the scenario provider. Only the participant process gets the packages of
-    `overlay`, first on its import path. A completed case also reports the CPU time of the participant
+    `overlay`, first on its import path, and its data memory is limited to `memory_limit_bytes` (`None`: not
+    limited). A completed case also reports the CPU time of the participant
     process (see `ParticipantProcess.finish`); other cases report `None`.
     """
     # Taken before the provider runs, so that whatever it puts into the environment never reaches the participant.
     base_env = dict(os.environ)
     scenario = provider.build(case)
     env = base_env if overlay is None else Overlay(overlay).environment(base_env)
-    with ParticipantProcess(submission_root, env, overlay, output=output) as participant:
+    with ParticipantProcess(
+        submission_root, env, overlay, output=output, memory_limit_bytes=memory_limit_bytes
+    ) as participant:
         try:
             load_error = participant.wait_ready()
             if load_error is not None:
@@ -100,7 +104,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     try:
         case = EvaluationCase.from_dict(request["case"])
         provider = ScenarioProvider.from_dict(request["provider"])
-        result = evaluate_case(Path(request["submission_root"]), case, provider, overlay, output=output)
+        result = evaluate_case(
+            Path(request["submission_root"]),
+            case,
+            provider,
+            overlay,
+            output=output,
+            memory_limit_bytes=request.get("memory_limit_bytes"),
+        )
     except BaseException as error:
         # The traceback may show the scenario provider and data of the case, so the participant-visible detail
         # names the exception type only.

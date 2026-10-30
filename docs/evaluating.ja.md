@@ -39,6 +39,7 @@ Path("result.json").write_text(result.to_json(), encoding="utf-8")
 | 引数 | 意味 |
 |---|---|
 | `timeout_s` | 1つの評価ケースの実時間の上限（デフォルトは `DEFAULT_CASE_TIMEOUT_S`，300 秒） |
+| `memory_limit_bytes` | 参加者のプロセスと，それが起動する各プロセスのデータメモリの上限（デフォルトは `DEFAULT_MEMORY_LIMIT_BYTES`，4 GiB），または上限なしを表す `None`（[評価ケースの実行](runner.ja.md#メモリの上限)を参照） |
 | `scoring` | 結果を採点する `ScoringConfig`（デフォルトは `None` で，`ScoringConfig.default()` を意味する。[得点](scoring.ja.md)を参照） |
 | `on_status` | パッケージを準備する前と評価ケースを実行する前に，短い進捗メッセージとともに呼び出される |
 | `on_case_done` | 各 `CaseOutcome` が得られるたびに，それとともに呼び出される |

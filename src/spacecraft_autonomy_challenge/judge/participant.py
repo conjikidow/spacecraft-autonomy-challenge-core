@@ -4,11 +4,14 @@ The trusted case worker starts this process with the participant's packages firs
 talks to it over a dedicated socket. The process only ever receives what a strategy may see: the mission
 brief, telemetry, and the results of commander requests. It never imports the case definitions.
 
-    python -P -m spacecraft_autonomy_challenge.judge.participant SOCKET_FD SUBMISSION_ROOT [OVERLAY]
+    python -P -m spacecraft_autonomy_challenge.judge.participant SOCKET_FD MEMORY_LIMIT_BYTES SUBMISSION_ROOT [OVERLAY]
+
+A `MEMORY_LIMIT_BYTES` of 0 leaves the data memory of the process unlimited.
 """
 
 import operator
 import os
+import resource
 import site
 import socket
 import sys
@@ -195,13 +198,32 @@ def serve(channel: Channel, submission_root: Path) -> None:
             return
 
 
+def limit_memory(limit_bytes: int) -> None:
+    """Limit the data memory (`RLIMIT_DATA`) of this process and of every process that it starts to `limit_bytes`.
+
+    Both the soft and the hard limit are set, so the participant's code cannot raise them again; a lower hard limit
+    that is already in place is kept. Since Linux 4.7, the limit covers all private writable memory, such as the
+    heap and anonymous mappings, but not address space that is only reserved, as JVMs do for their heap. Where the
+    limit cannot be set, nothing is limited.
+    """
+    try:
+        _, hard = resource.getrlimit(resource.RLIMIT_DATA)
+        if hard != resource.RLIM_INFINITY:
+            limit_bytes = min(limit_bytes, hard)
+        resource.setrlimit(resource.RLIMIT_DATA, (limit_bytes, limit_bytes))
+    except (OSError, ValueError):
+        pass
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     """Entry point: serve one case, then exit the process at once.
 
     Exiting at once keeps threads or exit handlers that the participant's code left behind from delaying
     the end of the case.
     """
-    fd, submission_root, *overlay = sys.argv[1:] if argv is None else argv
+    fd, memory_limit_bytes, submission_root, *overlay = sys.argv[1:] if argv is None else argv
+    if int(memory_limit_bytes):
+        limit_memory(int(memory_limit_bytes))
     if overlay:
         # Already first on the path through PYTHONPATH; this also processes the overlay's .pth files.
         site.addsitedir(overlay[0])

@@ -2,6 +2,8 @@ import contextlib
 import json
 import os
 import re
+import resource
+import shutil
 import signal
 import subprocess
 import sys
@@ -364,8 +366,9 @@ def test_the_request_is_not_where_the_strategy_can_read_it(make_submission):
     hidden = case("hidden-id-58213", 7, {"type": "ThrusterEfficiency", "thruster": "THRUSTER_2", "factor": 0.5})
     outcome = run_case(make_submission({"strategy.py": inspecting}).root, hidden, PROVIDER)
     arguments, stdin, environment, files = json.loads(outcome.stdout)
-    socket_fd, submission_root = arguments
+    socket_fd, memory_limit, submission_root = arguments
     assert socket_fd.isdigit()
+    assert memory_limit == str(runner.DEFAULT_MEMORY_LIMIT_BYTES)
     assert Path(submission_root).name == "root"
     assert stdin == ""
     assert files == ["submission/strategy.py"]
@@ -707,6 +710,93 @@ def test_environment_changes_of_the_scenario_provider_do_not_reach_the_participa
     outcome = run_case(make_submission({"strategy.py": reading}).root, CASES[0], provider)
     assert outcome.status is CaseStatus.COMPLETED
     assert "hidden: None" in outcome.stdout
+
+
+DATA_LIMITS = """
+import resource
+import subprocess
+import sys
+
+from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+CHILD = "import resource; print('child:', *resource.getrlimit(resource.RLIMIT_DATA))"
+
+
+class MyStrategy(Strategy):
+    def initialize(self, brief, telemetry, commander):
+        print("participant:", *resource.getrlimit(resource.RLIMIT_DATA), flush=True)
+        subprocess.run([sys.executable, "-c", CHILD], check=True)
+        commander.execute(DeclareCompletion())
+"""
+
+
+def test_the_participant_process_and_its_children_have_a_data_memory_limit(make_submission):
+    root = make_submission({"strategy.py": DATA_LIMITS}).root
+    limit = runner.DEFAULT_MEMORY_LIMIT_BYTES
+    outcome = run_case(root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert f"participant: {limit} {limit}\nchild: {limit} {limit}\n" in outcome.stdout
+    outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=2**30)
+    assert f"participant: {2**30} {2**30}\nchild: {2**30} {2**30}\n" in outcome.stdout
+    soft, hard = resource.getrlimit(resource.RLIMIT_DATA)
+    outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=None)
+    assert f"participant: {soft} {hard}\nchild: {soft} {hard}\n" in outcome.stdout
+
+
+@pytest.mark.parametrize("limit", [0, -1, 2.5e9])
+def test_the_memory_limit_must_be_a_positive_integer(make_submission, limit):
+    submission = make_submission({"strategy.py": DECLARE_AT_START})
+    with pytest.raises(ValueError, match="memory_limit_bytes"):
+        run_case(submission.root, CASES[0], PROVIDER, memory_limit_bytes=limit)
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux counts all private memory")
+def test_allocations_beyond_the_memory_limit_fail_in_the_participant_and_its_children(make_submission):
+    allocating = """
+    import subprocess
+    import sys
+
+    from spacecraft_autonomy_challenge import Strategy
+
+    CHILD = "bytearray(512 * 1024**2)"
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            child = subprocess.run([sys.executable, "-c", CHILD], capture_output=True, text=True)
+            print("child:", child.returncode, child.stderr.splitlines()[-1], flush=True)
+            bytearray(512 * 1024**2)
+    """
+    root = make_submission({"strategy.py": allocating}).root
+    outcome = run_case(root, CASES[0], PROVIDER, memory_limit_bytes=256 * 1024**2)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert outcome.metrics["termination_reason"] == "STRATEGY_ERROR"
+    assert "MemoryError" in outcome.detail
+    assert "child: 1 MemoryError" in outcome.stdout
+
+
+@pytest.mark.skipif(shutil.which("java") is None, reason="needs a Java runtime")
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="only Linux counts all private memory")
+def test_a_jvm_starts_under_the_default_memory_limit_and_fails_beyond_it(make_submission):
+    starting = """
+    import os
+    import subprocess
+
+    from spacecraft_autonomy_challenge import DeclareCompletion, Strategy
+
+    ENV = {k: v for k, v in os.environ.items() if k not in ("JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS")}
+
+
+    class MyStrategy(Strategy):
+        def initialize(self, brief, telemetry, commander):
+            for options in ([], ["-Xms6g"]):
+                java = subprocess.run(["java", *options, "-version"], env=ENV, capture_output=True, text=True)
+                print("java", *options, java.returncode, "insufficient memory" in java.stdout + java.stderr)
+            commander.execute(DeclareCompletion())
+    """
+    outcome = run_case(make_submission({"strategy.py": starting}).root, CASES[0], PROVIDER)
+    assert outcome.status is CaseStatus.COMPLETED, outcome.detail
+    assert "java 0 False\njava -Xms6g 1 True\n" in outcome.stdout
 
 
 def test_huge_strategy_errors_are_shortened_instead_of_breaking_the_protocol(make_submission):

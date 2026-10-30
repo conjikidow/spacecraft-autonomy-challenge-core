@@ -143,6 +143,27 @@ def test_check_rejects_a_non_positive_timeout(project, capsys):
     assert exit_info.value.code == EXIT_USAGE
 
 
+@pytest.mark.parametrize(("argument", "expected"), [(None, 4 * 1024**3), ("1024", 1024**3), ("0", None)])
+def test_check_passes_the_memory_limit(project, monkeypatch, argument, expected):
+    limits = []
+
+    def recording(archive, **kwargs):
+        limits.append(kwargs["memory_limit_bytes"])
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("spacecraft_autonomy_challenge.judge.judging.check_submission", recording)
+    arguments = [] if argument is None else ["--memory-limit", argument]
+    assert main(["check", str(project), *arguments]) == EXIT_INTERRUPTED
+    assert limits == [expected]
+
+
+@pytest.mark.parametrize("argument", ["-1", "1.5", "lots"])
+def test_check_rejects_an_invalid_memory_limit(project, argument):
+    with pytest.raises(SystemExit) as exit_info:
+        main(["check", str(project), "--memory-limit", argument])
+    assert exit_info.value.code == EXIT_USAGE
+
+
 def test_importing_the_cli_does_not_import_the_evaluation_modules():
     code = (
         "import sys, spacecraft_autonomy_challenge.cli; "
@@ -167,6 +188,14 @@ def test_the_timeout_help_names_the_default(capsys):
     with pytest.raises(SystemExit):
         main(["check", "--help"])
     assert f"default: {DEFAULT_CASE_TIMEOUT_S:g}" in capsys.readouterr().out
+
+
+def test_the_memory_limit_help_names_the_default(capsys):
+    from spacecraft_autonomy_challenge.judge.runner import DEFAULT_MEMORY_LIMIT_BYTES
+
+    with pytest.raises(SystemExit):
+        main(["check", "--help"])
+    assert f"default: {DEFAULT_MEMORY_LIMIT_BYTES // 1024**2})" in capsys.readouterr().out
 
 
 def test_pack_reports_a_symbolic_link_loop_as_a_usage_error(project, tmp_path, capsys):

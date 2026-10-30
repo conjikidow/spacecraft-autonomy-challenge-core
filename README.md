@@ -78,7 +78,7 @@ See [Writing a Strategy](docs/strategy.md) for the full API.
 autonomy-challenge run STRATEGY [--scenario NAME] [--seed N] [--json]
 autonomy-challenge scenarios
 autonomy-challenge pack [PROJECT_DIR] [-o FILE]
-autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--scoring TOML] [--json]
+autonomy-challenge check [SUBMISSION] [--timeout SECONDS] [--memory-limit MIB] [--scoring TOML] [--json]
 ```
 
 `python -m spacecraft_autonomy_challenge` is equivalent to `autonomy-challenge`.
@@ -119,6 +119,8 @@ in the same way as any evaluation of a submission archive (see [Evaluating Submi
 `SUBMISSION` is a project directory (default: the current directory), which is packed in memory exactly like `pack`,
 or a `submission.zip` file, which is read as it is.
 `--timeout` sets the wall-clock limit of one case (default 300 s),
+`--memory-limit` the data memory limit of the participant process and of each process that it starts, in MiB
+(default 4096; 0 for none; see [Running Cases](docs/runner.md#memory-limit)),
 and `--scoring` reads the scoring configuration from a TOML file instead of the shipped one (see [Scoring](docs/scoring.md)).
 Progress goes to standard error.
 `check` then prints the `SUBMISSION` path and the SHA-256 of the archive,
