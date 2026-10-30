@@ -75,6 +75,7 @@ def test_brief_and_telemetry_round_trip_exactly():
     brief = problem().brief()
     assert decode_brief(json.loads(json.dumps(encode_brief(brief)))) == brief
     telemetry = Telemetry(0.1, 1 / 3, -7.25, 79.999, -0.0002, True, PropulsionMode.THRUSTER_2, True)
+    assert encode_brief(brief)["nominal_initial_telemetry"]["propulsion_mode"] == "OFF"
     assert decode_telemetry(json.loads(json.dumps(encode_telemetry(telemetry)))) == telemetry
     assert encode_telemetry(telemetry)["propulsion_mode"] == "THRUSTER_2"
 
