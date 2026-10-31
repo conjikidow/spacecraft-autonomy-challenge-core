@@ -1,0 +1,16 @@
+// A toy planning model: burn in chunks of 30 s, one at a time, until 4 chunks are done.
+fluent boolean idle;
+fluent integer chunks;
+
+[start] idle := true;
+[start] chunks := 0;
+
+action burn() {
+  duration := 30;
+  [start] idle == true;
+  [start] idle := false;
+  [end] idle := true;
+  [end] chunks := chunks + 1;
+};
+
+[end] chunks >= 4;
