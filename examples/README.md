@@ -41,26 +41,29 @@ Both solve the same abstract model, which only counts chunks of burning; it know
 `ANMLReader().parse_problem_string(text)` reads a model from a string instead,
 and `PDDLReader` in `unified_planning.io` reads PDDL files.
 
-`toy_planning.py` holds what they share, and they import it as a module next to them.
-`solve` passes the names of several engines to `OneshotPlanner(names=...)`,
+Each strategy passes the names of several engines to `OneshotPlanner(names=...)`,
 which runs them in parallel processes.
 It adds a quality metric to the problem, because the call then returns the first plan;
 without a metric, it waits for every engine to finish.
 It uses the engines that are installed, because `up-tamer` has no packages for arm64 and `up-aries` covers more platforms.
 
 The repository's development environment already has these packages.
-To use them in a submission, add them to your project and put the files you need under `submission/`:
+To use them in a submission, add them to your project:
 
 ```sh
 uv add unified-planning up-aries "up-tamer; platform_machine == 'x86_64'"
 ```
+
+Each strategy file is complete on its own.
+To try one, copy it to `submission/strategy.py`, with `toy_burn.anml` next to it for `planning_external_file.py`,
+and rename its class to `MyStrategy`.
 
 With version 1.3.0 of `unified-planning`, keep the following in mind:
 
 - If one of the named engines cannot handle the problem, or is not installed, the whole call fails,
   even if another engine could solve it.
   So name only engines that suit your problem.
-- `timeout` of `solve` has no effect with `OneshotPlanner(names=...)`, however many engines are named.
+- `timeout` of `planner.solve` has no effect with `OneshotPlanner(names=...)`, however many engines are named.
   If no engine finishes, the strategy waits until the time limit of the case, so keep the model small.
 - The plan that returns first is not necessarily the best one, even with a quality metric.
 - A warning that it cannot establish whether an engine can solve the problem is only a warning;
