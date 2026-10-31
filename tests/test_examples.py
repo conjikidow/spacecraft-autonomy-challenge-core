@@ -22,8 +22,7 @@ PLANNING_STRATEGIES = {
 def examples(monkeypatch):
     """Import path and module cache as when running an example script from the repository root."""
     monkeypatch.setattr(sys, "path", [str(EXAMPLES), *sys.path])
-    for module in ("toy_problem", "toy_planning"):
-        monkeypatch.delitem(sys.modules, module, raising=False)
+    monkeypatch.delitem(sys.modules, "toy_problem", raising=False)
     return lambda name: runpy.run_path(str(EXAMPLES / name))
 
 
@@ -48,12 +47,13 @@ def test_example_scripts_run(name, examples, capsys):
 
 @pytest.mark.parametrize("engines", [("tamer",), ("aries",), ("tamer", "aries")])
 @pytest.mark.parametrize("name", PLANNING_STRATEGIES)
-def test_planning_examples_schedule_the_planned_burns(name, engines, examples, monkeypatch):
+def test_planning_examples_schedule_the_planned_burns(name, engines, examples, monkeypatch, capsys):
     for engine in engines:
         pytest.importorskip(f"up_{engine}")
-    namespace = examples(name)
-    monkeypatch.setattr(sys.modules["toy_planning"], "ENGINES", engines)
-    result = run(namespace[PLANNING_STRATEGIES[name]](), examples("toy_problem.py")["toy_scenario"]())
+    strategy_class = examples(name)[PLANNING_STRATEGIES[name]]
+    monkeypatch.setitem(strategy_class.initialize.__globals__, "ENGINES", engines)
+    result = run(strategy_class(), examples("toy_problem.py")["toy_scenario"]())
+    assert capsys.readouterr().out.split(":")[0].lower() in engines
     commands = [s.command for s in result.executed_commands]
     assert commands == [
         *[SetPropulsionMode(PropulsionMode.THRUSTER_1), SetPropulsionMode(PropulsionMode.OFF)] * 4,

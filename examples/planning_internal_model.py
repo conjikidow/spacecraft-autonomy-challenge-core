@@ -3,13 +3,35 @@
 Run from the repository root with `uv run python examples/planning_internal_model.py`.
 """
 
-from toy_planning import schedule_burns, solve
-from unified_planning.shortcuts import GE, BoolType, DurativeAction, EndTiming, Fluent, IntType, Problem, StartTiming
+from unified_planning.model.metrics import MinimizeMakespan
+from unified_planning.shortcuts import (
+    GE,
+    BoolType,
+    DurativeAction,
+    EndTiming,
+    Fluent,
+    IntType,
+    OneshotPlanner,
+    Problem,
+    StartTiming,
+    get_environment,
+)
 
-from spacecraft_autonomy_challenge import Commander, MissionBrief, Strategy, Telemetry
+from spacecraft_autonomy_challenge import (
+    Commander,
+    DeclareCompletion,
+    MissionBrief,
+    PropulsionMode,
+    SetPropulsionMode,
+    Strategy,
+    Telemetry,
+)
 
 CHUNK_S = 30
 CHUNKS = 4
+# Engines that can plan with durations. An engine that cannot handle the problem fails the whole
+# parallel call, so list only such engines; those not installed on this platform are left out below.
+ENGINES = ("tamer", "aries")
 
 
 def toy_model() -> Problem:
@@ -35,7 +57,27 @@ class PlanningInternalModel(Strategy):
     """Plans once in `initialize` from a model built in code."""
 
     def initialize(self, brief: MissionBrief, telemetry: Telemetry, commander: Commander) -> None:
-        schedule_burns(solve(toy_model()), commander, brief.decision_period_s)
+        problem = toy_model()
+        # With a quality metric, the first plan ends the parallel call; without one, it waits for every engine.
+        problem.add_quality_metric(MinimizeMakespan())
+
+        environment = get_environment()
+        environment.credits_stream = None  # Keeps the credits of the engines out of the output.
+        names = [name for name in ENGINES if name in environment.factory.engines]
+        if not names:
+            raise RuntimeError(f"none of the planning engines {ENGINES} is installed")
+        with OneshotPlanner(names=names) as planner:
+            result = planner.solve(problem)
+        if result.plan is None:
+            raise RuntimeError(f"no plan: {result.status.name}")
+        print(f"{result.engine_name}: {result.status.name}")
+
+        end_s = 0.0
+        for start, _action, duration in result.plan.timed_actions:
+            commander.schedule(float(start), SetPropulsionMode(PropulsionMode.THRUSTER_1))
+            commander.schedule(float(start + duration), SetPropulsionMode(PropulsionMode.OFF))
+            end_s = max(end_s, float(start + duration))
+        commander.schedule(end_s + brief.decision_period_s, DeclareCompletion())
 
 
 if __name__ == "__main__":

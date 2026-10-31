@@ -41,25 +41,28 @@ uv run python examples/planning_external_file.py
 文字列からモデルを読み込むには `ANMLReader().parse_problem_string(text)` を使い，
 PDDL ファイルは `unified_planning.io` の `PDDLReader` で読み込めます。
 
-共通の処理は `toy_planning.py` にあり，2つの戦略はこれを隣のモジュールとしてインポートします。
-`solve` は，複数のエンジン名を `OneshotPlanner(names=...)` に渡します。
+どちらの戦略も，複数のエンジン名を `OneshotPlanner(names=...)` に渡します。
 これによりエンジンが別々のプロセスで並列に実行されます。
 問題に品質指標（quality metric）を追加しているのは，そうすると最初に得られた計画が返るためです。
 指標がないと，すべてのエンジンの終了を待ちます。
 `up-tamer` には arm64 向けのパッケージがなく，`up-aries` はより多くのプラットフォームに対応しているため，インストールされているエンジンだけを使います。
 
 リポジトリの開発環境には，これらのパッケージがすでに入っています。
-提出物で使うには，プロジェクトに追加し，必要なファイルを `submission/` の下に置きます。
+提出物で使うには，プロジェクトに追加します。
 
 ```sh
 uv add unified-planning up-aries "up-tamer; platform_machine == 'x86_64'"
 ```
 
+戦略のファイルは，それぞれ単独で完結しています。
+試すには，ファイルを `submission/strategy.py` にコピーし（`planning_external_file.py` の場合は隣に `toy_burn.anml` も置きます），
+クラス名を `MyStrategy` に変更します。
+
 `unified-planning` のバージョン 1.3.0 では，次の点に注意してください。
 
 - 指定したエンジンのどれかが問題を扱えない場合や，インストールされていない場合は，他のエンジンで解ける問題でも呼び出し全体が失敗します。
   そのため，問題に合うエンジンだけを指定してください。
-- `OneshotPlanner(names=...)` では，指定するエンジンの数によらず，`solve` の `timeout` は効きません。
+- `OneshotPlanner(names=...)` では，指定するエンジンの数によらず，`planner.solve` の `timeout` は効きません。
   どのエンジンも終わらないと，戦略はケースの制限時間まで待ち続けるので，モデルは小さく保ってください。
 - 品質指標があっても，最初に返る計画が最良とは限りません。
 - エンジンが問題を解けるか判断できないという警告は，警告にすぎません。そのエンジンが問題を解くこともあります。
